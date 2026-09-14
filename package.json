@@ -1,0 +1,90 @@
+{
+  "name": "teacher-app",
+  "version": "2.0.128",
+  "description": "쌤포트 Electron 앱",
+  "author": "충상",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win nsis",
+    "build:patch": "powershell -ExecutionPolicy Bypass -File ./패키지만들기.ps1",
+    "release:win": "electron-builder --win nsis --publish always",
+    "release:mac": "./release_auto_mac.sh"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.10",
+    "better-sqlite3": "^9.4.3",
+    "electron-updater": "^6.8.3",
+    "firebase": "^12.12.1",
+    "tesseract.js": "^7.0.0",
+    "xlsx": "^0.18.5",
+    "yauzl": "^3.3.0"
+  },
+  "devDependencies": {
+    "electron": "^29.4.6",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.teacher.app",
+    "productName": "쌤포트",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "oauth-config.js",
+      "package.json",
+      "assets/**/*",
+      "src/**/*",
+      "node_modules/**/*",
+      "!node_modules/.cache/**/*",
+      "!node_modules/electron/**/*",
+      "!node_modules/electron-builder/**/*",
+      "!node_modules/**/test/**/*",
+      "!node_modules/**/tests/**/*",
+      "!node_modules/**/*.md",
+      "!node_modules/**/*.map",
+      "!node_modules/**/.eslintrc*",
+      "!node_modules/**/CHANGELOG*",
+      "!node_modules/**/LICENSE*"
+    ],
+    "extraResources": [
+      {
+        "from": "hwp_engine",
+        "to": "hwp_engine"
+      }
+    ],
+    "asar": false,
+    "win": {
+      "target": "nsis",
+      "artifactName": "teacher-app-setup-${version}.${ext}",
+      "executableName": "쌤포트",
+      "icon": "assets/icon.ico",
+      "extraResources": [
+        {
+          "from": "python-embed",
+          "to": "python-embed",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "쌤포트",
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "KoreaUm",
+      "repo": "ssamport",
+      "releaseType": "draft"
+    }
+  }
+}

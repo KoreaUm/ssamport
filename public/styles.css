@@ -1,0 +1,160 @@
+:root {
+  --bg: #f5f1e8;
+  --ink: #202124;
+  --muted: #697177;
+  --line: #ded7c7;
+  --card: #fffaf0;
+  --accent: #26695c;
+  --accent-2: #d58d2a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(213, 141, 42, 0.18), transparent 34%),
+    radial-gradient(circle at 90% 10%, rgba(38, 105, 92, 0.14), transparent 30%),
+    var(--bg);
+  color: var(--ink);
+  font-family: "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+  line-height: 1.68;
+}
+
+.page {
+  width: min(960px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: 72px 0;
+}
+
+.hero {
+  padding: 54px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: rgba(255, 250, 240, 0.82);
+  box-shadow: 0 24px 70px rgba(55, 45, 28, 0.11);
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: clamp(42px, 8vw, 82px);
+  line-height: 0.98;
+  letter-spacing: -0.07em;
+}
+
+h2 {
+  margin: 30px 0 8px;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+}
+
+p {
+  margin: 0 0 12px;
+}
+
+.lead {
+  max-width: 680px;
+  color: var(--muted);
+  font-size: 21px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.button.secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.card,
+.notice,
+.document {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 250, 240, 0.86);
+  box-shadow: 0 16px 42px rgba(55, 45, 28, 0.08);
+}
+
+.card {
+  padding: 24px;
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.notice {
+  margin-top: 16px;
+  padding: 28px;
+}
+
+.document {
+  padding: 44px;
+}
+
+.document h1 {
+  font-size: clamp(34px, 6vw, 56px);
+}
+
+.meta,
+.back {
+  color: var(--muted);
+}
+
+a {
+  color: var(--accent);
+}
+
+li {
+  margin: 6px 0;
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 28px 0;
+  }
+
+  .hero,
+  .document {
+    padding: 28px;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}

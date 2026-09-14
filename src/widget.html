@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>쌤포트 위젯</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    font-family: -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  #card {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: rgba(28, 30, 38, 0.62);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    color: #fff;
+    overflow: hidden;
+  }
+  #header {
+    -webkit-app-region: drag;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px 6px 14px;
+    flex-shrink: 0;
+  }
+  #date {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.85;
+    letter-spacing: 0.2px;
+  }
+  #close-btn {
+    -webkit-app-region: no-drag;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #close-btn:hover { background: rgba(255,90,90,0.75); }
+  #title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px 6px 14px;
+    flex-shrink: 0;
+  }
+  #title {
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0.95;
+  }
+  .icon-btn {
+    -webkit-app-region: no-drag;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-btn:hover { background: rgba(255,255,255,0.22); }
+  .tt-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 6px;
+    border-radius: 8px;
+    font-size: 12.5px;
+  }
+  .tt-row:hover { background: rgba(255,255,255,0.08); }
+  .tt-period {
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+    font-weight: 700;
+    opacity: 0.6;
+    font-size: 11px;
+  }
+  .tt-subject { flex: 1; }
+  .tt-room { opacity: 0.55; font-size: 10.5px; }
+  #list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2px 10px 8px;
+  }
+  #list::-webkit-scrollbar { width: 6px; }
+  #list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+  .todo-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 6px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.35;
+    cursor: pointer;
+  }
+  .todo-row:hover { background: rgba(255,255,255,0.08); }
+  .todo-dot {
+    margin-top: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #6ea8fe;
+  }
+  .todo-dot.urgent { background: #ff6b6b; }
+  .todo-text { flex: 1; word-break: break-word; }
+  .todo-deadline { opacity: 0.6; font-size: 10.5px; margin-top: 1px; }
+  .todo-source-badge {
+    display: inline-block;
+    margin-top: 2px;
+    font-size: 10px;
+    color: #6ea8fe;
+  }
+  .todo-source-body {
+    display: none;
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 6px;
+    font-size: 11px;
+    opacity: 0.85;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .todo-item.expanded .todo-source-body { display: block; }
+  #empty {
+    padding: 20px 14px;
+    font-size: 12.5px;
+    opacity: 0.6;
+    text-align: center;
+  }
+  #footer {
+    -webkit-app-region: no-drag;
+    flex-shrink: 0;
+    padding: 8px 10px 10px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+  #footer[hidden] { display: none; }
+  .footer-row {
+    display: flex;
+    gap: 6px;
+  }
+  #add-input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+    outline: none;
+  }
+  #add-input::placeholder { color: rgba(255,255,255,0.45); }
+  .footer-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 6px 9px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #add-btn { background: #6ea8fe; color: #0d1526; }
+  #ai-add-btn { background: rgba(255,255,255,0.14); color: #fff; }
+  #footer-status {
+    margin-top: 5px;
+    font-size: 10.5px;
+    opacity: 0.7;
+    min-height: 13px;
+  }
+  .memo-row {
+    padding: 7px 8px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    border-left: 3px solid var(--memo-color, #f9e44e);
+    background: rgba(255,255,255,0.05);
+  }
+  .memo-row:hover { background: rgba(255,255,255,0.1); }
+  .memo-preview { white-space: pre-wrap; word-break: break-word; line-height: 1.35; }
+  .memo-pin { font-size: 10px; opacity: 0.7; margin-right: 4px; }
+  .memo-edit-area {
+    display: none;
+    margin-top: 6px;
+  }
+  .memo-row.expanded .memo-preview { display: none; }
+  .memo-row.expanded .memo-edit-area { display: block; }
+  .memo-textarea {
+    width: 100%;
+    min-height: 60px;
+    resize: vertical;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(0,0,0,0.2);
+    color: #fff;
+    border-radius: 6px;
+    padding: 6px;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .memo-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .memo-actions button {
+    border: none;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 10.5px;
+    cursor: pointer;
+  }
+  .memo-del-btn { background: rgba(255,90,90,0.3); color: #fff; }
+  .memo-close-btn { background: rgba(255,255,255,0.15); color: #fff; }
+</style>
+</head>
+<body>
+  <div id="card">
+    <div id="header">
+      <span id="date"></span>
+      <button id="close-btn" title="위젯 닫기">✕</button>
+    </div>
+    <div id="title-row">
+      <span id="title"></span>
+      <button class="icon-btn" id="add-toggle-btn" title="추가" hidden>+</button>
+    </div>
+    <div id="list"></div>
+    <div id="footer" hidden>
+      <div class="footer-row">
+        <input id="add-input" placeholder="할일 입력 또는 문구 붙여넣기...">
+        <button class="footer-btn" id="add-btn">추가</button>
+        <button class="footer-btn" id="ai-add-btn">🤖 AI</button>
+      </div>
+      <div id="footer-status"></div>
+    </div>
+  </div>
+<script>
+  function fmtDate() {
+    const d = new Date();
+    const days = ['일','월','화','수','목','금','토'];
+    return `${d.getMonth() + 1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  function isUrgent(deadline) {
+    if (!deadline) return false;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dl = new Date(deadline + 'T00:00:00');
+    return dl <= today;
+  }
+
+  // ── 할일 위젯 ──────────────────────────────────────────
+  async function renderTodos() {
+    const list = document.getElementById('list');
+    document.getElementById('title').textContent = '✅ 오늘의 할일';
+    try {
+      const todos = (await window.api.getTodos(false)) || [];
+      todos.sort((a, b) => (a.deadline || '9999').localeCompare(b.deadline || '9999'));
+      if (!todos.length) {
+        list.innerHTML = '<div id="empty">할일이 없습니다 🎉</div>';
+        return;
+      }
+      list.innerHTML = todos.slice(0, 30).map(t => `
+        <div class="todo-item" data-id="${t.id}">
+          <div class="todo-row">
+            <div class="todo-dot${isUrgent(t.deadline) ? ' urgent' : ''}"></div>
+            <div style="flex:1;min-width:0">
+              <div class="todo-text">${escapeHtml(t.title)}</div>
+              ${t.deadline ? `<div class="todo-deadline">${escapeHtml(t.deadline)}</div>` : ''}
+              ${t.source_text ? `
+                <span class="todo-source-badge">📄 원문 보기</span>
+                <div class="todo-source-body">${escapeHtml(t.source_text)}</div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+      list.querySelectorAll('.todo-item').forEach(item => {
+        item.addEventListener('click', () => item.classList.toggle('expanded'));
+      });
+    } catch (err) {
+      list.innerHTML = '<div id="empty">불러오지 못했습니다</div>';
+    }
+  }
+
+  function parseAITodoLines(rawText) {
+    const lines = String(rawText || '').split('\n').map(l => l.trim()).filter(Boolean);
+    const todos = [];
+    for (const line of lines) {
+      let text = line.replace(/^[-*]\s*\[[ xX]?\]\s*/, '').replace(/^[-*•]\s*/, '').replace(/^\d+\.\s*/, '').trim();
+      if (!text) continue;
+      let deadline = '';
+      const dateMatch = text.match(/(\d{4}-\d{2}-\d{2})/);
+      if (dateMatch) {
+        deadline = dateMatch[1];
+        text = text.replace(/\(?\s*(기한|마감|due)?\s*:?\s*\d{4}-\d{2}-\d{2}\s*\)?/i, '').trim();
+      }
+      text = text.replace(/\(\s*\)$/, '').trim();
+      if (text) todos.push({ title: text, deadline });
+    }
+    return todos;
+  }
+
+  function setupTodoFooter() {
+    const footer = document.getElementById('footer');
+    const addToggleBtn = document.getElementById('add-toggle-btn');
+    const input = document.getElementById('add-input');
+    const addBtn = document.getElementById('add-btn');
+    const aiBtn = document.getElementById('ai-add-btn');
+    const status = document.getElementById('footer-status');
+
+    addToggleBtn.hidden = false;
+    addToggleBtn.addEventListener('click', () => {
+      footer.hidden = !footer.hidden;
+      if (!footer.hidden) input.focus();
+    });
+
+    addBtn.addEventListener('click', async () => {
+      const title = input.value.trim();
+      if (!title) return;
+      status.textContent = '추가 중...';
+      try {
+        await window.api.addTodo({ title, deadline: '', priority: '보통', category: '기타' });
+        input.value = '';
+        status.textContent = '할일을 추가했습니다.';
+        renderTodos();
+      } catch (err) {
+        status.textContent = '추가하지 못했습니다.';
+      }
+    });
+
+    aiBtn.addEventListener('click', async () => {
+      const text = input.value.trim();
+      if (!text) { status.textContent = 'AI로 추출할 문구를 입력하세요.'; return; }
+      status.textContent = 'AI가 분석 중입니다...';
+      try {
+        const engine = await window.api.getSetting('ai_engine', 'local_lite');
+        const model = await window.api.getSetting('ai_model', 'claude-opus-5');
+        const provider = await window.api.getSetting('ai_provider', 'claude');
+        const useLocal = engine === 'local_lite';
+        const apiKey = useLocal ? '' : await window.api.getSetting('ai_api_key', '');
+        if (!useLocal && !apiKey) { status.textContent = '설정에서 AI API 키를 먼저 입력하세요.'; return; }
+        const result = await window.api.aiExtractTodos(apiKey, model, useLocal ? 'local_lite' : provider, text);
+        if (result?.error) { status.textContent = `오류: ${result.error}`; return; }
+        const parsed = parseAITodoLines(result?.result || '');
+        if (!parsed.length) { status.textContent = '추출된 할일이 없습니다.'; return; }
+        for (const t of parsed) {
+          await window.api.addTodo({ ...t, priority: '보통', category: 'AI추출', is_ai_generated: true, source_text: text });
+        }
+        input.value = '';
+        status.textContent = `할일 ${parsed.length}개를 추가했습니다.`;
+        renderTodos();
+      } catch (err) {
+        status.textContent = 'AI 추출에 실패했습니다.';
+      }
+    });
+  }
+
+  // ── 시간표 위젯 ──────────────────────────────────────────
+  const TT_DAYS = ['월', '화', '수', '목', '금'];
+
+  async function renderTimetable() {
+    const list = document.getElementById('list');
+    const dow = new Date().getDay();
+    const dayIndex = dow >= 1 && dow <= 5 ? dow - 1 : -1;
+    document.getElementById('title').textContent = dayIndex === -1
+      ? '🗓️ 시간표 (주말)'
+      : `🗓️ 오늘(${TT_DAYS[dayIndex]}) 시간표`;
+    if (dayIndex === -1) {
+      list.innerHTML = '<div id="empty">주말에는 수업이 없습니다 🌤️</div>';
+      return;
+    }
+    try {
+      const cells = (await window.api.getTimetable()) || [];
+      const today = cells
+        .filter(c => c.day_of_week === dayIndex && c.subject)
+        .sort((a, b) => a.period - b.period);
+      if (!today.length) {
+        list.innerHTML = '<div id="empty">등록된 시간표가 없습니다</div>';
+        return;
+      }
+      list.innerHTML = today.map(c => `
+        <div class="tt-row">
+          <div class="tt-period">${escapeHtml(c.period)}</div>
+          <div class="tt-subject">${escapeHtml(c.subject)}</div>
+          ${c.room ? `<div class="tt-room">${escapeHtml(c.room)}</div>` : ''}
+        </div>
+      `).join('');
+    } catch (err) {
+      list.innerHTML = '<div id="empty">불러오지 못했습니다</div>';
+    }
+  }
+
+  // ── 메모(스티키노트) 위젯 ──────────────────────────────
+  const MEMO_STORAGE_KEY = 'sticky_notes_v1';
+  const MEMO_COLORS = {
+    yellow: '#f9e44e', green: '#81c784', blue: '#64b5f6',
+    pink: '#f48fb1', purple: '#ce93d8', orange: '#ffb74d',
+  };
+
+  async function loadMemoNotes() {
+    try {
+      const raw = await window.api.getSetting(MEMO_STORAGE_KEY, '[]');
+      const notes = JSON.parse(raw || '[]');
+      return Array.isArray(notes) ? notes : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  async function saveMemoNotes(notes) {
+    await window.api.setSetting(MEMO_STORAGE_KEY, JSON.stringify(notes));
+  }
+
+  async function renderMemo() {
+    const list = document.getElementById('list');
+    document.getElementById('title').textContent = '📝 메모';
+    const addToggleBtn = document.getElementById('add-toggle-btn');
+    addToggleBtn.hidden = false;
+    addToggleBtn.onclick = async () => {
+      const notes = await loadMemoNotes();
+      notes.unshift({
+        id: 'sn_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        content: '', color: 'yellow', pinned: false,
+        created_at: Date.now(), updated_at: Date.now(),
+      });
+      await saveMemoNotes(notes);
+      await renderMemo();
+      const first = list.querySelector('.memo-row');
+      if (first) first.classList.add('expanded');
+    };
+
+    const notes = await loadMemoNotes();
+    const sorted = [...notes].sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return (b.updated_at || 0) - (a.updated_at || 0);
+    });
+    if (!sorted.length) {
+      list.innerHTML = '<div id="empty">메모가 없습니다. + 를 눌러 추가하세요</div>';
+      return;
+    }
+    list.innerHTML = sorted.map(n => `
+      <div class="memo-row" data-id="${n.id}" style="--memo-color:${MEMO_COLORS[n.color] || MEMO_COLORS.yellow}">
+        <div class="memo-preview">${n.pinned ? '<span class="memo-pin">📌</span>' : ''}${escapeHtml(n.content || '(빈 메모)')}</div>
+        <div class="memo-edit-area">
+          <textarea class="memo-textarea">${escapeHtml(n.content || '')}</textarea>
+          <div class="memo-actions">
+            <button class="memo-del-btn" data-action="delete">삭제</button>
+            <button class="memo-close-btn" data-action="close">닫기</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.memo-row').forEach(row => {
+      const id = row.dataset.id;
+      row.querySelector('.memo-preview').addEventListener('click', () => {
+        row.classList.add('expanded');
+        const ta = row.querySelector('.memo-textarea');
+        ta.focus();
+      });
+      const textarea = row.querySelector('.memo-textarea');
+      let saveTimer = null;
+      textarea.addEventListener('input', () => {
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(async () => {
+          const notes = await loadMemoNotes();
+          const target = notes.find(n => n.id === id);
+          if (target) {
+            target.content = textarea.value;
+            target.updated_at = Date.now();
+            await saveMemoNotes(notes);
+          }
+        }, 500);
+      });
+      row.querySelector('[data-action="close"]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        row.classList.remove('expanded');
+      });
+      row.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const notes = await loadMemoNotes();
+        await saveMemoNotes(notes.filter(n => n.id !== id));
+        renderMemo();
+      });
+    });
+  }
+
+  // ── 초기화 ────────────────────────────────────────────
+  const RENDERERS = { todo: renderTodos, timetable: renderTimetable, memo: renderMemo };
+  const params = new URLSearchParams(location.search);
+  const widgetType = RENDERERS[params.get('type')] ? params.get('type') : 'todo';
+  const render = RENDERERS[widgetType];
+
+  document.getElementById('date').textContent = fmtDate();
+  document.getElementById('close-btn').addEventListener('click', () => {
+    window.api.closeWidgetWindow();
+  });
+
+  if (widgetType === 'todo') {
+    setupTodoFooter();
+  }
+
+  render();
+  if (widgetType !== 'memo') setInterval(render, 60000);
+</script>
+</body>
+</html>

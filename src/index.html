@@ -1,0 +1,3323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>쌤포트</title>
+<link rel="stylesheet" href="styles.css">
+<script src="../node_modules/firebase/firebase-app-compat.js"></script>
+<script src="../node_modules/firebase/firebase-auth-compat.js"></script>
+<script src="../node_modules/firebase/firebase-firestore-compat.js"></script>
+<script src="../node_modules/firebase/firebase-functions-compat.js"></script>
+<script src="firebase/config.js"></script>
+<script src="app_manual.js"></script>
+<script src="official_document_rules.js"></script>
+<script src="sv_document_templates.js"></script>
+</head>
+<body>
+<div id="titlebar">
+  <div id="titlebar-drag">
+    <span id="app-title"><img src="../assets/ssamport-logo.svg" alt="">쌤포트</span>
+  </div>
+  <div id="titlebar-btns">
+    <button id="min-btn" title="최소화">─</button>
+    <button id="max-btn" title="최대화">▢</button>
+    <button id="close-btn" title="닫기">✕</button>
+  </div>
+</div>
+
+<div id="app-layout">
+  <div id="content-wrap">
+    <header id="topbar">
+      <div id="topbar-left">
+        <button id="home-btn" class="topbar-btn home-btn" title="홈 대시보드">🏠</button>
+        <span id="class-info">--학년 --반 · --교사</span>
+        <div class="vdiv"></div>
+        <div id="global-search" class="global-search">
+          <input id="global-search-input" class="global-search-input" placeholder="기능 검색... 예: 출석, 급식, 공지" autocomplete="off">
+          <div id="global-search-results" class="global-search-results" style="display:none"></div>
+        </div>
+      </div>
+      <div id="topbar-right">
+        <button id="update-btn" class="topbar-btn" style="display:none">업데이트 확인</button>
+        <button id="manual-btn" class="topbar-btn" title="기능 설명서">설명서</button>
+        <button id="edit-layout-btn" class="topbar-btn" style="display:none">배열 편집</button>
+        <div id="widget-mode-wrap" style="position:relative;display:none">
+          <button id="widget-mode-btn" class="topbar-btn">데스크탑 위젯</button>
+          <div id="widget-mode-panel" style="display:none;position:absolute;right:0;top:38px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px;box-shadow:var(--shadow-md);z-index:9999;min-width:170px">
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px">
+              <input type="checkbox" id="widget-toggle-todo"> ✅ 할일 위젯
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px">
+              <input type="checkbox" id="widget-toggle-timetable"> 🗓️ 시간표 위젯
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px">
+              <input type="checkbox" id="widget-toggle-memo"> 📝 메모 위젯
+            </label>
+          </div>
+        </div>
+        <div style="position:relative">
+          <button id="opacity-btn" class="topbar-btn" title="투명도 조절">투명도</button>
+          <div id="opacity-panel" style="display:none;position:absolute;right:0;top:38px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;box-shadow:var(--shadow-md);z-index:9999;align-items:center;gap:10px;white-space:nowrap;min-width:220px">
+            <span style="font-size:12px;color:var(--text2)">투명도</span>
+            <input id="opacity-slider" type="range" min="20" max="100" value="100" style="flex:1;accent-color:var(--accent)">
+            <span id="opacity-lbl" style="font-size:12px;font-weight:600;color:var(--accent);width:34px;text-align:right">100%</span>
+          </div>
+        </div>
+        <div style="position:relative">
+          <button id="ai-settings-btn" class="topbar-btn" title="AI 설정">⚙️ AI</button>
+          <div id="ai-settings-panel" style="display:none;position:absolute;right:0;top:38px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 18px 14px;box-shadow:var(--shadow-md);z-index:9999;min-width:300px;max-width:340px">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">AI 엔진 선택</div>
+            <div id="ai-quick-engine-list" style="display:grid;gap:6px;margin-bottom:14px"></div>
+            <div id="ai-quick-external" style="display:none;gap:8px;flex-direction:column;margin-bottom:8px">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">외부 AI 제공업체</div>
+                <select id="ai-quick-provider" class="input" style="width:100%;font-size:13px">
+                  <option value="claude">Claude (Anthropic)</option>
+                  <option value="gemini">Gemini (Google)</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">API 키</div>
+                <input id="ai-quick-key" class="input" type="password" placeholder="API 키 입력" style="width:100%;font-size:13px;box-sizing:border-box">
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">모델</div>
+                <select id="ai-quick-model" class="input" style="width:100%;font-size:13px"></select>
+              </div>
+            </div>
+            <button id="ai-quick-save" class="btn btn-primary btn-sm" style="width:100%">저장</button>
+          </div>
+        </div>
+        <button id="ai-helper-btn" class="topbar-btn ai-helper-open" title="AI 도우미">AI 도우미</button>
+        <button id="google-connect-btn" class="topbar-btn" title="Google 계정 연동">🔗 Google 연동</button>
+        <div class="vdiv"></div>
+        <span id="header-date"></span>
+      </div>
+    </header>
+    <nav id="page-tabs"></nav>
+
+    <main id="page-content"></main>
+  </div>
+</div>
+
+<aside id="ai-helper-panel" class="ai-helper-panel" aria-hidden="true">
+  <div class="ai-helper-head">
+    <div>
+      <div class="ai-helper-kicker">AI Assistant</div>
+      <strong>AI 도우미</strong>
+    </div>
+    <button id="ai-helper-close" class="ai-helper-close" title="닫기">×</button>
+  </div>
+  <div id="ai-helper-status" class="ai-helper-status">AI 상태를 확인하는 중...</div>
+  <div id="ai-helper-messages" class="ai-helper-messages"></div>
+  <div class="ai-helper-suggestions">
+    <button data-ai-prompt="현재 페이지에서 무엇을 도와줄 수 있어?">이 페이지 도움</button>
+    <button data-ai-prompt="상담 기록을 더 전문적으로 쓰는 방법을 알려줘.">상담 기록 팁</button>
+    <button data-ai-prompt="후속 조치 문장을 예시로 만들어줘.">후속 조치 예시</button>
+    <button id="ai-helper-manual-pdf" type="button">설명서 PDF</button>
+  </div>
+  <div class="ai-helper-input-row">
+    <textarea id="ai-helper-input" placeholder="무엇이든 물어보세요. 예: 이 상담 내용을 요약해줘"></textarea>
+    <button id="ai-helper-send" class="btn btn-primary btn-sm">전송</button>
+  </div>
+</aside>
+<div id="ai-helper-backdrop" class="ai-helper-backdrop"></div>
+
+<script>
+(function () {
+  var api = window.api;
+  var pageCache = {};
+  var currentPage = "dashboard";
+  var openGroupKey = "";
+
+  // ── 업무 효율성 추적 ──────────────────────────────────────
+  var _usagePageStartTime = null;
+  var _usageCurrentPage = null;
+  var USAGE_TRACK_PAGES = ['students','attendance','daily_memo','timetable','counseling',
+    'observations','lessons','assessments','submissions','statistics','ai_analysis',
+    'todos','official_document','lesson_materials','school_calendar','meal'];
+
+  function _usageSaveEntry(page, durationSec) {
+    if (!page || USAGE_TRACK_PAGES.indexOf(page) < 0) return;
+    if (durationSec < 3) return; // 3초 미만은 무시 (실수로 잠깐 누른 것)
+    var now = new Date();
+    var ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    var key = 'usage_' + ym;
+    api.getSetting(key, '').then(function (raw) {
+      var arr = [];
+      try { if (raw) arr = JSON.parse(raw); } catch (_) {}
+      arr.push({ page: page, durationSec: Math.round(durationSec), date: now.toISOString().slice(0, 10) });
+      // 최대 5000건 유지
+      if (arr.length > 5000) arr = arr.slice(arr.length - 5000);
+      api.setSetting(key, JSON.stringify(arr)).catch(function () {});
+    }).catch(function () {});
+  }
+
+  function _usageOnLeave(nextPage) {
+    if (_usageCurrentPage && _usagePageStartTime) {
+      var elapsed = (Date.now() - _usagePageStartTime) / 1000;
+      _usageSaveEntry(_usageCurrentPage, elapsed);
+    }
+    _usageCurrentPage = (USAGE_TRACK_PAGES.indexOf(nextPage) >= 0) ? nextPage : null;
+    _usagePageStartTime = _usageCurrentPage ? Date.now() : null;
+  }
+  // ─────────────────────────────────────────────────────────
+  var closeGroupTimer = null;
+  var firebaseApp = null;
+  var firebaseAuth = null;
+  var firebaseDb = null;
+  var firebaseFunctions = null;
+  var authUser = null;
+  var authProfile = null;
+  var authOverlayEl = null;
+  var authScreenMode = "login";
+  var authPendingMessage = "";
+  var authBootResolved = false;
+  var cloudSyncTimer = null;
+  var sharedSyncTimer = null;
+  var cloudSubscriptions = [];
+  var sessionUnsubscribe = null;
+  var sessionHeartbeatTimer = null;
+  var sessionTakeoverInProgress = false;
+  var sharedLocalWriteUntil = {
+    todos: 0,
+    timetable: 0
+  };
+  var remoteApplyDepth = 0;
+  var originalSetSetting = api.setSetting.bind(api);
+  var CLOUD_SYNC_KEYS = [
+    "class_year",
+    "class_num",
+    "teacher_name",
+    "weather_region",
+    "edu_office_code",
+    "school_code",
+    "quick_links_config",
+    "menu_groups_config",
+    "dashboard_layout_v4",
+    "hidden_widgets",
+    "class_timetable_subject_colors",
+    "class_timetable_json",
+    "class_timetable_file_name",
+    "teacher_timetable_number_colors_enabled",
+    "teacher_timetable_number_colors"
+  ];
+  var CLOUD_BLOCKED_SETTING_KEYS = [
+    "custom_calendar_events",
+    "gcal_client_id",
+    "gcal_client_secret",
+    "gcal_refresh_token",
+    "todo_manual_order"
+  ];
+
+  api.setSetting = function (key, value) {
+    return Promise.resolve(originalSetSetting(key, value)).then(function (result) {
+      if (!isApplyingRemoteData()) pushCloudSettingNow(key, value);
+      return result;
+    });
+  };
+  // *Raw 변형은 Google 동기화를 트리거하지 않는다. 양방향 동기화가 원격 변경을
+  // 로컬에 반영할 때 다시 원격으로 푸시되는 루프를 막기 위해 Raw를 사용한다.
+  var originalAddTodo = (api.addTodoRaw || api.addTodo).bind(api);
+  var originalUpdateTodo = (api.updateTodoRaw || api.updateTodo).bind(api);
+  var originalToggleTodo = (api.toggleTodoRaw || api.toggleTodo).bind(api);
+  var originalDeleteTodo = (api.deleteTodoRaw || api.deleteTodo).bind(api);
+  var originalSetTodoGcalId = api.setTodoGcalId.bind(api);
+  var originalSetTodoGoogleTaskId = api.setTodoGoogleTaskId ? api.setTodoGoogleTaskId.bind(api) : null;
+  var originalSetTimetableCell = api.setTimetableCell.bind(api);
+  var originalClearTimetable = api.clearTimetable.bind(api);
+  var originalReplaceTimetable = api.replaceTimetable ? api.replaceTimetable.bind(api) : null;
+
+  function getGoogleTasksToken() {
+    if (!api.getSetting || !api.gcalRefreshToken) return Promise.resolve(null);
+    return api.getSetting("gcal_refresh_token", "").then(function (refreshToken) {
+      if (!refreshToken) return null;
+      return api.gcalRefreshToken(refreshToken).then(function (result) {
+        return result && result.access_token ? result.access_token : null;
+      });
+    }).catch(function () {
+      return null;
+    });
+  }
+
+  function addOneDay(dateText) {
+    var date = String(dateText || "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "";
+    var d = new Date(date + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function normalizeCalendarDate(dateText) {
+    var raw = String(dateText || "").replace(/\D/g, "");
+    if (!/^\d{8}$/.test(raw)) return "";
+    return raw.slice(0, 4) + "-" + raw.slice(4, 6) + "-" + raw.slice(6, 8);
+  }
+
+  function buildTodoCalendarEvent(payload) {
+    var start = normalizeCalendarDate(payload && payload.deadline);
+    if (!start) return null;
+    return {
+      summary: "[할일] " + String(payload.title || "쌤포트 할일"),
+      description: [
+        "쌤포트 할일에서 자동 추가됨",
+        payload && payload.priority ? "중요도: " + payload.priority : "",
+        payload && payload.category ? "카테고리: " + payload.category : ""
+      ].filter(Boolean).join("\n"),
+      start: { date: start },
+      end: { date: addOneDay(start) || start },
+      colorId: payload && payload.priority === "높음" ? "11" : payload && payload.priority === "낮음" ? "2" : "5",
+      reminders: { useDefault: false, overrides: [{ method: "popup", minutes: 480 }] }
+    };
+  }
+
+  function syncTodoCalendarAfterAdd(id, payload) {
+    if (!id || !api.gcalAddEvent || !api.setTodoGcalId) return Promise.resolve(false);
+    var event = buildTodoCalendarEvent(payload);
+    if (!event) return Promise.resolve(false);
+    return getGoogleTasksToken().then(function (token) {
+      if (!token) return false;
+      return api.gcalAddEvent(token, event).then(function (created) {
+        if (created && created.id) return api.setTodoGcalId(id, created.id).then(function () { return true; });
+        if (created && created.error) {
+          var msg = (created.error && created.error.message) || JSON.stringify(created.error);
+          toast('📅 Google 캘린더 저장 실패: ' + msg, 'error', 6000);
+        }
+        return false;
+      });
+    }).catch(function (error) {
+      toast('📅 Google 캘린더 저장 실패: ' + String(error), 'error', 6000);
+      return false;
+    });
+  }
+
+  function syncTodoCalendarAfterUpdate(id, payload) {
+    if (!id || !api.gcalUpdateEvent || !api.getTodoGcalId) return Promise.resolve(false);
+    var event = buildTodoCalendarEvent(payload);
+    return Promise.all([getGoogleTasksToken(), api.getTodoGcalId(id)]).then(function (values) {
+      var token = values[0];
+      var eventId = values[1];
+      if (!token) return false;
+      if (!event && eventId && api.gcalDeleteEvent) {
+        return api.gcalDeleteEvent(token, eventId).then(function () {
+          return api.setTodoGcalId ? api.setTodoGcalId(id, "") : true;
+        });
+      }
+      if (!event) return false;
+      if (!eventId) return syncTodoCalendarAfterAdd(id, payload);
+      return api.gcalUpdateEvent(token, eventId, event).then(function (updated) {
+        if (updated && updated.error) console.warn("google calendar todo update failed", updated.error);
+        return !!(updated && !updated.error);
+      });
+    }).catch(function (error) {
+      console.warn("google calendar todo update failed", error);
+      return false;
+    });
+  }
+
+  function deleteTodoCalendarEvent(id) {
+    if (!id || !api.gcalDeleteEvent || !api.getTodoGcalId) return Promise.resolve(false);
+    return Promise.all([getGoogleTasksToken(), api.getTodoGcalId(id)]).then(function (values) {
+      var token = values[0];
+      var eventId = values[1];
+      if (!token || !eventId) return false;
+      return api.gcalDeleteEvent(token, eventId);
+    }).catch(function (error) {
+      console.warn("google calendar todo delete failed", error);
+      return false;
+    });
+  }
+
+  window.addGoogleCalendarCustomEvent = function (eventItem) {
+    if (!api.gcalAddEvent) return Promise.resolve(null);
+    var start = normalizeCalendarDate(eventItem && eventItem.date);
+    if (!start) return Promise.resolve(null);
+    var event = {
+      summary: String(eventItem.name || "쌤포트 일정"),
+      description: "쌤포트 캘린더에서 추가됨",
+      start: { date: start },
+      end: { date: addOneDay(start) || start },
+      colorId: "7"
+    };
+    return getGoogleTasksToken().then(function (token) {
+      if (!token) return null;
+      return api.gcalAddEvent(token, event).then(function (created) {
+        return created && created.id ? created.id : null;
+      });
+    }).catch(function (error) {
+      console.warn("google calendar custom event add failed", error);
+      return null;
+    });
+  };
+
+  window.deleteGoogleCalendarCustomEvent = function (eventId) {
+    if (!eventId || !api.gcalDeleteEvent) return Promise.resolve(false);
+    return getGoogleTasksToken().then(function (token) {
+      if (!token) return false;
+      return api.gcalDeleteEvent(token, eventId).then(function () { return true; });
+    }).catch(function (error) {
+      console.warn("google calendar custom event delete failed", error);
+      return false;
+    });
+  };
+
+  function buildGoogleTaskFromLocal(id, payload) {
+    return {
+      id: id,
+      title: payload && payload.title ? payload.title : "",
+      deadline: payload && payload.deadline ? payload.deadline : "",
+      priority: payload && payload.priority ? payload.priority : "보통",
+      category: payload && payload.category ? payload.category : "기타",
+      source_text: payload && payload.source_text ? payload.source_text : "",
+      is_done: payload && payload.is_done ? 1 : 0
+    };
+  }
+
+  function syncGoogleTaskAfterAdd(id, payload) {
+    if (!id || !api.googleTasksAddTask || !api.setTodoGoogleTaskId) return Promise.resolve(false);
+    return getGoogleTasksToken().then(function (token) {
+      if (!token) return false;
+      return api.googleTasksAddTask(token, buildGoogleTaskFromLocal(id, payload)).then(function (created) {
+        if (created && created.id) return api.setTodoGoogleTaskId(id, created.id).then(function () { return true; });
+        if (created && created.error) console.warn("google task add failed", created.error);
+        return false;
+      });
+    }).catch(function (error) {
+      console.warn("google task add failed", error);
+      return false;
+    });
+  }
+
+  function syncGoogleTaskAfterUpdate(id, payload) {
+    if (!id || !api.googleTasksUpdateTask || !api.getTodoGoogleTaskId) return Promise.resolve(false);
+    return Promise.all([getGoogleTasksToken(), api.getTodoGoogleTaskId(id)]).then(function (values) {
+      var token = values[0];
+      var taskId = values[1];
+      if (!token) return false;
+      if (!taskId) return syncGoogleTaskAfterAdd(id, payload);
+      return api.googleTasksUpdateTask(token, taskId, buildGoogleTaskFromLocal(id, payload)).then(function (updated) {
+        if (updated && updated.error) console.warn("google task update failed", updated.error);
+        return !!(updated && !updated.error);
+      });
+    }).catch(function (error) {
+      console.warn("google task update failed", error);
+      return false;
+    });
+  }
+
+  function syncGoogleTaskStatus(id, isDone) {
+    if (!id || !api.googleTasksSetStatus || !api.getTodoGoogleTaskId) return Promise.resolve(false);
+    return Promise.all([getGoogleTasksToken(), api.getTodoGoogleTaskId(id)]).then(function (values) {
+      var token = values[0];
+      var taskId = values[1];
+      if (!token || !taskId) return false;
+      return api.googleTasksSetStatus(token, taskId, !!isDone).then(function (updated) {
+        if (updated && updated.error) console.warn("google task status failed", updated.error);
+        return !!(updated && !updated.error);
+      });
+    }).catch(function (error) {
+      console.warn("google task status failed", error);
+      return false;
+    });
+  }
+
+  function deleteGoogleTaskForTodo(id) {
+    if (!id || !api.googleTasksDeleteTask || !api.getTodoGoogleTaskId) return Promise.resolve(false);
+    return Promise.all([getGoogleTasksToken(), api.getTodoGoogleTaskId(id)]).then(function (values) {
+      var token = values[0];
+      var taskId = values[1];
+      if (!token || !taskId) return false;
+      return api.googleTasksDeleteTask(token, taskId).then(function (deleted) {
+        if (deleted && deleted.error) console.warn("google task delete failed", deleted.error);
+        return !!(deleted && !deleted.error);
+      });
+    }).catch(function (error) {
+      console.warn("google task delete failed", error);
+      return false;
+    });
+  }
+
+  // ── Google Tasks 양방향 동기화 ───────────────────────────────────────────────
+  var _gtasksSyncing = false;
+
+  function syncWithGoogleTasks() {
+    if (_gtasksSyncing) return Promise.resolve({ skipped: true });
+    if (!api.googleTasksListTasks) return Promise.resolve({ skipped: true });
+    _gtasksSyncing = true;
+
+    return getGoogleTasksToken().then(function (token) {
+      if (!token) { _gtasksSyncing = false; return { skipped: true }; }
+
+      return api.googleTasksListTasks(token).then(function (remote) {
+        if (!remote || remote.error) { _gtasksSyncing = false; return { skipped: true }; }
+
+        // 삭제된 항목 제외
+        var remoteItems = (remote.items || []).filter(function (t) { return !t.deleted; });
+        var remoteMap = {};
+        remoteItems.forEach(function (t) { remoteMap[t.id] = t; });
+
+        return api.getTodos(true).then(function (localTodos) {
+          var localByGTaskId = {};
+          localTodos.forEach(function (todo) {
+            if (todo.google_task_id) localByGTaskId[todo.google_task_id] = todo;
+          });
+
+          var ops = [];
+
+          // ── Phase 1: 원격 → 로컬 (새 항목 추가 / 변경 항목 업데이트) ───
+          remoteItems.forEach(function (rt) {
+            var remoteTitle    = (rt.title || '').trim() || '(제목 없음)';
+            var remoteDone     = rt.status === 'completed';
+            var remoteDeadline = rt.due ? rt.due.slice(0, 10) : '';
+            var remoteUpdated  = rt.updated || '';
+
+            var lt = localByGTaskId[rt.id];
+            if (lt) {
+              // 이미 로컬에 있음 — 원격 updated가 로컬 updated_at보다 최신이면 덮어씀
+              var localTs = lt.updated_at || lt.created_at || '';
+              // Google Tasks는 UTC ISO8601, DB는 'YYYY-MM-DD HH:MM:SS' (UTC)
+              // 문자열 대소비교로 충분 (ISO8601 ↔ SQLite datetime 모두 사전순 = 시간순)
+              var remoteIsNewer = !localTs || (remoteUpdated && remoteUpdated > localTs.replace(' ', 'T') + 'Z');
+              if (remoteIsNewer) {
+                if (lt.title !== remoteTitle || lt.deadline !== remoteDeadline) {
+                  ops.push(
+                    originalUpdateTodo(lt.id, {
+                      title: remoteTitle,
+                      deadline: remoteDeadline,
+                      priority: lt.priority || '보통',
+                      category: lt.category || '기타'
+                    })
+                  );
+                }
+                if ((!!lt.is_done) !== remoteDone) {
+                  ops.push(originalToggleTodo(lt.id));
+                }
+              }
+            } else {
+              // 로컬에 없음 — 원격에서 새로 추가
+              ops.push(
+                originalAddTodo({
+                  title: remoteTitle,
+                  deadline: remoteDeadline,
+                  priority: '보통',
+                  category: '기타',
+                  is_ai_generated: 0,
+                  source_text: ''
+                }).then(function (newId) {
+                  if (!newId) return;
+                  var p1 = originalSetTodoGoogleTaskId
+                    ? originalSetTodoGoogleTaskId(newId, rt.id)
+                    : Promise.resolve();
+                  // 완료 상태도 반영
+                  var p2 = remoteDone ? originalToggleTodo(newId) : Promise.resolve();
+                  return Promise.all([p1, p2]);
+                })
+              );
+            }
+          });
+
+          // ── Phase 2: 원격에서 삭제된 항목 → 로컬에서도 삭제 ────────────
+          localTodos.forEach(function (lt) {
+            if (lt.google_task_id && !remoteMap[lt.google_task_id]) {
+              ops.push(originalDeleteTodo(lt.id));
+            }
+          });
+
+          // ── Phase 3: 아직 원격에 없는 로컬 항목 → 원격으로 푸시 ─────────
+          localTodos.forEach(function (lt) {
+            if (!lt.google_task_id) {
+              ops.push(
+                api.googleTasksAddTask(token, buildGoogleTaskFromLocal(lt.id, lt))
+                  .then(function (created) {
+                    if (created && created.id && originalSetTodoGoogleTaskId) {
+                      return originalSetTodoGoogleTaskId(lt.id, created.id);
+                    }
+                  }).catch(function () {})
+              );
+            }
+          });
+
+          return Promise.all(ops).then(function () {
+            _gtasksSyncing = false;
+            return { ok: true };
+          });
+        });
+      });
+    }).catch(function (err) {
+      _gtasksSyncing = false;
+      console.warn('syncWithGoogleTasks failed', err);
+      return { error: String(err && err.message ? err.message : err) };
+    });
+  }
+
+  window.syncWithGoogleTasks = syncWithGoogleTasks;
+
+  api.addTodo = function (payload) {
+    return Promise.resolve(originalAddTodo(payload)).then(function (result) {
+      if (!isApplyingRemoteData()) {
+        syncGoogleTaskAfterAdd(result, payload);
+        syncTodoCalendarAfterAdd(result, payload);
+      }
+      return result;
+    });
+  };
+  api.updateTodo = function (id, payload) {
+    return Promise.resolve(originalUpdateTodo(id, payload)).then(function (result) {
+      if (!isApplyingRemoteData()) {
+        syncGoogleTaskAfterUpdate(id, payload);
+        syncTodoCalendarAfterUpdate(id, payload);
+      }
+      return result;
+    });
+  };
+  api.toggleTodo = function (id) {
+    return Promise.resolve(originalToggleTodo(id)).then(function (result) {
+      if (!isApplyingRemoteData()) {
+        api.getTodos(true).then(function (items) {
+          var todo = (items || []).find(function (item) { return Number(item.id) === Number(id); });
+          if (todo) syncGoogleTaskStatus(id, !!todo.is_done);
+        }).catch(function () {});
+      }
+      return result;
+    });
+  };
+  api.deleteTodo = function (id) {
+    var deleteRemoteTask = !isApplyingRemoteData() ? deleteGoogleTaskForTodo(id) : Promise.resolve(false);
+    var deleteRemoteCalendar = !isApplyingRemoteData() ? deleteTodoCalendarEvent(id) : Promise.resolve(false);
+    return Promise.resolve(originalDeleteTodo(id)).then(function (result) {
+      deleteRemoteTask.catch(function () {});
+      deleteRemoteCalendar.catch(function () {});
+      return result;
+    });
+  };
+  api.setTodoGcalId = function (id, gcalId) {
+    return Promise.resolve(originalSetTodoGcalId(id, gcalId)).then(function (result) {
+      return result;
+    });
+  };
+  if (originalSetTodoGoogleTaskId) {
+    api.setTodoGoogleTaskId = function (id, taskId) {
+      return Promise.resolve(originalSetTodoGoogleTaskId(id, taskId));
+    };
+  }
+  api.setTimetableCell = function (payload) {
+    return Promise.resolve(originalSetTimetableCell(payload)).then(function (result) {
+      if (!isApplyingRemoteData()) pushCloudSharedNow("timetable");
+      return result;
+    });
+  };
+  api.clearTimetable = function () {
+    return Promise.resolve(originalClearTimetable()).then(function (result) {
+      if (!isApplyingRemoteData()) pushCloudSharedNow("timetable");
+      return result;
+    });
+  };
+  if (originalReplaceTimetable) {
+    api.replaceTimetable = function (items) {
+      return Promise.resolve(originalReplaceTimetable(items)).then(function (result) {
+        if (!isApplyingRemoteData()) pushCloudSharedNow("timetable");
+        return result;
+      });
+    };
+  }
+
+  var MENU_PAGE_OPTIONS = [
+    { key: "students", label: "학생 명단" },
+    { key: "attendance", label: "출석 관리" },
+    { key: "daily_memo", label: "학급 메모" },
+    { key: "timetable", label: "시간표 관리" },
+    { key: "seating", label: "자리 배치" },
+    { key: "counseling", label: "상담 일지" },
+    { key: "observations", label: "관찰 기록" },
+    { key: "lessons", label: "수업 지도" },
+    { key: "assessments", label: "수행평가" },
+    { key: "submissions", label: "제출물 관리" },
+    { key: "statistics", label: "통계와 출력" },
+    { key: "ai_analysis", label: "AI 분석" },
+    { key: "meal", label: "급식 메뉴" },
+    { key: "school_calendar", label: "학사 일정" },
+    { key: "calculator", label: "계산기" },
+    { key: "lesson_materials", label: "수업자료제작" },
+    { key: "official_document", label: "공문서 작성" },
+    { key: "todos", label: "할일 목록" },
+    { key: "sticky_notes", label: "스티커 메모" },
+    { key: "hwp_formatter", label: "한글 자동 서식" },
+    { key: "settings", label: "설정" }
+  ];
+  var ADMIN_MENU_PAGE = { key: "user_management", label: "회원 관리" };
+
+  var DEFAULT_MENU_GROUPS = [
+    { key: "class",   label: "학급",     items: ["students", "attendance", "daily_memo", "timetable", "seating"] },
+    { key: "records", label: "기록·평가", items: ["counseling", "observations", "lessons", "ai_analysis", "assessments", "submissions", "statistics"] },
+    { key: "work",    label: "업무·문서", items: ["official_document", "hwp_formatter", "meal", "school_calendar", "calculator", "lesson_materials", "todos", "sticky_notes"] },
+    { key: "settings", label: "설정",    items: ["settings"] }
+  ];
+
+  var MENU_GROUP_ICONS = {
+    class: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 8.5a2.5 2.5 0 1 0 0-5"/><path d="M15 14.2c2.6.4 4.5 2.7 5 5.8"/></svg>',
+    records: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.7.46L14 18l-3.3 1.96a.5.5 0 0 1-.7-.46V6"/><path d="M6 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2"/><path d="M9 9h6M9 12.5h4"/></svg>',
+    work: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a1 1 0 0 1 1-1Z"/><path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>',
+    settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V20a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 18.35a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.64 14 1.7 1.7 0 0 0 3.09 13H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.14a1.7 1.7 0 0 0 1.04-1.56V2.5a2 2 0 1 1 4 0v.09c0 .69.41 1.32 1.04 1.56.6.25 1.3.12 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.5c.25.6.87 1 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1Z"/></svg>'
+  };
+
+  var menuGroups = cloneMenuGroups(DEFAULT_MENU_GROUPS);
+  var menuItems = flattenMenuItems(menuGroups);
+
+  window.__pages = window.__pages || {};
+  window.registerPage = function (key, mod) {
+    window.__pages[key] = mod;
+    pageCache[key] = mod;
+    if (window.__pageResolvers && window.__pageResolvers[key]) {
+      window.__pageResolvers[key](mod);
+      delete window.__pageResolvers[key];
+    }
+  };
+
+  function cloneMenuGroups(groups) {
+    return groups.map(function (group, index) {
+      return {
+        key: group.key || ("group_" + index),
+        label: group.label || ("범주 " + (index + 1)),
+        items: Array.isArray(group.items) ? group.items.slice() : []
+      };
+    });
+  }
+
+  function flattenMenuItems(groups) {
+    var result = [];
+    groups.forEach(function (group) {
+      group.items.forEach(function (itemKey) {
+        var option = findMenuPage(itemKey);
+        if (option) result.push(option);
+      });
+    });
+    return result;
+  }
+
+  function findMenuPage(key) {
+    return getMenuPageOptions().find(function (item) { return item.key === key; }) || null;
+  }
+
+  function getSearchCatalog() {
+    var state = getAuthState();
+    var pages = getMenuPageOptions().map(function (item) {
+      var keywords = {
+        students: "학생 명단 번호 연락처 학급 학생관리",
+        attendance: "출석 결석 지각 조퇴 출결",
+        daily_memo: "메모 학급메모 일일메모 기록",
+        timetable: "시간표 개인시간표 교사시간표 번호색 수업",
+        counseling: "상담 상담일지 학생상담",
+        observations: "관찰 기록 행동 특이사항",
+        lessons: "수업 진도 계획",
+        assessments: "평가 수행평가 점수",
+        submissions: "제출물 과제 제출 확인",
+        statistics: "통계 출력 인쇄 보고서",
+        ai_analysis: "AI 분석 인공지능 추출",
+        meal: "급식 식단 메뉴 밥",
+        school_calendar: "캘린더 일정 행사 학사일정",
+        calculator: "계산기 계산 점수",
+        lesson_materials: "수업자료 제작 수업 콘텐츠 생성기 제미나이 gemini 캔버스 canvas 프롬프트 슬라이드 지도안 학습지 요약노트",
+        official_document: "공문 공문서 행정문서 작성 협조요청 통보 회신 보고 알림 검토 붙임 끝",
+        todos: "할일 할 일 todo 업무 체크 완료",
+        sticky_notes: "스티커 메모 포스트잇 노트 메모장 붙임",
+        hwp_formatter: "한글 자동 서식 HWP 공문 양식 매크로 자동화 포맷",
+        settings: "설정 환경설정 학교 날씨 메뉴 바로가기",
+        user_management: "회원 관리 사용자 계정 승인 차단 삭제 공지사항 공지 배포"
+      };
+      return {
+        kind: "page",
+        key: item.key,
+        title: item.label,
+        desc: "페이지 열기",
+        text: [item.label, item.key, keywords[item.key] || ""].join(" ")
+      };
+    });
+
+    var actions = [
+      { key: "dashboard", title: "대시보드", desc: "홈 화면으로 이동", text: "홈 메인 대시보드 처음", run: function () { navigateTo("dashboard"); } },
+      { key: "check_update", title: "업데이트 확인", desc: "새 버전 확인", text: "업데이트 확인 다운로드 설치 최신버전", run: function () { var btn = document.getElementById("update-btn"); if (btn) btn.click(); } },
+      { key: "edit_layout", title: "대시보드 배열 편집", desc: "위젯 위치와 크기 변경", text: "배열 편집 위젯 위치 크기 대시보드", run: function () { navigateTo("dashboard").then(function () { var btn = document.getElementById("edit-layout-btn"); if (btn) btn.click(); }); } },
+      { key: "widget_mode", title: "데스크탑 위젯", desc: "할일·시간표를 보여주는 작은 창을 화면에 띄우기", text: "위젯 모드 투명 미니 데스크탑 할일 시간표", run: function () { var btn = document.getElementById("widget-mode-btn"); if (btn) btn.click(); } },
+      { key: "opacity", title: "투명도 조절", desc: "창 투명도 패널 열기", text: "투명도 불투명 창 투명", run: function () { var btn = document.getElementById("opacity-btn"); if (btn) btn.click(); } }
+    ];
+
+    if (state.isAdmin) {
+      actions.push({
+        key: "notice_admin",
+        title: "공지사항 배포",
+        desc: "관리자 공지 작성",
+        text: "공지 공지사항 배포 안내 업데이트 내용 관리자",
+        run: function () { navigateTo("user_management"); }
+      });
+    }
+
+    if (window.appGradesCanUse && window.appGradesCanUse()) {
+      actions.push({
+        key: "grades",
+        title: "성적관리",
+        desc: "권한이 있는 교사용 공동 성적관리",
+        text: "성적 성적관리 점수 시험 평가 공동 교사 비밀 페이지",
+        run: function () { navigateTo("grades"); }
+      });
+    }
+
+    return pages.concat(actions);
+  }
+
+  function normalizeSearchText(value) {
+    return String(value || "").toLowerCase().replace(/\s+/g, "");
+  }
+
+  function scoreSearchResult(query, item) {
+    var q = normalizeSearchText(query);
+    var title = normalizeSearchText(item.title);
+    var text = normalizeSearchText(item.text + " " + item.desc);
+    if (!q) return 0;
+    if (title === q) return 100;
+    if (title.indexOf(q) >= 0) return 85;
+    if (text.indexOf(q) >= 0) return 65;
+
+    var score = 0;
+    var pos = 0;
+    for (var i = 0; i < q.length; i += 1) {
+      var found = text.indexOf(q[i], pos);
+      if (found < 0) return 0;
+      score += Math.max(2, 8 - Math.min(6, found - pos));
+      pos = found + 1;
+    }
+    return score;
+  }
+
+  function getMenuPageOptions() {
+    var state = getAuthState();
+    return state.isAdmin ? MENU_PAGE_OPTIONS.concat([ADMIN_MENU_PAGE]) : MENU_PAGE_OPTIONS.slice();
+  }
+
+  function ensureAdminMenuAccess(groups) {
+    var next = cloneMenuGroups(groups || DEFAULT_MENU_GROUPS);
+    var isAdmin = getAuthState().isAdmin;
+
+    next.forEach(function (group) {
+      group.items = group.items.filter(function (itemKey) {
+        return itemKey !== ADMIN_MENU_PAGE.key;
+      });
+    });
+
+    if (!isAdmin) return next;
+
+    // "settings" → "tools" → 마지막 그룹 순으로 찾아서 관리자 페이지 추가
+    var adminTargetGroup = next.find(function (g) { return g.key === "settings"; }) ||
+                           next.find(function (g) { return g.key === "tools"; }) ||
+                           next[next.length - 1];
+    if (!adminTargetGroup) {
+      adminTargetGroup = { key: "settings", label: "설정", items: [] };
+      next.push(adminTargetGroup);
+    }
+    if (adminTargetGroup.items.indexOf(ADMIN_MENU_PAGE.key) < 0) {
+      adminTargetGroup.items.push(ADMIN_MENU_PAGE.key);
+    }
+    return next;
+  }
+
+  var MENU_LAYOUT_VERSION = "v2"; // DEFAULT_MENU_GROUPS 바뀔 때 올려서 저장된 구버전 자동 초기화
+
+  function parseMenuGroups(raw) {
+    if (!raw) return ensureAdminMenuAccess(DEFAULT_MENU_GROUPS);
+    try {
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) throw new Error("invalid");
+
+      // 구버전 레이아웃 감지: "tools" 그룹에 5개 이상 = 이전 4범주 구조 → 기본값으로 리셋
+      var hasOldTools = parsed.some(function(g) { return g.key === "tools" && Array.isArray(g.items) && g.items.length >= 5; });
+      // 구버전 6그룹 레이아웃 감지("evaluation"/"admin"/"utility" 그룹 존재) → 신규 4그룹 기본값으로 리셋
+      var hasOldSixGroup = parsed.some(function(g) { return g.key === "evaluation" || g.key === "admin" || g.key === "utility"; });
+      if (hasOldTools || hasOldSixGroup) {
+        api.setSetting("menu_groups_config", ""); // 저장 초기화
+        return ensureAdminMenuAccess(DEFAULT_MENU_GROUPS);
+      }
+
+      var used = {};
+      var next = parsed.map(function (group, index) {
+        var label = String(group.label || "").trim() || ("범주 " + (index + 1));
+        var key = String(group.key || ("group_" + index)).trim() || ("group_" + index);
+        var items = Array.isArray(group.items) ? group.items.filter(function (itemKey) {
+          var item = findMenuPage(itemKey);
+          if (!item || used[itemKey]) return false;
+          used[itemKey] = true;
+          return true;
+        }) : [];
+        return { key: key, label: label, items: items };
+      }).filter(function (group) {
+        return group.items.length > 0;
+      });
+
+      getMenuPageOptions().forEach(function (item) {
+        if (!used[item.key]) {
+          var toolsGroup = next[next.length - 1];
+          if (toolsGroup) {
+            toolsGroup.items.push(item.key);
+          }
+        }
+      });
+
+      return ensureAdminMenuAccess(next.length ? next : DEFAULT_MENU_GROUPS);
+    } catch (error) {
+      return ensureAdminMenuAccess(DEFAULT_MENU_GROUPS);
+    }
+  }
+
+  function text(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
+
+  function ensureFirebase() {
+    if (firebaseApp) return;
+    if (!window.firebase || !window.__firebaseConfig) {
+      throw new Error("Firebase 설정을 불러오지 못했습니다.");
+    }
+    firebaseApp = window.firebase.apps.length
+      ? window.firebase.app()
+      : window.firebase.initializeApp(window.__firebaseConfig);
+    firebaseAuth = window.firebase.auth();
+    firebaseDb = window.firebase.firestore();
+    firebaseFunctions = window.firebase.functions ? window.firebase.functions() : null;
+    firebaseDb.settings({
+      experimentalForceLongPolling: true
+    });
+    firebaseAuth.setPersistence(window.firebase.auth.Auth.Persistence.LOCAL).catch(function () {});
+  }
+
+  function normalizeEmail(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function parseFirebaseError(error, fallback) {
+    var code = String(error && error.code || "");
+    if (code === "auth/invalid-email") return "이메일 형식이 올바르지 않습니다.";
+    if (code === "auth/user-not-found") return "가입되지 않은 계정입니다.";
+    if (code === "auth/wrong-password") return "비밀번호가 올바르지 않습니다.";
+    if (code === "auth/invalid-credential") return "이메일 또는 비밀번호가 올바르지 않습니다.";
+    if (code === "auth/email-already-in-use") return "이미 가입된 이메일입니다. 로그인으로 들어가 주세요.";
+    if (code === "auth/weak-password") return "비밀번호는 6자 이상으로 입력해 주세요.";
+    if (code === "auth/network-request-failed") return "네트워크 연결을 확인해 주세요.";
+    if (code === "permission-denied" || code === "firestore/permission-denied") {
+      return "계정 정보를 확인할 권한이 없습니다. 앱을 완전히 종료한 뒤 다시 로그인해 주세요. 계속되면 관리자에게 계정 활성화 상태를 확인해 달라고 해 주세요.";
+    }
+    return error && error.message ? error.message : (fallback || "로그인 처리 중 문제가 발생했습니다.");
+  }
+
+  function isAdminProfile(profile) {
+    return !!profile && profile.role === "admin";
+  }
+
+  function canSyncKey(key) {
+    return CLOUD_SYNC_KEYS.indexOf(key) >= 0;
+  }
+
+  function isApplyingRemoteData() {
+    return remoteApplyDepth > 0;
+  }
+
+  function withRemoteApply(work) {
+    remoteApplyDepth += 1;
+    return Promise.resolve().then(work).finally(function () {
+      remoteApplyDepth = Math.max(0, remoteApplyDepth - 1);
+    });
+  }
+
+  function getLastLocalAuthUid() {
+    try {
+      return localStorage.getItem("teacher_app_last_auth_uid") || "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function setLastLocalAuthUid(uid) {
+    try {
+      localStorage.setItem("teacher_app_last_auth_uid", uid || "");
+    } catch (_) {}
+  }
+
+  function clearSyncedLocalDataForAccountSwitch(nextUid) {
+    var previousUid = getLastLocalAuthUid();
+    if (!previousUid || !nextUid || previousUid === nextUid) return Promise.resolve(false);
+
+    return withRemoteApply(function () {
+      var tasks = [];
+      CLOUD_SYNC_KEYS.forEach(function (key) {
+        tasks.push(originalSetSetting(key, ""));
+      });
+      if (api.replaceTimetable) tasks.push(api.replaceTimetable([]));
+      try {
+        localStorage.removeItem("dashboard_layout_v4");
+        localStorage.removeItem("dashLayout2");
+      } catch (_) {}
+      return Promise.all(tasks);
+    }).then(function () {
+      return true;
+    });
+  }
+
+  function buildCloudSettingsPayload(settings) {
+    var payload = {};
+    CLOUD_SYNC_KEYS.forEach(function (key) {
+      if (Object.prototype.hasOwnProperty.call(settings, key)) {
+        payload[key] = settings[key];
+      }
+    });
+    return payload;
+  }
+
+  function getUserDoc(uid) {
+    ensureFirebase();
+    return firebaseDb.collection("users").doc(uid);
+  }
+
+  function getSharedCollectionDoc(name) {
+    if (!authUser) return null;
+    return getUserDoc(authUser.uid).collection("shared").doc(name);
+  }
+
+  function purgeCloudSensitiveData() {
+    if (!authUser || !authProfile || authProfile.active === false) return Promise.resolve(false);
+    var deletes = {};
+    CLOUD_BLOCKED_SETTING_KEYS.forEach(function (key) {
+      deletes[key] = window.firebase.firestore.FieldValue.delete();
+    });
+    deletes.updatedAt = window.firebase.firestore.FieldValue.serverTimestamp();
+    deletes.updatedBy = normalizeEmail(authUser.email);
+    return getUserDoc(authUser.uid).collection("settings").doc("app").set(deletes, { merge: true }).then(function () {
+      return true;
+    }).catch(function (error) {
+      console.error("cloud sensitive purge failed", error);
+      return false;
+    });
+  }
+
+  function cloudTextLooksStudentSensitive(text) {
+    return /학생|학번|성적|내신|출결|결석|지각|조퇴|상담|관찰|학부모|보호자|위험도|생기부|생활기록부|졸업생|현학생|취업|자격증/.test(String(text || ""));
+  }
+
+  function getLocalDeviceId() {
+    var key = "teacher_app_device_id";
+    var saved = "";
+    try {
+      saved = localStorage.getItem(key) || "";
+      if (!saved) {
+        saved = "device-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+        localStorage.setItem(key, saved);
+      }
+    } catch (_) {
+      saved = saved || ("device-" + Date.now() + "-" + Math.random().toString(36).slice(2));
+    }
+    return saved;
+  }
+
+  function getSessionDoc(uid) {
+    ensureFirebase();
+    return getUserDoc(uid).collection("session").doc("current");
+  }
+
+  function clearCloudSubscriptions() {
+    cloudSubscriptions.forEach(function (unsubscribe) {
+      try {
+        if (typeof unsubscribe === "function") unsubscribe();
+      } catch (_) {}
+    });
+    cloudSubscriptions = [];
+  }
+
+  function clearSessionWatch() {
+    if (sessionUnsubscribe) {
+      try {
+        sessionUnsubscribe();
+      } catch (_) {}
+    }
+    sessionUnsubscribe = null;
+    if (sessionHeartbeatTimer) {
+      clearInterval(sessionHeartbeatTimer);
+      sessionHeartbeatTimer = null;
+    }
+    sessionTakeoverInProgress = false;
+  }
+
+  function getSessionTime(data, key) {
+    var value = data ? data[key] : null;
+    if (!value) return 0;
+    if (typeof value.toMillis === "function") return value.toMillis();
+    if (typeof value.seconds === "number") return value.seconds * 1000;
+    if (typeof value === "number") return value;
+    return 0;
+  }
+
+  function isSessionStale(data) {
+    var lastSeen = getSessionTime(data, "lastSeenAt") || getSessionTime(data, "updatedAt");
+    if (!lastSeen) return false;
+    return Date.now() - lastSeen > 5 * 60 * 1000;
+  }
+
+  function writeActiveSession(user, extra) {
+    var payload = Object.assign({
+      deviceId: getLocalDeviceId(),
+      email: normalizeEmail(user.email),
+      displayName: user.displayName || "",
+      status: "active",
+      updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+      lastSeenAt: window.firebase.firestore.FieldValue.serverTimestamp()
+    }, extra || {});
+    return getSessionDoc(user.uid).set(payload, { merge: true });
+  }
+
+  function waitForPreviousDeviceSync(uid, previousDeviceId) {
+    if (!previousDeviceId) return Promise.resolve();
+    return new Promise(function (resolve) {
+      var settled = false;
+      var unsubscribe = null;
+      var timer = setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        if (unsubscribe) unsubscribe();
+        resolve();
+      }, 4000);
+      unsubscribe = getSessionDoc(uid).onSnapshot(function (snap) {
+        var data = snap.exists ? (snap.data() || {}) : {};
+        if (data.lastHandoffFrom === previousDeviceId) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          if (unsubscribe) unsubscribe();
+          resolve();
+        }
+      }, function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+  }
+
+  function claimLoginSession(user) {
+    var deviceId = getLocalDeviceId();
+    return getSessionDoc(user.uid).get().then(function (snap) {
+      var existing = snap.exists ? (snap.data() || {}) : {};
+      var existingDeviceId = String(existing.deviceId || "");
+      var hasOtherActiveSession = existingDeviceId && existingDeviceId !== deviceId && existing.status === "active" && !isSessionStale(existing);
+      if (!hasOtherActiveSession) {
+        return writeActiveSession(user).then(function () {
+          return true;
+        });
+      }
+
+      var ok = window.confirm(
+        "다른 컴퓨터에서 이미 로그인 중입니다.\n\n" +
+        "기존 컴퓨터의 접속을 끊고 이 컴퓨터에서 로그인할까요?\n" +
+        "예를 누르면 기존 컴퓨터는 마지막 변경사항을 클라우드에 저장한 뒤 로그아웃됩니다."
+      );
+      if (!ok) {
+        return firebaseAuth.signOut().then(function () {
+          renderAuthOverlay("form", "기존 접속을 유지했습니다. 이 컴퓨터에서는 로그인하지 않았습니다.", normalizeEmail(user.email));
+          return false;
+        });
+      }
+
+      return writeActiveSession(user, {
+        previousDeviceId: existingDeviceId,
+        takeoverRequestedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function () {
+        return waitForPreviousDeviceSync(user.uid, existingDeviceId);
+      }).then(function () {
+        return true;
+      });
+    });
+  }
+
+  function formatLoginSessionError(error) {
+    var code = error && error.code ? String(error.code) : "unknown";
+    var message = error && error.message ? String(error.message) : "";
+    var hint = "중복 로그인 확인에 실패했습니다.";
+    if (code.indexOf("permission-denied") >= 0) {
+      hint += " 계정 세션을 저장할 권한이 없습니다. 앱을 완전히 종료한 뒤 다시 로그인해 주세요. 계속되면 관리자에게 계정 활성화 상태를 확인해 달라고 해 주세요.";
+    } else if (code.indexOf("unavailable") >= 0 || code.indexOf("network") >= 0) {
+      hint += " 인터넷 연결 또는 Firebase 연결을 확인해 주세요.";
+    } else {
+      hint += " Firebase 연결 상태를 확인해 주세요.";
+    }
+    return hint + " 오류: " + code + (message ? " / " + message : "");
+  }
+
+  function acknowledgeRemoteTakeover(user, previousDeviceId) {
+    if (!user || !previousDeviceId) return Promise.resolve();
+    return getSessionDoc(user.uid).set({
+      lastHandoffFrom: previousDeviceId,
+      lastHandoffAt: window.firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  }
+
+  function handleRemoteSessionTakeover(data) {
+    if (sessionTakeoverInProgress || !authUser) return;
+    sessionTakeoverInProgress = true;
+    var user = authUser;
+    var deviceId = getLocalDeviceId();
+    Promise.resolve(window.syncCloudNow ? window.syncCloudNow() : false)
+      .catch(function (error) {
+        console.error("session handoff sync failed", error);
+      })
+      .then(function () {
+        return acknowledgeRemoteTakeover(user, deviceId);
+      })
+      .catch(function (error) {
+        console.error("session handoff acknowledge failed", error);
+      })
+      .then(function () {
+        return firebaseAuth.signOut();
+      });
+  }
+
+  function startSessionWatch(user) {
+    clearSessionWatch();
+    if (!user) return;
+    var deviceId = getLocalDeviceId();
+    sessionUnsubscribe = getSessionDoc(user.uid).onSnapshot(function (snap) {
+      if (!snap.exists) return;
+      var data = snap.data() || {};
+      if (data.status === "active" && data.deviceId && data.deviceId !== deviceId) {
+        handleRemoteSessionTakeover(data);
+      }
+    }, function (error) {
+      console.error("session watch failed", error);
+    });
+
+    sessionHeartbeatTimer = setInterval(function () {
+      if (!authUser || authUser.uid !== user.uid) return;
+      getSessionDoc(user.uid).get().then(function (snap) {
+        var data = snap.exists ? (snap.data() || {}) : {};
+        if (data.deviceId !== deviceId || data.status !== "active") return;
+        return getSessionDoc(user.uid).set({
+          lastSeenAt: window.firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }).catch(function (error) {
+        console.error("session heartbeat failed", error);
+      });
+    }, 30000);
+  }
+
+  function releaseCurrentSession() {
+    if (!authUser) return Promise.resolve();
+    var user = authUser;
+    var deviceId = getLocalDeviceId();
+    return Promise.resolve(window.syncCloudNow ? window.syncCloudNow() : false)
+      .catch(function (error) {
+        console.error("logout sync failed", error);
+      })
+      .then(function () {
+        return getSessionDoc(user.uid).get();
+      })
+      .then(function (snap) {
+        var data = snap.exists ? (snap.data() || {}) : {};
+        if (data.deviceId !== deviceId) return;
+        return getSessionDoc(user.uid).set({
+          status: "signed_out",
+          signedOutAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      });
+  }
+
+  function ensureAuthOverlay() {
+    if (authOverlayEl) return authOverlayEl;
+    authOverlayEl = document.createElement("div");
+    authOverlayEl.id = "auth-overlay";
+    document.body.appendChild(authOverlayEl);
+    return authOverlayEl;
+  }
+
+  function setAuthLocked(locked) {
+    document.body.classList.toggle("auth-locked", !!locked);
+  }
+
+  function closeAuthOverlay() {
+    if (authOverlayEl) authOverlayEl.remove();
+    authOverlayEl = null;
+    setAuthLocked(false);
+  }
+
+  function getAuthState() {
+    return {
+      loggedIn: !!authUser,
+      uid: authUser ? authUser.uid : "",
+      email: authUser ? normalizeEmail(authUser.email) : "",
+      displayName: authProfile ? String(authProfile.displayName || "") : "",
+      approved: authProfile ? authProfile.approved !== false : false,
+      active: authProfile ? authProfile.active !== false : false,
+      deleted: authProfile ? authProfile.deleted === true : false,
+      role: authProfile ? String(authProfile.role || "user") : "user",
+      isAdmin: isAdminProfile(authProfile)
+    };
+  }
+
+  window.appAuthGetState = getAuthState;
+
+  window.appAuthLogout = function () {
+    ensureFirebase();
+    if (authUser && authUser.uid) setLastLocalAuthUid(authUser.uid);
+    return releaseCurrentSession().finally(function () {
+      return firebaseAuth.signOut();
+    });
+  };
+
+  window.appSyncBeforeClose = function () {
+    if (!authUser || !authProfile || authProfile.active === false) {
+      return Promise.resolve({ ok: true, skipped: true });
+    }
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      return Promise.resolve({
+        ok: false,
+        reason: "offline",
+        message: "인터넷에 연결되어 있지 않습니다."
+      });
+    }
+    return releaseCurrentSession().then(function () {
+      return { ok: true };
+    }).catch(function (error) {
+      console.error("close sync failed", error);
+      return {
+        ok: false,
+        reason: "sync-failed",
+        message: error && error.message ? String(error.message) : "클라우드 저장에 실패했습니다."
+      };
+    });
+  };
+
+  window.appAuthListUsers = function () {
+    ensureFirebase();
+    if (!isAdminProfile(authProfile)) return Promise.resolve([]);
+    return firebaseDb.collection("users").get().then(function (snap) {
+      var users = [];
+      snap.forEach(function (doc) {
+        var data = doc.data() || {};
+        users.push({
+          uid: doc.id,
+          email: String(data.email || ""),
+          displayName: String(data.displayName || ""),
+          approved: data.approved !== false,
+          active: data.active !== false,
+          deleted: data.deleted === true,
+          role: String(data.role || "user"),
+          gradeAccess: data.gradeAccess === true
+        });
+      });
+      users.sort(function (a, b) {
+        if (a.role !== b.role) return a.role === "admin" ? -1 : 1;
+        if (a.deleted !== b.deleted) return a.deleted ? 1 : -1;
+        if (a.active !== b.active) return a.active ? -1 : 1;
+        return a.email.localeCompare(b.email, "ko");
+      });
+      return users;
+    });
+  };
+
+  function canUseGrades() {
+    return !!authUser && authProfile && authProfile.active !== false &&
+      (isAdminProfile(authProfile) || authProfile.gradeAccess === true);
+  }
+
+  window.appGradesCanUse = canUseGrades;
+
+  function waitForFirebaseCurrentUser() {
+    ensureFirebase();
+    if (firebaseAuth && firebaseAuth.currentUser) return Promise.resolve(firebaseAuth.currentUser);
+    if (authUser) return Promise.resolve(authUser);
+    return new Promise(function (resolve) {
+      var done = false;
+      var unsubscribe = firebaseAuth.onAuthStateChanged(function (user) {
+        if (done) return;
+        done = true;
+        if (unsubscribe) unsubscribe();
+        resolve(user || null);
+      });
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        if (unsubscribe) unsubscribe();
+        resolve((firebaseAuth && firebaseAuth.currentUser) || authUser || null);
+      }, 3000);
+    });
+  }
+
+  var getCallableAuthPayload = function () {
+    ensureFirebase();
+    return waitForFirebaseCurrentUser().then(function (user) {
+      if (!user) throw new Error("로그인이 필요합니다. 로그아웃 후 다시 로그인해 주세요.");
+      return user.getIdToken(true).then(function (idToken) {
+        if (!idToken) throw new Error("로그인 토큰을 가져오지 못했습니다. 다시 로그인해 주세요.");
+        return {
+          idToken: idToken,
+          authUid: user.uid,
+          authEmail: user.email || ""
+        };
+      });
+    });
+  };
+
+  function callGradesHttpFunction(name, payload) {
+    return getCallableAuthPayload().then(function (authPayload) {
+      var projectId = window.__firebaseConfig && window.__firebaseConfig.projectId;
+      if (!projectId) throw new Error("Firebase 프로젝트 정보를 찾지 못했습니다.");
+      var url = "https://us-central1-" + projectId + ".cloudfunctions.net/" + name;
+      return fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + authPayload.idToken
+        },
+        body: JSON.stringify(Object.assign({}, payload || {}, {
+          authUid: authPayload.authUid,
+          authEmail: authPayload.authEmail
+        }))
+      }).then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (body) {
+          if (!res.ok || body.ok === false) {
+            var error = new Error(body.message || ("Cloud Functions 요청 실패: " + res.status));
+            error.code = body.code || String(res.status);
+            throw error;
+          }
+          return body;
+        });
+      });
+    });
+  }
+
+  function gradeSessionDoc() {
+    ensureFirebase();
+    if (!authUser) throw new Error("로그인이 필요합니다.");
+    return getGradesBookDoc().collection("sessions").doc(authUser.uid);
+  }
+
+  function isGradeSessionFresh(data) {
+    var until = data && data.expiresAt;
+    var millis = until && typeof until.toMillis === "function" ? until.toMillis() : Number(until || 0);
+    return millis > Date.now();
+  }
+
+  function requireGradeSession() {
+    if (!canUseGrades()) return Promise.reject(new Error("성적관리 권한이 없습니다."));
+    return gradeSessionDoc().get().then(function (snap) {
+      var data = snap.exists ? (snap.data() || {}) : {};
+      if (!data.active || data.deviceId !== getLocalDeviceId() || !isGradeSessionFresh(data)) {
+        throw new Error("성적관리 비밀번호 확인이 필요합니다.");
+      }
+      return true;
+    });
+  }
+
+  function getGradesBookDoc() {
+    ensureFirebase();
+    return firebaseDb.collection("gradeBooks").doc("default");
+  }
+
+  window.appGradesGetColumns = function () {
+    if (!canUseGrades()) return Promise.reject(new Error("성적관리 권한이 없습니다."));
+    return requireGradeSession().then(function () {
+      return api.getGradeColumnsLocal();
+    }).then(function (columns) {
+      columns = Array.isArray(columns) ? columns : [];
+      return columns.slice().sort(function (a, b) {
+        return (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0);
+      });
+    });
+  };
+
+  window.appGradesSaveColumns = function (columns) {
+    if (!canUseGrades()) return Promise.reject(new Error("성적관리 권한이 없습니다."));
+    return requireGradeSession().then(function () {
+      return api.saveGradeColumnsLocal(Array.isArray(columns) ? columns : []);
+    });
+  };
+
+  window.appGradesGetScores = function () {
+    if (!canUseGrades()) return Promise.reject(new Error("성적관리 권한이 없습니다."));
+    return requireGradeSession().then(function () {
+      return api.getGradeScoresLocal();
+    });
+  };
+
+  window.appGradesSetScore = function (payload) {
+    if (!canUseGrades()) return Promise.reject(new Error("성적관리 권한이 없습니다."));
+    var columnId = String((payload && payload.column_id) || "");
+    var studentKey = String((payload && payload.student_key) || "");
+    if (!columnId || !studentKey) return Promise.reject(new Error("성적 정보가 올바르지 않습니다."));
+    var rawScore = payload.score;
+    var score = Number(rawScore);
+    if (rawScore !== null && rawScore !== undefined && rawScore !== "" && (!Number.isFinite(score) || score < 0)) {
+      return Promise.reject(new Error("점수는 0 이상의 숫자여야 합니다."));
+    }
+    return requireGradeSession().then(function () {
+      return api.getGradeColumnsLocal();
+    }).then(function (columns) {
+      var column = columns.find(function (item) { return String(item.id) === columnId; });
+      var maxScore = column ? Number(column.max_score) || 100 : 100;
+      if (rawScore !== null && rawScore !== undefined && rawScore !== "" && score > maxScore) throw new Error("점수는 만점을 넘을 수 없습니다.");
+      return api.setGradeScoreLocal({
+        column_id: columnId,
+        student_key: studentKey,
+        student_number: Number(payload.student_number) || 0,
+        student_name: String(payload.student_name || ""),
+        score: rawScore
+      });
+    });
+  };
+
+  window.appCareerListRecords = function () {
+    return requireGradeSession().then(function () {
+      return api.getCareerRecords();
+    }).then(function (rows) {
+      rows = Array.isArray(rows) ? rows : [];
+      rows.sort(function (a, b) {
+        return (Number(b.graduationYear) || 0) - (Number(a.graduationYear) || 0) ||
+          String(a.name || "").localeCompare(String(b.name || ""), "ko");
+      });
+      return rows;
+    });
+  };
+
+  window.appCareerSaveRecord = function (record) {
+    return requireGradeSession().then(function () {
+      var data = Object.assign({}, record || {});
+      var id = String(data.id || "").trim();
+      delete data.id;
+      data.recordType = data.recordType === "graduate" ? "graduate" : "current";
+      data.recordTypeLabel = data.recordType === "graduate" ? "졸업생" : "현학생";
+      data.graduationYear = Number(data.graduationYear) || new Date().getFullYear();
+      data.gradeAverage = Number(data.gradeAverage) || 0;
+      data.certificates = Array.isArray(data.certificates) ? data.certificates.map(String).filter(Boolean) : [];
+      if (id) data.id = id;
+      return api.saveCareerRecord(data);
+    });
+  };
+
+  window.appCareerDeleteRecord = function (id) {
+    return requireGradeSession().then(function () {
+      return api.deleteCareerRecord(String(id || ""));
+    });
+  };
+
+  window.appGradesClearLocalData = function () {
+    return requireGradeSession().then(function () {
+      return api.clearLocalGradeData();
+    });
+  };
+
+  window.appCareerClearAllRecords = function () {
+    return requireGradeSession().then(function () {
+      return api.clearCareerRecords();
+    });
+  };
+
+  window.appCareerListLinks = function () {
+    return requireGradeSession().then(function () {
+      return getGradesBookDoc().collection("quickLinks").get();
+    }).then(function (snap) {
+      var rows = [];
+      snap.forEach(function (doc) {
+        rows.push(Object.assign({ id: doc.id }, doc.data() || {}));
+      });
+      rows.sort(function (a, b) {
+        return (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) ||
+          String(a.title || "").localeCompare(String(b.title || ""), "ko");
+      });
+      return rows;
+    });
+  };
+
+  window.appCareerSaveLink = function (link) {
+    return requireGradeSession().then(function () {
+      var data = Object.assign({}, link || {});
+      var id = String(data.id || "").trim() || getGradesBookDoc().collection("quickLinks").doc().id;
+      delete data.id;
+      data.title = String(data.title || "").trim();
+      data.url = String(data.url || "").trim();
+      data.note = String(data.note || "").trim();
+      data.sortOrder = Number(data.sortOrder) || Date.now();
+      if (!data.title || !data.url) throw new Error("링크 이름과 주소를 입력해 주세요.");
+      if (cloudTextLooksStudentSensitive([data.title, data.note].join(" "))) {
+        throw new Error("학생 정보가 포함될 수 있는 바로가기 이름/메모는 클라우드에 저장하지 않습니다.");
+      }
+      if (!/^https?:\/\//i.test(data.url)) throw new Error("주소는 http:// 또는 https:// 로 시작해야 합니다.");
+      data.updatedAt = window.firebase.firestore.FieldValue.serverTimestamp();
+      data.updatedBy = normalizeEmail(authUser && authUser.email);
+      return getGradesBookDoc().collection("quickLinks").doc(id).set(data, { merge: true }).then(function () {
+        return id;
+      });
+    });
+  };
+
+  window.appCareerDeleteLink = function (id) {
+    return requireGradeSession().then(function () {
+      return getGradesBookDoc().collection("quickLinks").doc(String(id || "")).delete();
+    });
+  };
+
+  window.appGradesGetPassword = function () {
+    return Promise.reject(new Error("보안상 비밀번호는 앱에서 읽을 수 없습니다."));
+  };
+
+  window.appGradesSetPassword = function (password) {
+    if (!isAdminProfile(authProfile)) return Promise.reject(new Error("관리자만 성적관리 비밀번호를 변경할 수 있습니다."));
+    var next = String(password || "").trim();
+    if (next.length < 4) return Promise.reject(new Error("비밀번호는 4자 이상이어야 합니다."));
+    return callGradesHttpFunction("setGradesPasswordHttp", {
+      password: next
+    });
+  };
+
+  window.appGradesVerifyPassword = function (password) {
+    if (!canUseGrades()) return Promise.reject(new Error("성적관리 권한이 없습니다."));
+    var typed = String(password || "").trim();
+    if (!typed) return Promise.reject(new Error("비밀번호를 입력해 주세요."));
+    return callGradesHttpFunction("verifyGradesPasswordHttp", {
+      password: typed,
+      deviceId: getLocalDeviceId()
+    }).then(function () { return true; });
+  };
+
+  window.appAuthUpdateUser = function (uid, patch) {
+    ensureFirebase();
+    if (!isAdminProfile(authProfile)) return Promise.reject(new Error("관리자만 변경할 수 있습니다."));
+    if (!uid) return Promise.reject(new Error("사용자 정보가 올바르지 않습니다."));
+    if (uid === (authUser && authUser.uid) && patch && patch.active === false) {
+      return Promise.reject(new Error("관리자 본인은 비활성화할 수 없습니다."));
+    }
+    return getUserDoc(uid).set(patch || {}, { merge: true });
+  };
+
+  window.appAuthDeleteUser = function (uid) {
+    ensureFirebase();
+    if (!isAdminProfile(authProfile)) return Promise.reject(new Error("관리자만 계정을 삭제할 수 있습니다."));
+    if (!uid) return Promise.reject(new Error("사용자 정보가 올바르지 않습니다."));
+    if (uid === (authUser && authUser.uid)) {
+      return Promise.reject(new Error("관리자 본인 계정은 삭제할 수 없습니다."));
+    }
+
+    var userDoc = getUserDoc(uid);
+    var batch = firebaseDb.batch();
+    batch.delete(userDoc.collection("settings").doc("app"));
+    batch.delete(userDoc.collection("shared").doc("todos"));
+    batch.delete(userDoc.collection("shared").doc("timetable"));
+    batch.set(userDoc, {
+      active: false,
+      approved: false,
+      deleted: true,
+      deletedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+      deletedBy: normalizeEmail(authUser && authUser.email)
+    }, { merge: true });
+    return batch.commit();
+  };
+
+  window.appAuthAdminResetPassword = function (targetUid) {
+    ensureFirebase();
+    if (!isAdminProfile(authProfile)) return Promise.reject(new Error("관리자만 사용할 수 있습니다."));
+    if (!targetUid) return Promise.reject(new Error("대상 사용자 정보가 없습니다."));
+    return callGradesHttpFunction("adminResetPasswordHttp", { targetUid: targetUid });
+  };
+
+  window.appNoticeGet = function () {
+    ensureFirebase();
+    if (!authUser) return Promise.resolve(null);
+    return firebaseDb.collection("app").doc("notice").get().then(function (snap) {
+      if (!snap.exists) return null;
+      var data = snap.data() || {};
+      if (data.active === false) return null;
+      return {
+        noticeId: String(data.noticeId || ""),
+        title: String(data.title || "공지사항"),
+        body: String(data.body || ""),
+        version: String(data.version || ""),
+        updatedBy: String(data.updatedBy || ""),
+        updatedAt: data.updatedAt || null
+      };
+    });
+  };
+
+  window.appNoticePublish = function (payload) {
+    ensureFirebase();
+    if (!isAdminProfile(authProfile)) return Promise.reject(new Error("관리자만 공지사항을 배포할 수 있습니다."));
+    var title = String((payload && payload.title) || "").trim() || "공지사항";
+    var body = String((payload && payload.body) || "").trim();
+    if (!body) return Promise.reject(new Error("공지 내용을 입력해 주세요."));
+    var version = String((payload && payload.version) || "").trim();
+    var noticeId = "notice-" + Date.now();
+    return firebaseDb.collection("app").doc("notice").set({
+      noticeId: noticeId,
+      title: title,
+      body: body,
+      version: version,
+      active: true,
+      updatedBy: normalizeEmail(authUser && authUser.email),
+      updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).then(function () {
+      return noticeId;
+    });
+  };
+
+  window.pullCloudSettingsNow = function () {
+    ensureFirebase();
+    if (!authUser || !authProfile || authProfile.active === false) {
+      return Promise.resolve(false);
+    }
+    return getUserDoc(authUser.uid).collection("settings").doc("app").get().then(function (snap) {
+      if (!snap.exists) return false;
+      var data = snap.data() || {};
+      var payload = buildCloudSettingsPayload(data);
+      var keys = Object.keys(payload);
+      return keys.reduce(function (chain, key) {
+        return chain.then(function () {
+          return originalSetSetting(key, payload[key]);
+        });
+      }, Promise.resolve()).then(function () {
+        if (window.reloadTopNavigation && payload.menu_groups_config !== undefined) {
+          return Promise.resolve(window.reloadTopNavigation()).then(function () {
+            return payload;
+          });
+        }
+        return payload;
+      }).then(function (savedPayload) {
+        if (window.updateClassInfo && (
+          savedPayload.class_year !== undefined ||
+          savedPayload.class_num !== undefined ||
+          savedPayload.teacher_name !== undefined
+        )) {
+          return Promise.resolve(window.updateClassInfo()).then(function () {
+            return savedPayload;
+          });
+        }
+        return savedPayload;
+      }).then(function () {
+        if (window.__pages && window.__pages.dashboard && window.__pages.dashboard.refresh) {
+          return Promise.resolve(window.__pages.dashboard.refresh()).then(function () {
+            return true;
+          });
+        }
+        return true;
+      });
+    });
+  };
+
+  function applyCloudSettingsPayload(data) {
+    var payload = buildCloudSettingsPayload(data || {});
+    var keys = Object.keys(payload);
+    if (!keys.length) return Promise.resolve(false);
+
+    return withRemoteApply(function () {
+      return keys.reduce(function (chain, key) {
+        return chain.then(function () {
+          return originalSetSetting(key, payload[key]);
+        });
+      }, Promise.resolve());
+    }).then(function () {
+      if (payload.dashboard_layout_v4 !== undefined) {
+        localStorage.setItem("dashboard_layout_v4", String(payload.dashboard_layout_v4 || ""));
+        localStorage.setItem("dashLayout2", String(payload.dashboard_layout_v4 || ""));
+      }
+      var tasks = [];
+      if (window.reloadTopNavigation) tasks.push(Promise.resolve(window.reloadTopNavigation()));
+      if (window.updateClassInfo) tasks.push(Promise.resolve(window.updateClassInfo()));
+      if (window.__pages && window.__pages.dashboard && window.__pages.dashboard.refresh) {
+        tasks.push(Promise.resolve(window.__pages.dashboard.refresh()));
+      }
+      tasks.push(refreshCurrentPage());
+      return Promise.all(tasks).then(function () {
+        return true;
+      });
+    });
+  }
+
+  function sanitizeTodoForCloud(todo) {
+    return {
+      id: Number(todo.id) || 0,
+      title: String(todo.title || ""),
+      deadline: String(todo.deadline || ""),
+      priority: String(todo.priority || "보통"),
+      category: String(todo.category || "기타"),
+      is_done: !!todo.is_done,
+      is_ai_generated: !!todo.is_ai_generated,
+      source_text: String(todo.source_text || ""),
+      created_at: String(todo.created_at || ""),
+      gcal_event_id: String(todo.gcal_event_id || "")
+    };
+  }
+
+  function sanitizeTimetableForCloud(item) {
+    return {
+      day_of_week: Number(item.day_of_week) || 0,
+      period: Number(item.period) || 0,
+      subject: String(item.subject || ""),
+      teacher: String(item.teacher || ""),
+      room: String(item.room || ""),
+      is_my_class: !!item.is_my_class
+    };
+  }
+
+  function refreshSharedPages() {
+    var tasks = [];
+    if (window.updateClassInfo) tasks.push(Promise.resolve(window.updateClassInfo()));
+    if (window.reloadTopNavigation) tasks.push(Promise.resolve(window.reloadTopNavigation()));
+    if (window.__pages && window.__pages.dashboard && window.__pages.dashboard.refresh) {
+      tasks.push(Promise.resolve(window.__pages.dashboard.refresh()));
+    }
+    if (window.__pages && window.__pages.todos && window.__pages.todos.refresh) {
+      tasks.push(Promise.resolve(window.__pages.todos.refresh()));
+    }
+    if (window.__pages && window.__pages.timetable && window.__pages.timetable.init) {
+      tasks.push(Promise.resolve(window.__pages.timetable.init()));
+    }
+    return Promise.all(tasks).catch(function () {});
+  }
+
+  function refreshCurrentPage() {
+    if (!currentPage || !window.navigateTo) return Promise.resolve();
+    if (currentPage === "dashboard") {
+      if (window.__pages && window.__pages.dashboard && window.__pages.dashboard.refresh) {
+        return Promise.resolve(window.__pages.dashboard.refresh()).catch(function () {});
+      }
+      return Promise.resolve();
+    }
+    return Promise.resolve(window.navigateTo(currentPage)).catch(function () {});
+  }
+
+  window.syncCloudSharedNow = function (kind) {
+    ensureFirebase();
+    if (!authUser || !authProfile || authProfile.active === false) {
+      return Promise.resolve(false);
+    }
+
+    var tasks = [];
+    if (!kind || kind === "timetable") {
+      tasks.push(api.getTimetable().then(function (items) {
+        return getSharedCollectionDoc("timetable").set({
+          items: (items || []).map(sanitizeTimetableForCloud),
+          updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: normalizeEmail(authUser.email)
+        }, { merge: true });
+      }));
+    }
+
+    if (!tasks.length) return Promise.resolve(false);
+
+    return Promise.all(tasks).then(function () {
+      return true;
+    });
+  };
+
+  window.pullCloudSharedNow = function () {
+    ensureFirebase();
+    if (!authUser || !authProfile || authProfile.active === false) {
+      return Promise.resolve(false);
+    }
+    return Promise.all([
+      getSharedCollectionDoc("timetable").get()
+    ]).then(function (snapshots) {
+      var timetableSnap = snapshots[0];
+      var tasks = [];
+
+      return withRemoteApply(function () {
+        if (timetableSnap.exists) {
+          var timetableData = timetableSnap.data() || {};
+          tasks.push(api.replaceTimetable(Array.isArray(timetableData.items) ? timetableData.items : []));
+        }
+
+        return Promise.all(tasks);
+      }).then(function () {
+        return refreshSharedPages().then(function () {
+          return tasks.length > 0;
+        });
+      });
+    });
+  };
+
+  function applyCloudSharedItems(todoItems, timetableItems) {
+    var tasks = [];
+    return withRemoteApply(function () {
+      if (Array.isArray(timetableItems)) tasks.push(api.replaceTimetable(timetableItems));
+      return Promise.all(tasks);
+    }).then(function () {
+      return refreshSharedPages().then(function () {
+        return refreshCurrentPage();
+      }).then(function () {
+        return tasks.length > 0;
+      });
+    });
+  }
+
+  window.syncCloudSettingsNow = function () {
+    ensureFirebase();
+    if (!authUser || !authProfile || authProfile.active === false) {
+      return Promise.resolve(false);
+    }
+    return purgeCloudSensitiveData().then(function () {
+      return api.getAllSettings();
+    }).then(function (settings) {
+      var payload = buildCloudSettingsPayload(settings || {});
+      payload.updatedAt = window.firebase.firestore.FieldValue.serverTimestamp();
+      payload.updatedBy = normalizeEmail(authUser.email);
+      return getUserDoc(authUser.uid).collection("settings").doc("app").set(payload, { merge: true }).then(function () {
+        return true;
+      });
+    });
+  };
+
+  function pushCloudSettingNow(key, value) {
+    if (!canSyncKey(key)) return Promise.resolve(false);
+    if (!authUser || !authProfile || authProfile.active === false) return Promise.resolve(false);
+
+    var payload = {};
+    payload[key] = String(value);
+    payload.updatedAt = window.firebase.firestore.FieldValue.serverTimestamp();
+    payload.updatedBy = normalizeEmail(authUser.email);
+
+    return getUserDoc(authUser.uid).collection("settings").doc("app")
+      .set(payload, { merge: true })
+      .catch(function (error) {
+        console.error("cloud setting push failed", key, error);
+        return false;
+      });
+  }
+
+  function pushCloudSharedNow(kind) {
+    if (!authUser || !authProfile || authProfile.active === false) return Promise.resolve(false);
+    if (kind === "todos") return Promise.resolve(false);
+    if (kind === "timetable") {
+      sharedLocalWriteUntil[kind] = Date.now() + 3000;
+    }
+    return window.syncCloudSharedNow(kind).catch(function (error) {
+      console.error((kind || "shared") + " cloud push failed", error);
+      return false;
+    });
+  }
+
+  window.syncCloudNow = function () {
+    return Promise.all([
+      window.syncCloudSettingsNow(),
+      window.syncCloudSharedNow()
+    ]).then(function (results) {
+      return results.some(function (item) { return !!item; });
+    });
+  };
+
+  window.pullCloudNow = function () {
+    return Promise.all([
+      window.pullCloudSettingsNow(),
+      window.pullCloudSharedNow()
+    ]).then(function (results) {
+      return results.some(function (item) { return !!item; });
+    });
+  };
+
+  function startCloudSubscriptions() {
+    ensureFirebase();
+    clearCloudSubscriptions();
+    if (!authUser || !authProfile || authProfile.active === false) return;
+    purgeCloudSensitiveData();
+
+    cloudSubscriptions.push(
+      getUserDoc(authUser.uid).collection("settings").doc("app").onSnapshot(function (snap) {
+        if (!snap.exists) return;
+        if (snap.metadata && snap.metadata.hasPendingWrites) return;
+        applyCloudSettingsPayload(snap.data() || {}).catch(function (error) {
+          console.error("cloud settings subscribe failed", error);
+        });
+      }, function (error) {
+        console.error("cloud settings snapshot failed", error);
+      })
+    );
+
+    cloudSubscriptions.push(
+      getSharedCollectionDoc("timetable").onSnapshot(function (snap) {
+        if (!snap.exists) return;
+        if (snap.metadata && snap.metadata.hasPendingWrites) return;
+        if (Date.now() < sharedLocalWriteUntil.timetable) return;
+        var timetableData = snap.data() || {};
+        applyCloudSharedItems(null, Array.isArray(timetableData.items) ? timetableData.items : []).catch(function (error) {
+          console.error("cloud timetable subscribe failed", error);
+        });
+      }, function (error) {
+        console.error("cloud timetable snapshot failed", error);
+      })
+    );
+  }
+
+  function queueCloudSync(key) {
+    if (!canSyncKey(key)) return;
+    if (!authUser || !authProfile || authProfile.active === false) return;
+    api.getSetting(key, "").then(function (value) {
+      return pushCloudSettingNow(key, value);
+    }).catch(function (error) {
+      console.error("cloud sync failed", error);
+    });
+  }
+
+  function queueSharedCollectionSync(kind) {
+    if (!authUser || !authProfile || authProfile.active === false) return;
+    pushCloudSharedNow(kind);
+  }
+
+  function renderAuthOverlay(view, message, emailValue) {
+    var overlay = ensureAuthOverlay();
+    var safeMessage = message ? '<div class="auth-message">' + message + '</div>' : "";
+    var safeEmail = String(emailValue || "").replace(/"/g, "&quot;");
+    var state = getAuthState();
+    var modeTabs = view === "form" ? (
+      '<div class="auth-tabs">' +
+        '<button type="button" class="auth-tab' + (authScreenMode === "login" ? ' active' : '') + '" data-auth-mode="login">로그인</button>' +
+        '<button type="button" class="auth-tab' + (authScreenMode === "signup" ? ' active' : '') + '" data-auth-mode="signup">회원가입</button>' +
+      '</div>'
+    ) : "";
+    var formHtml = view === "form" ? (
+      '<div class="auth-fields">' +
+        (authScreenMode === "signup"
+          ? '<label class="auth-label">이름</label><input id="auth-name" class="input auth-input" placeholder="예: 임재환">'
+          : '') +
+        '<label class="auth-label">이메일</label><input id="auth-email" class="input auth-input" type="email" value="' + safeEmail + '" placeholder="teacher@example.com">' +
+        '<label class="auth-label">비밀번호</label><input id="auth-password" class="input auth-input" type="password" placeholder="비밀번호 입력">' +
+      '</div>' +
+      '<div class="settings-actions auth-actions">' +
+        '<button type="button" class="btn btn-primary" id="auth-submit-btn">' + (authScreenMode === "signup" ? '가입하고 시작하기' : '로그인') + '</button>' +
+      '</div>'
+    ) : "";
+    var infoHtml = view === "blocked"
+        ? '<div class="auth-state-box"><div class="auth-state-title">사용 제한됨</div><div class="auth-state-note">이 계정은 현재 사용이 제한되어 있습니다.</div><div class="auth-state-email">' + (state.email || "") + '</div></div>'
+        : "";
+    var secondaryButtons = view === "form"
+      ? ""
+      : '<div class="settings-actions auth-actions"><button type="button" class="btn btn-secondary" id="auth-refresh-btn">상태 다시 확인</button><button type="button" class="btn btn-primary" id="auth-logout-btn">로그아웃</button></div>';
+
+    overlay.innerHTML =
+      '<div class="auth-overlay-backdrop"></div>' +
+      '<section class="auth-card">' +
+        '<div class="auth-brand">쌤포트</div>' +
+        '<h2 class="auth-title">계정 확인</h2>' +
+        '<div class="auth-note">가입 후 바로 사용할 수 있으며, 관리자가 필요한 경우 사용을 제한할 수 있습니다.</div>' +
+        modeTabs +
+        safeMessage +
+        formHtml +
+        infoHtml +
+        secondaryButtons +
+      '</section>';
+
+    setAuthLocked(true);
+
+    overlay.querySelectorAll("[data-auth-mode]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        authScreenMode = button.getAttribute("data-auth-mode");
+        renderAuthOverlay("form", "", document.getElementById("auth-email") ? document.getElementById("auth-email").value : safeEmail);
+      });
+    });
+
+    var submitButton = document.getElementById("auth-submit-btn");
+    if (submitButton) {
+      submitButton.addEventListener("click", function () {
+        var email = normalizeEmail(document.getElementById("auth-email").value);
+        var password = document.getElementById("auth-password").value;
+        var displayName = document.getElementById("auth-name") ? document.getElementById("auth-name").value.trim() : "";
+        if (!email || !password) {
+          renderAuthOverlay("form", "이메일과 비밀번호를 입력해 주세요.", email);
+          return;
+        }
+        if (authScreenMode === "signup") {
+          firebaseAuth.createUserWithEmailAndPassword(email, password)
+            .then(function (cred) {
+              return createOrUpdateUserProfile(cred.user, displayName);
+            })
+            .catch(function (error) {
+              renderAuthOverlay("form", parseFirebaseError(error, "회원가입에 실패했습니다."), email);
+            });
+        } else {
+          firebaseAuth.signInWithEmailAndPassword(email, password).catch(function (error) {
+            renderAuthOverlay("form", parseFirebaseError(error, "로그인에 실패했습니다."), email);
+          });
+        }
+      });
+    }
+
+    var refreshButton = document.getElementById("auth-refresh-btn");
+    if (refreshButton) {
+      refreshButton.addEventListener("click", function () {
+        if (!authUser) {
+          renderAuthOverlay("form", "", "");
+          return;
+        }
+        getUserDoc(authUser.uid).get().then(function (snap) {
+          authProfile = snap.exists ? snap.data() : authProfile;
+          evaluateAuthenticatedUser(authUser);
+        });
+      });
+    }
+
+    var logoutButton = document.getElementById("auth-logout-btn");
+    if (logoutButton) {
+      logoutButton.addEventListener("click", function () {
+        window.appAuthLogout();
+      });
+    }
+  }
+
+  function createOrUpdateUserProfile(user, displayName) {
+    ensureFirebase();
+    var docRef = getUserDoc(user.uid);
+    return docRef.get().then(function (snap) {
+      var baseData = snap.exists ? (snap.data() || {}) : null;
+      if (baseData) {
+        return docRef.set({
+          email: normalizeEmail(user.email),
+          displayName: displayName || baseData.displayName || "",
+          lastLoginAt: window.firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+          return docRef.get();
+        });
+      }
+      return docRef.set({
+        email: normalizeEmail(user.email),
+        displayName: displayName || "",
+        approved: true,
+        active: true,
+        gradeAccess: false,
+        role: "user",
+        createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+        lastLoginAt: window.firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).then(function () {
+        return docRef.get();
+      });
+    }).then(function (nextSnap) {
+      authProfile = nextSnap.exists ? nextSnap.data() : null;
+      return authProfile;
+    });
+  }
+
+  function evaluateAuthenticatedUser(user) {
+    var previousAuthUser = authUser;
+    authUser = user || null;
+    if (!user) {
+      if (previousAuthUser && previousAuthUser.uid) setLastLocalAuthUid(previousAuthUser.uid);
+      clearCloudSubscriptions();
+      clearSessionWatch();
+      authProfile = null;
+      renderAuthOverlay("form", authPendingMessage, "");
+      authPendingMessage = "";
+      return Promise.resolve(false);
+    }
+    return createOrUpdateUserProfile(user, "").then(function (profile) {
+      authProfile = profile || {};
+      if (authProfile.deleted === true) {
+        renderAuthOverlay("blocked", "이 계정은 관리자에 의해 삭제되어 사용할 수 없습니다.", normalizeEmail(user.email));
+        return false;
+      }
+      if (authProfile.active === false) {
+        renderAuthOverlay("blocked", "", normalizeEmail(user.email));
+        return false;
+      }
+      return claimLoginSession(user).catch(function (error) {
+        console.error("login session claim failed", error);
+        authPendingMessage = formatLoginSessionError(error);
+        return firebaseAuth.signOut().then(function () {
+          return false;
+        });
+      }).then(function (sessionOk) {
+        if (!sessionOk) return false;
+        var previousLocalUid = getLastLocalAuthUid();
+        var shouldMigrateLegacyDb = !previousLocalUid || previousLocalUid === user.uid;
+        return Promise.resolve(api.switchUserDatabase ? api.switchUserDatabase(user.uid, { migrateLegacy: shouldMigrateLegacyDb }) : null).then(function () {
+          if (api.switchUserDatabase) return true;
+          return clearSyncedLocalDataForAccountSwitch(user.uid).catch(function (error) {
+            console.error("account switch local clear failed", error);
+            return false;
+          });
+        }).then(function () {
+          return window.pullCloudSettingsNow().catch(function () {
+            return false;
+          });
+        }).then(function () {
+          return window.pullCloudSharedNow().catch(function () {
+            return false;
+          });
+        }).then(function () {
+          setLastLocalAuthUid(user.uid);
+          return true;
+        }).catch(function () {
+          return false;
+        }).then(function () {
+          startCloudSubscriptions();
+          startSessionWatch(user);
+          closeAuthOverlay();
+          return true;
+        });
+      }).catch(function (error) {
+        console.error("login failed", error);
+        renderAuthOverlay("form", "로그인 세션을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.", normalizeEmail(user.email));
+        return false;
+      });
+    });
+  }
+
+  function initAuthGate() {
+    ensureFirebase();
+    return new Promise(function (resolve, reject) {
+      firebaseAuth.onAuthStateChanged(function (user) {
+        evaluateAuthenticatedUser(user).then(function (ok) {
+          if (ok && !authBootResolved) {
+            authBootResolved = true;
+            resolve();
+          }
+        }).catch(function (error) {
+          console.error(error);
+          renderAuthOverlay("form", parseFirebaseError(error, "로그인 준비 중 문제가 발생했습니다."), "");
+          if (!authBootResolved) {
+            reject(error);
+          }
+        });
+      });
+    });
+  }
+
+  function updateDate() {
+    var d = new Date();
+    var days = ["일", "월", "화", "수", "목", "금", "토"];
+    text("header-date", d.getFullYear() + "년 " + (d.getMonth() + 1) + "월 " + d.getDate() + "일 (" + days[d.getDay()] + ")");
+  }
+
+  function setDashboardControls(isDashboard) {
+    document.getElementById("edit-layout-btn").style.display = isDashboard ? "" : "none";
+    document.getElementById("widget-mode-wrap").style.display = isDashboard ? "" : "none";
+  }
+
+  function updateUpdateButton(state) {
+    var btn = document.getElementById("update-btn");
+    if (!btn) return;
+    var next = state || {};
+    btn.disabled = false;
+    btn.classList.remove("active");
+
+    if (next.status === "dev") {
+      btn.style.display = "";
+      btn.textContent = "개발 실행";
+      btn.disabled = true;
+      btn.title = next.message || "개발 실행에서는 자동 업데이트를 확인하지 않습니다.";
+      return;
+    }
+    if (next.status === "checking") {
+      btn.style.display = "";
+      btn.textContent = "업데이트 확인 중";
+      btn.disabled = true;
+      btn.title = next.message || "";
+      return;
+    }
+    if (next.status === "available") {
+      btn.style.display = "";
+      btn.textContent = "업데이트 다운로드";
+      btn.classList.add("active");
+      btn.title = next.message || "";
+      return;
+    }
+    if (next.status === "downloading") {
+      btn.style.display = "";
+      btn.textContent = "다운로드 " + Math.round(next.progress || 0) + "%";
+      btn.disabled = true;
+      btn.title = next.message || "";
+      return;
+    }
+    if (next.status === "downloaded") {
+      btn.style.display = "";
+      btn.textContent = "재시작 후 설치";
+      btn.classList.add("active");
+      btn.title = next.message || "";
+      return;
+    }
+    if (next.status === "error") {
+      btn.style.display = "";
+      btn.textContent = "업데이트 오류";
+      btn.title = next.message || "";
+      return;
+    }
+    btn.style.display = "";
+    btn.textContent = "업데이트 확인";
+    btn.title = next.message || "최신 버전을 확인합니다.";
+  }
+
+  function initUpdateButton() {
+    var btn = document.getElementById("update-btn");
+    if (!btn || !api.getUpdateStatus) return;
+
+    btn.addEventListener("click", function () {
+      api.getUpdateStatus().then(function (state) {
+        if (state.status === "available") {
+          return api.downloadUpdate();
+        }
+        if (state.status === "downloaded") {
+          return api.quitAndInstallUpdate();
+        }
+        return api.checkForUpdates();
+      }).catch(function (error) {
+        toast(error.message || "업데이트 확인에 실패했습니다.", "error");
+      });
+    });
+
+    api.onUpdateStatus(function (state) {
+      updateUpdateButton(state);
+      if (state.status === "available") {
+        toast(state.message || "새 업데이트가 있습니다.", "success", 3500);
+      } else if (state.status === "downloaded") {
+        toast("업데이트 다운로드가 완료되었습니다. 버튼을 눌러 설치할 수 있습니다.", "success", 4500);
+      } else if (state.status === "error") {
+        toast(state.message || "업데이트 확인 중 문제가 발생했습니다.", "warning", 4000);
+      }
+    });
+
+    api.getUpdateStatus().then(updateUpdateButton).catch(function () {
+      updateUpdateButton({ status: "idle" });
+    });
+  }
+
+  function positionTabDropdown(section) {
+    var items = section.querySelector(".tab-group-items");
+    if (!items) return;
+    var rect = section.getBoundingClientRect();
+    items.style.top = (rect.bottom - 1) + "px";
+    items.style.left = rect.left + "px";
+  }
+
+  function syncActiveTabs() {
+    var homeBtn = document.getElementById("home-btn");
+    if (homeBtn) homeBtn.classList.toggle("active", currentPage === "dashboard");
+
+    document.querySelectorAll(".tab-link").forEach(function (button) {
+      button.classList.toggle("active", button.getAttribute("data-key") === currentPage);
+    });
+
+    document.querySelectorAll(".tab-group").forEach(function (groupEl) {
+      var groupKey = groupEl.getAttribute("data-group-key");
+      var group = menuGroups.find(function (entry) { return entry.key === groupKey; });
+      if (!group) return;
+
+      var currentItemKey = group.items.find(function (itemKey) { return itemKey === currentPage; });
+      var currentItem = currentItemKey ? findMenuPage(currentItemKey) : null;
+      var valueEl = groupEl.querySelector(".tab-group-value");
+      if (valueEl) {
+        valueEl.textContent = currentItem ? currentItem.label : (group.items[0] ? findMenuPage(group.items[0]).label : "");
+      }
+      groupEl.classList.toggle("open", openGroupKey === groupKey);
+      groupEl.classList.toggle("selected", !!currentItem);
+    });
+  }
+
+  function buildTopTabs() {
+    var nav = document.getElementById("page-tabs");
+    nav.innerHTML = "";
+
+    menuGroups.forEach(function (group) {
+      if (!group.items.length) return;
+
+      var section = document.createElement("section");
+      section.className = "tab-group";
+      section.setAttribute("data-group-key", group.key);
+      section.addEventListener("mouseenter", function () {
+        if (closeGroupTimer) {
+          clearTimeout(closeGroupTimer);
+          closeGroupTimer = null;
+        }
+        openGroupKey = group.key;
+        positionTabDropdown(section);
+        syncActiveTabs();
+      });
+      section.addEventListener("mouseleave", function () {
+        closeGroupTimer = setTimeout(function () {
+          if (openGroupKey === group.key) {
+            openGroupKey = "";
+            syncActiveTabs();
+          }
+        }, 140);
+      });
+      section.addEventListener("focusin", function () {
+        openGroupKey = group.key;
+        syncActiveTabs();
+      });
+      section.addEventListener("focusout", function () {
+        setTimeout(function () {
+          if (!section.contains(document.activeElement) && openGroupKey === group.key) {
+            openGroupKey = "";
+            syncActiveTabs();
+          }
+        }, 0);
+      });
+
+      var label = document.createElement("button");
+      label.className = "tab-group-label";
+      label.type = "button";
+
+      var labelIcon = document.createElement("span");
+      labelIcon.className = "tab-group-icon";
+      labelIcon.innerHTML = MENU_GROUP_ICONS[group.key] || "";
+
+      var labelText = document.createElement("span");
+      labelText.className = "tab-group-text";
+      labelText.textContent = group.label;
+
+      var labelValue = document.createElement("span");
+      labelValue.className = "tab-group-value";
+      labelValue.textContent = findMenuPage(group.items[0]).label;
+
+      label.appendChild(labelIcon);
+      label.appendChild(labelText);
+      label.appendChild(labelValue);
+      label.addEventListener("click", function () {
+        openGroupKey = openGroupKey === group.key ? "" : group.key;
+        if (openGroupKey === group.key) positionTabDropdown(section);
+        syncActiveTabs();
+      });
+      section.appendChild(label);
+
+      var items = document.createElement("div");
+      items.className = "tab-group-items";
+
+      group.items.forEach(function (itemKey) {
+        var item = findMenuPage(itemKey);
+        if (!item) return;
+
+        var button = document.createElement("button");
+        button.className = "tab-link";
+        button.type = "button";
+        button.setAttribute("data-key", item.key);
+        button.textContent = item.label;
+        if (item.key === currentPage) button.classList.add("active");
+        button.addEventListener("click", function () {
+          openGroupKey = "";
+          navigateTo(item.key);
+        });
+        items.appendChild(button);
+      });
+
+      section.appendChild(items);
+      nav.appendChild(section);
+    });
+
+    syncActiveTabs();
+  }
+
+  function loadPage(key) {
+    if (pageCache[key]) return Promise.resolve(pageCache[key]);
+    return new Promise(function (resolve, reject) {
+      if (window.__pages && window.__pages[key]) {
+        pageCache[key] = window.__pages[key];
+        resolve(window.__pages[key]);
+        return;
+      }
+
+      window.__pageResolvers = window.__pageResolvers || {};
+      window.__pageResolvers[key] = function (mod) {
+        pageCache[key] = mod;
+        resolve(mod);
+      };
+
+      var script = document.createElement("script");
+      script.src = "pages/" + key + ".js";
+      script.onerror = function () {
+        reject(new Error("페이지를 불러올 수 없습니다: " + key));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  function showLoading() {
+    document.getElementById("page-content").innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3)">불러오는 중...</div>';
+  }
+
+  function showError(message) {
+    document.getElementById("page-content").innerHTML =
+      '<div class="page-wrap"><div class="empty-state"><div class="icon">!</div><p>' + message + "</p></div></div>";
+  }
+
+  function navigateTo(key) {
+    if (currentPage === "grades" && key !== "grades" && window.appGradesLock) {
+      window.appGradesLock();
+    }
+    _usageOnLeave(key);
+    currentPage = key;
+    var parentGroup = menuGroups.find(function (group) {
+      return group.items.some(function (itemKey) { return itemKey === key; });
+    });
+    openGroupKey = parentGroup ? parentGroup.key : "";
+    syncActiveTabs();
+
+    var item = findMenuPage(key);
+    text("page-title", key === "dashboard" ? "대시보드" : (key === "user_management" ? "회원 관리" : (key === "grades" ? "성적관리" : (item ? item.label : ""))));
+    setDashboardControls(key === "dashboard");
+    showLoading();
+
+    return loadPage(key)
+      .then(function (mod) {
+        var content = document.getElementById("page-content");
+        content.innerHTML = "";
+        return Promise.resolve(mod.render(content)).then(function () {
+          if (mod.init) return mod.init();
+        }).then(function () {
+          if (window.refreshGoogleConnectButton) window.refreshGoogleConnectButton();
+        });
+      })
+      .catch(function (error) {
+        showError(error.message);
+        console.error(error);
+      });
+  }
+
+  function updateClassInfo() {
+    return Promise.all([
+      api.getSetting("class_year", "-"),
+      api.getSetting("class_num", "-"),
+      api.getSetting("teacher_name", "담임")
+    ]).then(function (values) {
+      text("class-info", "🏫 " + values[0] + "학년 " + values[1] + "반 · " + values[2]);
+    });
+  }
+  window.updateClassInfo = updateClassInfo;
+
+  window.navigateTo = navigateTo;
+
+  function initWindowButtons() {
+    document.getElementById("min-btn").addEventListener("click", function () { api.minimize(); });
+    document.getElementById("max-btn").addEventListener("click", function () { api.maximize(); });
+    document.getElementById("close-btn").addEventListener("click", function () { api.close(); });
+  }
+
+  function initGlobalSearch() {
+    var input = document.getElementById("global-search-input");
+    var results = document.getElementById("global-search-results");
+    if (!input || !results) return;
+
+    var currentMatches = [];
+
+    function hideResults() {
+      results.style.display = "none";
+      results.innerHTML = "";
+    }
+
+    function runSearchItem(item) {
+      hideResults();
+      input.value = "";
+      input.blur();
+      if (item.run) {
+        item.run();
+        return;
+      }
+      if (item.kind === "page" && item.key) navigateTo(item.key);
+    }
+
+    function renderResults() {
+      var query = input.value.trim();
+      if (!query) {
+        hideResults();
+        return;
+      }
+
+      currentMatches = getSearchCatalog()
+        .map(function (item) {
+          return Object.assign({}, item, { score: scoreSearchResult(query, item) });
+        })
+        .filter(function (item) { return item.score > 0; })
+        .sort(function (a, b) { return b.score - a.score; })
+        .slice(0, 8);
+
+      var inputRect = input.getBoundingClientRect();
+      results.style.top = (inputRect.bottom + 4) + "px";
+      results.style.left = inputRect.left + "px";
+      results.style.width = Math.max(inputRect.width, 280) + "px";
+
+      if (!currentMatches.length) {
+        results.innerHTML = '<div class="global-search-empty">관련 기능을 찾지 못했습니다.</div>';
+        results.style.display = "block";
+        return;
+      }
+
+      results.innerHTML = "";
+      currentMatches.forEach(function (item, index) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "global-search-result" + (index === 0 ? " active" : "");
+        button.innerHTML =
+          '<span class="global-search-result-title"></span>' +
+          '<span class="global-search-result-desc"></span>';
+        button.querySelector(".global-search-result-title").textContent = item.title;
+        button.querySelector(".global-search-result-desc").textContent = item.desc || "";
+        button.addEventListener("click", function () {
+          runSearchItem(item);
+        });
+        results.appendChild(button);
+      });
+      results.style.display = "block";
+    }
+
+    input.addEventListener("input", renderResults);
+    input.addEventListener("focus", renderResults);
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        hideResults();
+        input.blur();
+        return;
+      }
+      if (event.key === "Enter" && currentMatches[0]) {
+        event.preventDefault();
+        runSearchItem(currentMatches[0]);
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        input.focus();
+        input.select();
+      }
+    });
+
+    document.addEventListener("click", function (event) {
+      if (!document.getElementById("global-search").contains(event.target)) hideResults();
+    });
+  }
+
+  function initGoogleConnectButton() {
+    var btn = document.getElementById("google-connect-btn");
+    if (!btn) return;
+    function refreshLabel() {
+      Promise.resolve(window.api && window.api.getSetting ? window.api.getSetting("gcal_refresh_token", "") : "")
+        .then(function (token) {
+          if (token) {
+            btn.textContent = "✅ Google 연동됨";
+            btn.title = "Google 계정 연동 관리";
+          } else {
+            btn.textContent = "🔗 Google 연동";
+            btn.title = "Google 계정 연동하기";
+          }
+        })
+        .catch(function () {});
+    }
+    btn.addEventListener("click", function () {
+      navigateTo("settings").then(function () {
+        setTimeout(function () {
+          var section = document.getElementById("settings-google");
+          if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 80);
+      });
+    });
+    window.refreshGoogleConnectButton = refreshLabel;
+    refreshLabel();
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) refreshLabel();
+    });
+  }
+
+  function initManualButton() {
+    var btn = document.getElementById("manual-btn");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      showModal(
+        '<div class="modal-header">' +
+          '<span class="modal-title">기능 설명서</span>' +
+          '<button class="modal-close" data-close>×</button>' +
+        '</div>' +
+        '<div class="modal-body" style="display:grid;gap:12px">' +
+          '<div class="settings-note">앱 전체 기능 설명서를 PDF로 저장하거나, AI 도우미에게 사용법을 바로 물어볼 수 있습니다.</div>' +
+          '<div class="settings-note">AI 도우미는 이 설명서 내용을 참고해 현재 페이지와 관련된 질문에 답합니다.</div>' +
+        '</div>' +
+        '<div class="modal-footer">' +
+          '<button class="btn btn-secondary" data-close>닫기</button>' +
+          '<button class="btn btn-secondary" id="manual-ask-ai">AI 도우미에게 물어보기</button>' +
+          '<button class="btn btn-primary" id="manual-download-pdf">PDF 저장</button>' +
+        '</div>'
+      );
+      setTimeout(function () {
+        var askBtn = document.getElementById("manual-ask-ai");
+        var pdfBtn = document.getElementById("manual-download-pdf");
+        if (askBtn) askBtn.onclick = function () {
+          closeModal();
+          openAiHelper("이 앱의 전체 기능 설명서를 바탕으로 사용법을 알려줘.");
+        };
+        if (pdfBtn) pdfBtn.onclick = exportManualPdf;
+      }, 0);
+    });
+  }
+
+  function initHomeButton() {
+    document.getElementById("home-btn").addEventListener("click", function () {
+      navigateTo("dashboard");
+    });
+  }
+
+  function initWidgetButton() {
+    var btn = document.getElementById("widget-mode-btn");
+    var panel = document.getElementById("widget-mode-panel");
+    var checkboxes = {
+      todo: document.getElementById("widget-toggle-todo"),
+      timetable: document.getElementById("widget-toggle-timetable"),
+      memo: document.getElementById("widget-toggle-memo"),
+    };
+
+    btn.addEventListener("click", function (event) {
+      event.stopPropagation();
+      panel.style.display = panel.style.display === "block" ? "none" : "block";
+    });
+    document.addEventListener("click", function () {
+      panel.style.display = "none";
+    });
+    panel.addEventListener("click", function (event) {
+      event.stopPropagation();
+    });
+
+    Object.keys(checkboxes).forEach(function (type) {
+      checkboxes[type].addEventListener("change", function () {
+        api.widgetMode(type, checkboxes[type].checked);
+        btn.classList.toggle("active", Object.keys(checkboxes).some(function (t) { return checkboxes[t].checked; }));
+      });
+    });
+
+    if (api.onWidgetWindowClosed) {
+      api.onWidgetWindowClosed(function (type) {
+        if (checkboxes[type]) checkboxes[type].checked = false;
+        btn.classList.toggle("active", Object.keys(checkboxes).some(function (t) { return checkboxes[t].checked; }));
+      });
+    }
+
+    if (api.getActiveWidgets) {
+      api.getActiveWidgets().then(function (types) {
+        (types || []).forEach(function (type) {
+          if (checkboxes[type]) checkboxes[type].checked = true;
+        });
+        btn.classList.toggle("active", (types || []).length > 0);
+      });
+    }
+  }
+
+  function initEditButton() {
+    document.getElementById("edit-layout-btn").addEventListener("click", function () {
+      var active = this.classList.toggle("active");
+      this.textContent = active ? "배열 편집 완료" : "배열 편집";
+      if (window.__pages.dashboard && window.__pages.dashboard.setEditMode) {
+        window.__pages.dashboard.setEditMode(active);
+      }
+    });
+  }
+
+  function initOpacityPanel() {
+    var btn = document.getElementById("opacity-btn");
+    var panel = document.getElementById("opacity-panel");
+    var slider = document.getElementById("opacity-slider");
+    var label = document.getElementById("opacity-lbl");
+
+    btn.addEventListener("click", function (event) {
+      event.stopPropagation();
+      panel.style.display = panel.style.display === "flex" ? "none" : "flex";
+    });
+
+    document.addEventListener("click", function () {
+      panel.style.display = "none";
+    });
+
+    panel.addEventListener("click", function (event) {
+      event.stopPropagation();
+    });
+
+    slider.addEventListener("input", function () {
+      var opacity = slider.value / 100;
+      label.textContent = slider.value + "%";
+      api.setOpacity(opacity);
+    });
+
+    api.getOpacity().then(function (opacity) {
+      var pct = Math.round(opacity * 100);
+      slider.value = pct;
+      label.textContent = pct + "%";
+    }).catch(function () {});
+  }
+
+  var AI_QUICK_MODELS = {
+    claude: [
+      { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
+      { value: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
+      { value: 'claude-opus-5', label: 'Claude Opus 5' }
+    ],
+    gemini: [
+      { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+      { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+      { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }
+    ]
+  };
+
+  var AI_ENGINE_OPTIONS = [
+    { value: 'local_lite',  label: 'Local AI Lite',  desc: 'qwen2.5:3b · 빠름, 외부 전송 없음', external: false },
+    { value: 'local_basic', label: 'Local AI Basic', desc: 'Gemma 4 E2B · 8GB RAM 이상 권장', external: false },
+    { value: 'local_pro',   label: 'Local AI Pro',   desc: 'Gemma 4 E4B · 16GB RAM 이상 권장', external: false },
+    { value: 'claude',      label: 'Claude 외부 AI', desc: 'Anthropic · API 키 필요', external: true },
+    { value: 'gemini',      label: 'Gemini 외부 AI', desc: 'Google · API 키 필요', external: true }
+  ];
+
+  function initAiSettingsPanel() {
+    var btn = document.getElementById('ai-settings-btn');
+    var panel = document.getElementById('ai-settings-panel');
+    var externalSection = document.getElementById('ai-quick-external');
+    var providerSelect = document.getElementById('ai-quick-provider');
+    var modelSelect = document.getElementById('ai-quick-model');
+    var keyInput = document.getElementById('ai-quick-key');
+    var saveBtn = document.getElementById('ai-quick-save');
+    var engineList = document.getElementById('ai-quick-engine-list');
+
+    function updateModelOptions(provider) {
+      var models = AI_QUICK_MODELS[provider] || [];
+      modelSelect.innerHTML = models.map(function (m) {
+        return '<option value="' + m.value + '">' + m.label + '</option>';
+      }).join('');
+    }
+
+    function renderEngineList(currentEngine) {
+      engineList.innerHTML = AI_ENGINE_OPTIONS.map(function (opt) {
+        var checked = currentEngine === opt.value ? 'checked' : '';
+        var danger = opt.external ? 'color:var(--danger)' : '';
+        return '<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid ' + (checked ? 'var(--accent)' : 'var(--border)') + ';background:' + (checked ? 'var(--accent-l)' : 'transparent') + '">' +
+          '<input type="radio" name="ai-quick-engine" value="' + opt.value + '" ' + checked + ' style="accent-color:var(--accent)">' +
+          '<div><div style="font-size:13px;font-weight:600;' + danger + '">' + opt.label + '</div>' +
+          '<div style="font-size:11px;color:var(--text2)">' + opt.desc + '</div></div>' +
+          '</label>';
+      }).join('');
+
+      engineList.querySelectorAll('input[name="ai-quick-engine"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+          var isExt = AI_ENGINE_OPTIONS.find(function (o) { return o.value === radio.value; })?.external;
+          externalSection.style.display = isExt ? 'flex' : 'none';
+          if (isExt) updateModelOptions(providerSelect.value);
+          renderEngineList(radio.value);
+        });
+      });
+    }
+
+    function openPanel() {
+      api.getAllSettings().then(function (s) {
+        var savedEngine = s.ai_engine || 'local_lite';
+        var engine = savedEngine === 'cloud' ? (s.ai_provider || 'claude') : (savedEngine === 'rule' ? 'local_lite' : savedEngine);
+        var isExt = engine === 'claude' || engine === 'gemini';
+        renderEngineList(engine);
+        providerSelect.value = isExt ? engine : (s.ai_provider || 'claude');
+        keyInput.value = s.ai_api_key || '';
+        updateModelOptions(providerSelect.value);
+        if (s.ai_model) modelSelect.value = s.ai_model;
+        externalSection.style.display = isExt ? 'flex' : 'none';
+      }).catch(function () {});
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = panel.style.display === 'block';
+      panel.style.display = isOpen ? 'none' : 'block';
+      if (!isOpen) openPanel();
+    });
+
+    document.addEventListener('click', function () { panel.style.display = 'none'; });
+    panel.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    providerSelect.addEventListener('change', function () { updateModelOptions(providerSelect.value); });
+
+    saveBtn.addEventListener('click', function () {
+      var engine = (panel.querySelector('input[name="ai-quick-engine"]:checked') || {}).value || 'local_lite';
+      var isExt = engine === 'claude' || engine === 'gemini';
+      var saves = [
+        api.setSetting('ai_engine', engine)
+      ];
+      if (isExt) {
+        saves.push(api.setSetting('ai_provider', providerSelect.value));
+        saves.push(api.setSetting('ai_api_key', keyInput.value.trim()));
+        saves.push(api.setSetting('ai_model', modelSelect.value));
+        saves.push(api.setSetting('ai_external_consent_provider', providerSelect.value));
+        saves.push(api.setSetting('ai_external_consent_at', new Date().toISOString()));
+      }
+      Promise.all(saves).then(function () {
+        panel.style.display = 'none';
+        var toast = document.createElement('div');
+        toast.textContent = 'AI 설정을 저장했습니다.';
+        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:99999;pointer-events:none';
+        document.body.appendChild(toast);
+        setTimeout(function () { toast.remove(); }, 2000);
+      }).catch(function (err) { alert('저장 실패: ' + (err && err.message || err)); });
+    });
+  }
+
+  function getCurrentPageLabel() {
+    if (currentPage === "dashboard") return "대시보드";
+    var page = getMenuPageOptions().find(function (item) { return item.key === currentPage; });
+    return page ? page.label : currentPage;
+  }
+
+  function escapeAiHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function buildManualAiContext(question) {
+    if (!window.APP_MANUAL || typeof window.APP_MANUAL.buildAiContext !== "function") return "";
+    return window.APP_MANUAL.buildAiContext(question, currentPage);
+  }
+
+  function buildAiHelperGreetingReply() {
+    var section = null;
+    if (window.APP_MANUAL && Array.isArray(window.APP_MANUAL.sections)) {
+      section = window.APP_MANUAL.sections.find(function (item) { return item.key === currentPage; });
+    }
+    var pageLabel = getCurrentPageLabel();
+    var title = section ? section.title : pageLabel;
+    var description = section ? section.description : "현재 페이지에서 필요한 업무를 빠르게 도와드릴 수 있습니다.";
+    var features = section && section.features ? section.features.slice(0, 3) : [
+      "페이지 사용법을 안내할 수 있습니다.",
+      "기록 문장이나 업무 문구를 다듬을 수 있습니다.",
+      "체크리스트와 다음 조치 예시를 만들 수 있습니다."
+    ];
+    return [
+      "선생님, 안녕하세요. 쌤포트 로컬 AI 도우미입니다.",
+      "",
+      "현재 '" + pageLabel + "' 페이지에 계시네요. " + description,
+      "",
+      "어떤 부분을 확인하고 싶으신가요?",
+      "",
+      features.map(function (item) { return "* **" + title + ":** " + item; }).join("\n"),
+      "",
+      "궁금한 기능이나 필요한 설정이 있다면 말씀해주세요. 학생 상담 기록 등 민감한 정보는 로컬 AI 사용을 우선 권장합니다."
+    ].join("\n");
+  }
+
+  function isGreetingQuestion(question) {
+    return /^(안녕|안녕하세요|하이|hello|hi)$/i.test(String(question || "").trim());
+  }
+
+  function buildManualDirectReply(question) {
+    if (!window.APP_MANUAL || typeof window.APP_MANUAL.findRelevantSections !== "function") return "";
+    var q = String(question || "");
+    var isManualQuestion = /사용법|설명서|도움말|기능|어떻게|어디|뭐.*할 수|무엇.*할 수|pdf|PDF|다운로드|내려받/.test(q);
+    if (!isManualQuestion) return "";
+    if (/pdf|PDF|다운로드|내려받|저장/.test(q) && /설명서|도움말|기능/.test(q)) {
+      return "선생님, 기능 설명서 PDF는 상단의 '설명서' 버튼을 누른 뒤 'PDF 저장'을 선택하면 내려받을 수 있습니다. AI 도우미 안에서는 '설명서 PDF' 버튼으로도 저장할 수 있습니다.";
+    }
+    var sections = window.APP_MANUAL.findRelevantSections(q, currentPage, 2);
+    if (!sections.length) return "";
+    return sections.map(function (section) {
+      return [
+        "선생님, " + section.title + " 기능 안내",
+        section.description,
+        "",
+        "주요 기능",
+        (section.features || []).map(function (item) { return "- " + item; }).join("\n"),
+        (section.tips || []).length ? "\n사용 팁\n" + section.tips.map(function (item) { return "- " + item; }).join("\n") : ""
+      ].filter(Boolean).join("\n");
+    }).join("\n\n");
+  }
+
+  function exportManualPdf() {
+    if (!api.exportAppManualPdf) {
+      toast("설명서 PDF 기능을 사용할 수 없습니다.", "error");
+      return;
+    }
+    toast("설명서 PDF를 준비하고 있습니다.", "default", 1800);
+    api.exportAppManualPdf().then(function (result) {
+      if (!result || result.canceled) return;
+      if (result.success) toast("설명서 PDF를 저장했습니다.", "success", 3500);
+      else toast(result.error || "설명서 PDF 저장에 실패했습니다.", "error", 4500);
+    }).catch(function (error) {
+      toast(error.message || "설명서 PDF 저장에 실패했습니다.", "error", 4500);
+    });
+  }
+
+  function buildRuleBasedAiReply(question, settings) {
+    var manualReply = buildManualDirectReply(question);
+    if (manualReply) return manualReply;
+    var engine = settings.ai_engine || "local_lite";
+    if (engine === "local_lite" || engine === "local_basic" || engine === "local_pro" || engine === "rule") {
+      return "선생님, 지금은 로컬 AI(" + engine + ") 연결이 완료되지 않아 구체 답변을 만들 수 없습니다.\n\n1. 설정 → AI 설정에서 '로컬 AI 자동 설치/확인'을 눌러 주세요.\n2. Ollama가 실행 중인지 확인해 주세요.\n3. 모델 연결이 끝나면 같은 질문을 다시 보내시면 현재 페이지 맥락을 반영해 답변하겠습니다.";
+    }
+    return "선생님, AI 연결 정보가 없어 답변을 생성하지 못했습니다. 상단 AI 설정에서 로컬 AI를 선택하거나, 외부 AI를 쓸 경우 API 키를 저장해 주세요.";
+  }
+
+  function normalizeAiHelperAnswer(answer) {
+    var text = String(answer || "").trim();
+    text = text.replace(/^안녕하세요[.!?。]?\s*/g, "선생님, 안녕하세요. ");
+    if (!/^선생님[,\s]/.test(text)) text = "선생님, " + text;
+    return text;
+  }
+
+  function addAiMessage(role, text) {
+    var box = document.getElementById("ai-helper-messages");
+    if (!box) return;
+    var item = document.createElement("div");
+    item.className = "ai-helper-msg " + role;
+    item.innerHTML = "<div>" + escapeAiHtml(text).replace(/\n/g, "<br>") + "</div>";
+    box.appendChild(item);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function refreshAiHelperStatus() {
+    var status = document.getElementById("ai-helper-status");
+    if (!status) return Promise.resolve({});
+    return api.getAllSettings().then(function (settings) {
+      var engine = settings.ai_engine || "local_lite";
+      if (engine === "local_lite") status.textContent = "Local AI Lite · 빠른 응답 · 학생/상담 기본 로컬 AI";
+      else if (engine === "local_basic") status.textContent = "Local AI Basic · Gemma 4 E2B 권장 · 모델 연결 준비 중";
+      else if (engine === "local_pro") status.textContent = "Local AI Pro · Gemma 4 E4B 권장 · 16GB RAM 이상 권장";
+      else if (engine === "gemini") status.textContent = "Gemini 외부 AI · 입력 내용 외부 전송 가능 · 민감정보 주의";
+      else if (engine === "claude" || engine === "cloud") status.textContent = "Claude 외부 AI · 입력 내용 외부 전송 가능 · 민감정보 주의";
+      else status.textContent = "Local AI · 외부 전송 없음";
+      return settings;
+    });
+  }
+
+  function openAiHelper(seedPrompt) {
+    var panel = document.getElementById("ai-helper-panel");
+    var backdrop = document.getElementById("ai-helper-backdrop");
+    if (!panel || !backdrop) return;
+    panel.classList.add("open");
+    backdrop.classList.add("open");
+    panel.setAttribute("aria-hidden", "false");
+    refreshAiHelperStatus().then(function () {
+      var messages = document.getElementById("ai-helper-messages");
+      if (messages && !messages.children.length) {
+        addAiMessage("assistant", "저는 모든 페이지에서 열리는 AI 도우미입니다. 현재 페이지는 " + getCurrentPageLabel() + "입니다. 무엇을 도와드릴까요?");
+      }
+      if (seedPrompt) {
+        var input = document.getElementById("ai-helper-input");
+        if (input) input.value = seedPrompt;
+      }
+    });
+  }
+
+  function closeAiHelper() {
+    var panel = document.getElementById("ai-helper-panel");
+    var backdrop = document.getElementById("ai-helper-backdrop");
+    if (panel) {
+      panel.classList.remove("open");
+      panel.setAttribute("aria-hidden", "true");
+    }
+    if (backdrop) backdrop.classList.remove("open");
+  }
+
+  var aiHelperInputComposing = false;
+
+  function isAiHelperImeEnter(event) {
+    return aiHelperInputComposing || event.isComposing;
+  }
+
+  function sendAiHelperMessage() {
+    var input = document.getElementById("ai-helper-input");
+    if (!input) return;
+    var question = input.value.trim();
+    if (!question) return;
+    input.value = "";
+    addAiMessage("user", question);
+    addAiMessage("assistant", "생각하는 중...");
+    var box = document.getElementById("ai-helper-messages");
+    var pending = box ? box.lastElementChild : null;
+    var pageContext = "";
+    var manualContext = "";
+    var directAnswer = "";
+    try {
+      if (isGreetingQuestion(question)) {
+        directAnswer = buildAiHelperGreetingReply();
+      }
+      if (typeof window.appGetAiPageContext === "function") {
+        pageContext = window.appGetAiPageContext(question) || "";
+      }
+      manualContext = buildManualAiContext(question);
+    } catch (error) {
+      pageContext = "";
+      directAnswer = "";
+    }
+    if (directAnswer) {
+      if (pending) pending.querySelector("div").innerHTML = escapeAiHtml(normalizeAiHelperAnswer(directAnswer)).replace(/\n/g, "<br>");
+      return;
+    }
+    if (manualContext) {
+      pageContext = [pageContext, manualContext].filter(Boolean).join("\n\n");
+    }
+    api.getAllSettings().then(function (settings) {
+      var externalProvider = settings.ai_engine === "gemini" ? "gemini" : ((settings.ai_engine === "claude" || settings.ai_engine === "cloud") ? "claude" : "");
+      var sensitivePage = /학생|상담|성적|출석|관찰|수업|AI 분석/.test(getCurrentPageLabel() || "") || currentPage === "counseling" || currentPage === "students" || currentPage === "grades" || currentPage === "ai_analysis";
+      var localEngine = (settings.ai_engine === "local_lite" || settings.ai_engine === "local_basic" || settings.ai_engine === "local_pro") ? settings.ai_engine : "";
+      // 클라우드 모드에서 민감 페이지는 강제로 로컬로 떨어뜨리지 않는다.
+      // 대신 메인 프로세스가 학생 식별정보를 가명화(학생A/B…)해서 전송하고 응답을 복원한다.
+      // 단, 클라우드를 쓸 수 없는 상태(외부 provider/API 키 없음)면 안전하게 로컬로 폴백.
+      if (sensitivePage && !localEngine && !(externalProvider && settings.ai_api_key)) localEngine = "local_lite";
+      if (localEngine && api.aiLocalChat) {
+        return api.aiLocalChat({
+          engine: localEngine,
+          page: getCurrentPageLabel(),
+          question: question,
+          context: pageContext
+        }).then(function (result) {
+          return result && result.result ? result.result : buildRuleBasedAiReply(question, settings);
+        }).catch(function () {
+          return buildRuleBasedAiReply(question, settings);
+        });
+      }
+      if (externalProvider && settings.ai_api_key && api.aiAssistantChat) {
+        return api.aiAssistantChat({
+          provider: externalProvider,
+          model: settings.ai_model || "",
+          apiKey: settings.ai_api_key,
+          page: getCurrentPageLabel(),
+          question: question,
+          context: pageContext,
+          sensitive: sensitivePage
+        }).then(function (result) {
+          return result && result.result ? result.result : buildRuleBasedAiReply(question, settings);
+        }).catch(function () {
+          return buildRuleBasedAiReply(question, settings);
+        });
+      }
+      return buildRuleBasedAiReply(question, settings);
+    }).then(function (answer) {
+      if (pending) pending.querySelector("div").innerHTML = escapeAiHtml(normalizeAiHelperAnswer(answer)).replace(/\n/g, "<br>");
+    });
+  }
+
+  function initAiHelper() {
+    var openBtn = document.getElementById("ai-helper-btn");
+    var closeBtn = document.getElementById("ai-helper-close");
+    var backdrop = document.getElementById("ai-helper-backdrop");
+    var sendBtn = document.getElementById("ai-helper-send");
+    var manualPdfBtn = document.getElementById("ai-helper-manual-pdf");
+    var input = document.getElementById("ai-helper-input");
+    if (openBtn) openBtn.addEventListener("click", function () { openAiHelper(); });
+    if (closeBtn) closeBtn.addEventListener("click", closeAiHelper);
+    if (backdrop) backdrop.addEventListener("click", closeAiHelper);
+    if (sendBtn) sendBtn.addEventListener("click", sendAiHelperMessage);
+    if (manualPdfBtn) manualPdfBtn.addEventListener("click", exportManualPdf);
+    if (input) {
+      input.addEventListener("compositionstart", function () {
+        aiHelperInputComposing = true;
+      });
+      input.addEventListener("compositionend", function () {
+        aiHelperInputComposing = false;
+      });
+      input.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          if (isAiHelperImeEnter(event)) return;
+          event.preventDefault();
+          sendAiHelperMessage();
+        }
+      });
+    }
+    document.querySelectorAll("[data-ai-prompt]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        openAiHelper(button.getAttribute("data-ai-prompt"));
+      });
+    });
+    window.openAiHelper = openAiHelper;
+  }
+
+  window.reloadTopNavigation = function () {
+    return api.getSetting("menu_groups_config", "").then(function (raw) {
+      menuGroups = parseMenuGroups(raw);
+      menuItems = flattenMenuItems(menuGroups);
+      buildTopTabs();
+      syncActiveTabs();
+    });
+  };
+
+  var toastContainer = document.createElement("div");
+  toastContainer.id = "toast-container";
+  document.body.appendChild(toastContainer);
+
+  window.toast = function (msg, type, duration) {
+    var actualType = type || "default";
+    var actualDuration = duration || 2500;
+    var el = document.createElement("div");
+    el.className = "toast" + (actualType !== "default" ? " " + actualType : "");
+    el.textContent = msg;
+    toastContainer.appendChild(el);
+    setTimeout(function () {
+      el.style.opacity = "0";
+      el.style.transition = "opacity .3s";
+      setTimeout(function () {
+        el.remove();
+      }, 300);
+    }, actualDuration);
+  };
+
+  window.showModal = function (html, onClose) {
+    var overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = '<div class="modal">' + html + "</div>";
+    overlay.addEventListener("click", function (event) {
+      if (event.target === overlay) closeModal();
+    });
+    document.body.appendChild(overlay);
+
+    var close = function () {
+      overlay.remove();
+      if (onClose) onClose();
+    };
+
+    window.__closeModal = close;
+    overlay.querySelectorAll("[data-close]").forEach(function (button) {
+      button.addEventListener("click", close);
+    });
+    return { close: close, el: overlay };
+  };
+
+  window.closeModal = function () {
+    if (window.__closeModal) window.__closeModal();
+  };
+
+  window.today = function () {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+
+  window.formatDate = function (str) {
+    if (!str) return "";
+    return str.replace(/-/g, ".");
+  };
+
+  window.diffDays = function (dateStr) {
+    var now = new Date();
+    now.setHours(0, 0, 0, 0);
+    var target = new Date(dateStr);
+    target.setHours(0, 0, 0, 0);
+    return Math.round((target - now) / 86400000);
+  };
+
+  function getReleaseNoticeItems(version) {
+    return [
+      "할일 목록은 종료 시에도 로컬에 안전하게 저장되고, 인터넷이 있으면 클라우드에 동기화됩니다.",
+      "대시보드 할일에서 완료 항목은 최근 5개만 보여 더 깔끔하게 정리됩니다.",
+      "개인 시간표에서 같은 번호는 같은 색으로 표시할 수 있습니다.",
+      "다른 컴퓨터에서 같은 계정으로 로그인할 때 기존 접속을 정리하는 기능이 추가되었습니다."
+    ];
+  }
+
+  function showReleaseNoticeIfNeeded() {
+    if (!api || !api.getAppMeta) return Promise.resolve(false);
+    return Promise.all([
+      api.getAppMeta(),
+      window.appNoticeGet ? window.appNoticeGet().catch(function () { return null; }) : Promise.resolve(null)
+    ]).then(function (results) {
+      var meta = results[0];
+      var remoteNotice = results[1];
+      var version = String((meta && meta.version) || "dev");
+      var noticeId = remoteNotice && remoteNotice.noticeId ? remoteNotice.noticeId : ("v" + version);
+      var snoozeKey = "notice_snooze_until_" + noticeId;
+      var readKey = "notice_read_" + noticeId;
+
+      return Promise.all([
+        api.getSetting(snoozeKey, ""),
+        api.getSetting(readKey, "")
+      ]).then(function (values) {
+        var snoozeUntil = Number(values[0] || 0);
+        var alreadyRead = values[1] === "true";
+        if (alreadyRead || (snoozeUntil && Date.now() < snoozeUntil)) return false;
+
+        var title = remoteNotice ? remoteNotice.title : "공지사항";
+        var subtitle = remoteNotice && remoteNotice.version
+          ? "버전 " + remoteNotice.version + " 업데이트 안내입니다."
+          : "버전 " + version + " 업데이트 안내입니다.";
+        var bodyHtml = "";
+        if (remoteNotice && remoteNotice.body) {
+          bodyHtml = String(remoteNotice.body).split(/\r?\n/).filter(function (line) {
+            return line.trim();
+          }).map(function (line) {
+            return '<div style="line-height:1.55;margin:6px 0">' + line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</div>';
+          }).join("");
+        } else {
+          var items = getReleaseNoticeItems(version);
+          bodyHtml = '<ul style="margin:0;padding-left:20px;color:var(--text)">' + items.map(function (item) {
+            return '<li style="margin:8px 0;line-height:1.45">' + item + '</li>';
+          }).join("") + '</ul>';
+        }
+
+        showModal(
+          '<div class="modal-header">' +
+            '<span class="modal-title">' + title.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</span>' +
+            '<button class="modal-close" data-close>×</button>' +
+          '</div>' +
+          '<div class="modal-body" style="display:grid;gap:14px">' +
+            '<div style="font-size:13px;color:var(--text2)">' + subtitle + '</div>' +
+            '<div style="color:var(--text)">' + bodyHtml + '</div>' +
+            '<div style="font-size:12px;color:var(--text3)">업데이트 후 달라진 기능을 이해하기 쉽게 알려드리는 공지입니다.</div>' +
+          '</div>' +
+          '<div class="modal-footer">' +
+            '<button class="btn btn-secondary" id="notice-snooze-week">일주일 간 보지 않기</button>' +
+            '<button class="btn btn-primary" id="notice-ok">확인</button>' +
+          '</div>'
+        );
+
+        setTimeout(function () {
+          var snoozeButton = document.getElementById("notice-snooze-week");
+          var okButton = document.getElementById("notice-ok");
+          if (snoozeButton) {
+            snoozeButton.onclick = function () {
+              api.setSetting(snoozeKey, String(Date.now() + 7 * 24 * 60 * 60 * 1000)).finally(function () {
+                closeModal();
+              });
+            };
+          }
+          if (okButton) {
+            okButton.onclick = function () {
+              api.setSetting(readKey, "true").finally(function () {
+                closeModal();
+              });
+            };
+          }
+        }, 0);
+
+        return true;
+      });
+    }).catch(function (error) {
+      console.error("release notice failed", error);
+      return false;
+    });
+  }
+
+  Promise.resolve()
+    .then(function () {
+      initWindowButtons();
+      initGlobalSearch();
+      initHomeButton();
+      initUpdateButton();
+      initManualButton();
+      initGoogleConnectButton();
+      initWidgetButton();
+      initEditButton();
+      initOpacityPanel();
+      initAiSettingsPanel();
+      initAiHelper();
+      updateDate();
+      setInterval(updateDate, 60000);
+      return initAuthGate();
+    })
+    .then(function () {
+      return window.reloadTopNavigation();
+    })
+    .then(function () {
+      return updateClassInfo();
+    })
+    .then(function () {
+      return navigateTo("dashboard");
+    })
+    .then(function () {
+      setTimeout(showReleaseNoticeIfNeeded, 600);
+    })
+    .catch(function (error) {
+      document.getElementById("page-tabs").innerHTML =
+        '<div style="padding:12px 18px;color:#d14343;font-weight:600">탭을 불러오지 못했습니다.</div>';
+      showError(error.message);
+      console.error(error);
+    });
+})();
+</script>
+</body>
+</html>
