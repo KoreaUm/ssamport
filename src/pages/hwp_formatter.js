@@ -16,7 +16,7 @@ async function render(container) {
   var savedMd = '';
   var savedTopic = (await api.getSetting('hwp_topic', '')) || '';
   var savedType = (await api.getSetting('hwp_doctype', DOC_TYPES[0])) || DOC_TYPES[0];
-  var savedSchool = (await api.getSetting('hwp_school', '')) || '';
+  var savedSchool = (await api.getSetting('hwp_school', '')) || (await api.getSetting('school_name', '')) || '';
   var savedLogo   = (await api.getSetting('hwp_logo_path', '')) || '';
 
   container.innerHTML = `

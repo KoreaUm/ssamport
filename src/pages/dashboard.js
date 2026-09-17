@@ -184,6 +184,7 @@ async function render(c){
   <div class="card sb-card" id="w-student-contact" data-widget="student-contact" style="overflow:hidden;display:flex;flex-direction:column">
     <div class="card-header" style="padding:8px 10px 0">
       <span class="card-title" style="font-size:11px">👤 학생 연락처</span>
+      <button class="btn-icon-flat" onclick="navigateTo('contacts')" title="전체 연락처 검색">📞</button>
     </div>
     <div style="padding:4px 8px 8px;display:flex;flex-direction:column;flex:1;min-height:0">
       <input class="sb-mini-input" id="student-q" placeholder="🔍 검색...">
@@ -1217,6 +1218,14 @@ async function refreshTimetable(){
 // ─────────────────────────────────────────────────────────
 // 연락처
 // ─────────────────────────────────────────────────────────
+window.__dbCopyContact=async(phone,name)=>{
+  try{
+    await navigator.clipboard.writeText(phone);
+    toast(`${name} 번호 복사됨: ${phone}`,'success');
+  }catch(_){
+    toast('복사에 실패했습니다','error');
+  }
+};
 async function refreshTeachers(q=''){
   const list=document.getElementById('teacher-list');
   if(!list)return;
@@ -1228,10 +1237,12 @@ async function refreshStudents(q=''){
   let students=await api.getStudents();
   if(q) students=students.filter(s=>s.name.includes(q)||String(s.number).includes(q));
   if(!students.length){list.innerHTML='<div style="font-size:11px;color:var(--text3)">학생 없음</div>';return;}
-  list.innerHTML=students.slice(0,6).map(s=>{
+  const shown=students.slice(0,6);
+  list.innerHTML=shown.map(s=>{
     const ph=s.phone||s.parent_phone||'';
-    return `<div style="display:flex;align-items:center;padding:2px 0;font-size:11px;gap:4px"><span style="color:var(--text2)">${s.number}번</span><span style="color:var(--text);font-weight:600">${s.name}</span>${ph?`<span style="color:var(--text3);margin-left:auto">${ph}</span>`:''}</div>`;
-  }).join('');
+    const copyAttr=ph?`onclick="window.__dbCopyContact('${ph}','${s.name}')" title="클릭해서 번호 복사" style="cursor:pointer"`:'';
+    return `<div ${copyAttr} style="display:flex;align-items:center;padding:2px 0;font-size:11px;gap:4px"><span style="color:var(--text2)">${s.number}번</span><span style="color:var(--text);font-weight:600">${s.name}</span>${ph?`<span style="color:var(--text3);margin-left:auto">${ph}</span>`:''}</div>`;
+  }).join('') + (students.length>shown.length?`<div style="text-align:center;padding-top:4px"><a href="javascript:void(0)" onclick="navigateTo('contacts')" style="font-size:11px;color:var(--accent)">전체 ${students.length}명 보기 →</a></div>`:'');
 }
 
 // ─────────────────────────────────────────────────────────

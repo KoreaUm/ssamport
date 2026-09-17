@@ -61,7 +61,13 @@
       '          <label>시행날짜 <small>선택</small><input id="od-basis-date" type="date"></label>',
       '        </div>',
       '        <label>본문 핵심 내용<textarea id="od-body" rows="6" placeholder="짧게 써도 됩니다. 예: 2026학년도 1학기 생활위원회 결과 보고"></textarea></label>',
-      '        <label>붙임 파일 목록 <small>선택, 한 줄에 하나</small><textarea id="od-attachments" rows="3" placeholder="예: 운영 계획서&#10;예: 참가 신청서"></textarea></label>',
+      '        <label>붙임 파일 목록 <small>선택, 파일을 가져오면 제목이 자동 입력됩니다</small>',
+      '          <div class="official-doc-attach-upload">',
+      '            <button type="button" id="od-attach-pick-btn" class="btn btn-secondary btn-sm">📎 파일 가져오기</button>',
+      '            <input type="file" id="od-attachments-input" multiple accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx,.hwp,.hwpx" style="display:none">',
+      '          </div>',
+      '          <textarea id="od-attachments" rows="3" placeholder="예: 운영 계획서&#10;예: 참가 신청서"></textarea>',
+      '        </label>',
       '        <div id="od-missing" class="official-doc-alert" style="display:none"></div>',
       '        <div class="official-doc-btn-row">',
       '          <button id="od-generate-btn" class="btn btn-secondary official-doc-main-btn">규칙 기반 생성</button>',
@@ -270,9 +276,26 @@
     box.textContent = "아직 필요한 항목: " + missing.join(", ");
   }
 
+  // 리치 텍스트(HTML)로 붙여넣을 때 브라우저/워드프로세서가 연속 공백을 한 칸으로
+  // 접어버리는 문제를 막기 위해, 각 줄의 선행 공백과 연속 공백을 &nbsp;로 치환한다.
+  function preserveSpacesForHtml(escapedText) {
+    return escapedText
+      .split("\n")
+      .map(function (line) {
+        var lead = line.match(/^ +/);
+        var leadLen = lead ? lead[0].length : 0;
+        var rest = leadLen ? line.slice(leadLen) : line;
+        rest = rest.replace(/ {2,}/g, function (match) {
+          return "&nbsp;".repeat(match.length - 1) + " ";
+        });
+        return "&nbsp;".repeat(leadLen) + rest;
+      })
+      .join("<br>");
+  }
+
   function writeRichClipboard(text, htmlInner) {
     if (!text) return;
-    var inner = htmlInner != null ? htmlInner : escapeHtml(text).replace(/\n/g, "<br>");
+    var inner = htmlInner != null ? htmlInner : preserveSpacesForHtml(escapeHtml(text));
     var html = '<div style="font-family:\'돋움\',Dotum,sans-serif;font-size:12pt;">' + inner + "</div>";
     if (navigator.clipboard && window.ClipboardItem) {
       try {
@@ -357,13 +380,13 @@
   // "{{TABLE}}" 표시가 있으면 실제 표(html)/탭 구분 표(plain)로 바꿔 렌더링·복사용 결과를 만든다.
   function renderSvBody(rawBody, tableRows) {
     if (!tableRows) {
-      return { html: escapeHtml(rawBody).replace(/\n/g, "<br>"), plain: rawBody };
+      return { html: preserveSpacesForHtml(escapeHtml(rawBody)), plain: rawBody };
     }
     var parts = rawBody.split("{{TABLE}}");
     var before = parts[0] || "";
     var after = parts[1] || "";
     return {
-      html: escapeHtml(before).replace(/\n/g, "<br>") + buildSvTableHtml(tableRows) + escapeHtml(after).replace(/\n/g, "<br>"),
+      html: preserveSpacesForHtml(escapeHtml(before)) + buildSvTableHtml(tableRows) + preserveSpacesForHtml(escapeHtml(after)),
       plain: before + buildSvTablePlain(tableRows) + after
     };
   }
@@ -418,6 +441,25 @@
     document.querySelectorAll(".official-doc-tab").forEach(function (btn) {
       btn.addEventListener("click", function () { switchTab(btn.dataset.tab); });
     });
+
+    var odAttachPickBtn = document.getElementById("od-attach-pick-btn");
+    var odAttachInput = document.getElementById("od-attachments-input");
+    if (odAttachPickBtn && odAttachInput) {
+      odAttachPickBtn.addEventListener("click", function () { odAttachInput.click(); });
+      odAttachInput.addEventListener("change", function () {
+        var textarea = document.getElementById("od-attachments");
+        if (!textarea) return;
+        var existingLines = textarea.value.split("\n").map(function (v) { return v.trim(); }).filter(Boolean);
+        Array.prototype.forEach.call(odAttachInput.files, function (file) {
+          var base = String(file.name || "").replace(/\.[^.\/\\]+$/, "").trim();
+          if (base && existingLines.indexOf(base) === -1) {
+            existingLines.push(base);
+          }
+        });
+        textarea.value = existingLines.join("\n");
+        odAttachInput.value = "";
+      });
+    }
 
     var generateBtn = document.getElementById("od-generate-btn");
     if (generateBtn) {
@@ -531,7 +573,23 @@
       schoolNameInput.value = getSchoolName();
       schoolNameInput.addEventListener("input", function () {
         try { localStorage.setItem(SV_SCHOOL_NAME_KEY, schoolNameInput.value); } catch (e) {}
+        if (window.api && typeof window.api.setSetting === "function") {
+          window.api.setSetting("school_name", schoolNameInput.value.trim());
+        }
         refDocComposers.forEach(function (fn) { fn(); });
+      });
+    }
+
+    // 설정(설정 > NEIS 설정)에 저장된 전역 학교 이름. 이 페이지에 아직 학교명이
+    // 입력되지 않았을 때만 자동으로 채워 넣는다 (사용자가 이 페이지에서 따로
+    // 입력한 값이 있으면 그 값을 우선한다).
+    if (!getSchoolName() && window.api && typeof window.api.getSetting === "function") {
+      window.api.getSetting("school_name", "").then(function (globalSchoolName) {
+        if (globalSchoolName && !getSchoolName()) {
+          try { localStorage.setItem(SV_SCHOOL_NAME_KEY, globalSchoolName); } catch (e) {}
+          if (schoolNameInput) schoolNameInput.value = globalSchoolName;
+          refDocComposers.forEach(function (fn) { fn(); });
+        }
       });
     }
 

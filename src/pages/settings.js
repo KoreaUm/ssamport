@@ -14,6 +14,7 @@ const MODEL_OPTIONS = {
 
 const MENU_PAGE_OPTIONS = [
   { key: 'students',         label: '학생 명단' },
+  { key: 'contacts',         label: '연락처 검색' },
   { key: 'attendance',       label: '출석 관리' },
   { key: 'daily_memo',       label: '학급 메모' },
   { key: 'timetable',        label: '시간표 관리' },
@@ -37,7 +38,7 @@ const MENU_PAGE_OPTIONS = [
 ];
 
 const DEFAULT_MENU_GROUPS = [
-  { key: 'class',    label: '학급',     items: ['students', 'attendance', 'daily_memo', 'timetable', 'seating'] },
+  { key: 'class',    label: '학급',     items: ['students', 'contacts', 'attendance', 'daily_memo', 'timetable', 'seating'] },
   { key: 'records',  label: '기록·평가', items: ['counseling', 'observations', 'lessons', 'ai_analysis', 'assessments', 'submissions', 'statistics'] },
   { key: 'work',     label: '업무·문서', items: ['official_document', 'hwp_formatter', 'meal', 'school_calendar', 'calculator', 'lesson_materials', 'todos', 'sticky_notes'] },
   { key: 'settings', label: '설정',     items: ['settings'] },
@@ -177,6 +178,8 @@ async function render(container) {
               <option value="">\uAC80\uC0C9 \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.</option>
             </select>
           </div>
+          <div class="form-row"><label>\uD559\uAD50 \uC774\uB984</label><input class="input" id="school-name" value="${escapeHtml(settings.school_name || '')}" placeholder="\uC608: \uCDA9\uC8FC\uCD08\uB4F1\uD559\uAD50"></div>
+          <div class="settings-note" style="margin:-6px 0 8px">\uC5EC\uAE30\uC5D0 \uC800\uC7A5\uD55C \uD559\uAD50 \uC774\uB984\uC740 \uACF5\uBB38\uC11C \uC791\uC131\u00B7\uD55C\uAE00 \uC790\uB3D9 \uC11C\uC2DD \uB4F1 \uD559\uAD50\uBA85\uC774 \uD544\uC694\uD55C \uBAA8\uB4E0 \uAE30\uB2A5\uC5D0 \uC790\uB3D9\uC73C\uB85C \uC801\uC6A9\uB429\uB2C8\uB2E4.</div>
           <div class="form-row"><label>\uAD50\uC721\uCCAD \uCF54\uB4DC</label><input class="input" id="se" value="${escapeHtml(settings.edu_office_code || '')}" placeholder="\uC608: B10"></div>
           <div class="form-row"><label>\uD559\uAD50 \uCF54\uB4DC</label><input class="input" id="ss" value="${escapeHtml(settings.school_code || '')}" placeholder="\uD559\uAD50 \uCF54\uB4DC"></div>
           <div class="settings-actions">
@@ -632,6 +635,7 @@ async function init() {
   document.getElementById('sv-ne').onclick = async () => {
     await api.setSetting('edu_office_code', document.getElementById('se').value.trim());
     await api.setSetting('school_code', document.getElementById('ss').value.trim());
+    await api.setSetting('school_name', document.getElementById('school-name').value.trim());
     toast('\uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4', 'success');
   };
 
@@ -1184,6 +1188,11 @@ function applySelectedSchool() {
   document.getElementById('ss').value = item.schoolCode || '';
   api.setSetting('edu_office_code', item.eduCode || '');
   api.setSetting('school_code', item.schoolCode || '');
+  const schoolNameEl = document.getElementById('school-name');
+  if (schoolNameEl) {
+    schoolNameEl.value = item.schoolName || '';
+    api.setSetting('school_name', item.schoolName || '');
+  }
   toast(`${item.schoolName} \uCF54\uB4DC\uAC00 \uC785\uB825\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`, 'success', 1800);
 }
 
