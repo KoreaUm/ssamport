@@ -89,7 +89,6 @@
             <button id="ai-quick-save" class="btn btn-primary btn-sm" style="width:100%">저장</button>
           </div>
         </div>
-        <button id="ai-helper-btn" class="topbar-btn ai-helper-open" title="AI 도우미">AI 도우미</button>
         <button id="google-connect-btn" class="topbar-btn" title="Google 계정 연동">🔗 Google 연동</button>
         <div class="vdiv"></div>
         <span id="header-date"></span>
@@ -100,29 +99,6 @@
     <main id="page-content"></main>
   </div>
 </div>
-
-<aside id="ai-helper-panel" class="ai-helper-panel" aria-hidden="true">
-  <div class="ai-helper-head">
-    <div>
-      <div class="ai-helper-kicker">AI Assistant</div>
-      <strong>AI 도우미</strong>
-    </div>
-    <button id="ai-helper-close" class="ai-helper-close" title="닫기">×</button>
-  </div>
-  <div id="ai-helper-status" class="ai-helper-status">AI 상태를 확인하는 중...</div>
-  <div id="ai-helper-messages" class="ai-helper-messages"></div>
-  <div class="ai-helper-suggestions">
-    <button data-ai-prompt="현재 페이지에서 무엇을 도와줄 수 있어?">이 페이지 도움</button>
-    <button data-ai-prompt="상담 기록을 더 전문적으로 쓰는 방법을 알려줘.">상담 기록 팁</button>
-    <button data-ai-prompt="후속 조치 문장을 예시로 만들어줘.">후속 조치 예시</button>
-    <button id="ai-helper-manual-pdf" type="button">설명서 PDF</button>
-  </div>
-  <div class="ai-helper-input-row">
-    <textarea id="ai-helper-input" placeholder="무엇이든 물어보세요. 예: 이 상담 내용을 요약해줘"></textarea>
-    <button id="ai-helper-send" class="btn btn-primary btn-sm">전송</button>
-  </div>
-</aside>
-<div id="ai-helper-backdrop" class="ai-helper-backdrop"></div>
 
 <script>
 (function () {
@@ -2627,22 +2603,15 @@
           '<button class="modal-close" data-close>×</button>' +
         '</div>' +
         '<div class="modal-body" style="display:grid;gap:12px">' +
-          '<div class="settings-note">앱 전체 기능 설명서를 PDF로 저장하거나, AI 도우미에게 사용법을 바로 물어볼 수 있습니다.</div>' +
-          '<div class="settings-note">AI 도우미는 이 설명서 내용을 참고해 현재 페이지와 관련된 질문에 답합니다.</div>' +
+          '<div class="settings-note">앱 전체 기능 설명서를 PDF로 저장할 수 있습니다.</div>' +
         '</div>' +
         '<div class="modal-footer">' +
           '<button class="btn btn-secondary" data-close>닫기</button>' +
-          '<button class="btn btn-secondary" id="manual-ask-ai">AI 도우미에게 물어보기</button>' +
           '<button class="btn btn-primary" id="manual-download-pdf">PDF 저장</button>' +
         '</div>'
       );
       setTimeout(function () {
-        var askBtn = document.getElementById("manual-ask-ai");
         var pdfBtn = document.getElementById("manual-download-pdf");
-        if (askBtn) askBtn.onclick = function () {
-          closeModal();
-          openAiHelper("이 앱의 전체 기능 설명서를 바탕으로 사용법을 알려줘.");
-        };
         if (pdfBtn) pdfBtn.onclick = exportManualPdf;
       }, 0);
     });
@@ -2849,78 +2818,6 @@
     });
   }
 
-  function getCurrentPageLabel() {
-    if (currentPage === "dashboard") return "대시보드";
-    var page = getMenuPageOptions().find(function (item) { return item.key === currentPage; });
-    return page ? page.label : currentPage;
-  }
-
-  function escapeAiHtml(value) {
-    return String(value == null ? "" : value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  function buildManualAiContext(question) {
-    if (!window.APP_MANUAL || typeof window.APP_MANUAL.buildAiContext !== "function") return "";
-    return window.APP_MANUAL.buildAiContext(question, currentPage);
-  }
-
-  function buildAiHelperGreetingReply() {
-    var section = null;
-    if (window.APP_MANUAL && Array.isArray(window.APP_MANUAL.sections)) {
-      section = window.APP_MANUAL.sections.find(function (item) { return item.key === currentPage; });
-    }
-    var pageLabel = getCurrentPageLabel();
-    var title = section ? section.title : pageLabel;
-    var description = section ? section.description : "현재 페이지에서 필요한 업무를 빠르게 도와드릴 수 있습니다.";
-    var features = section && section.features ? section.features.slice(0, 3) : [
-      "페이지 사용법을 안내할 수 있습니다.",
-      "기록 문장이나 업무 문구를 다듬을 수 있습니다.",
-      "체크리스트와 다음 조치 예시를 만들 수 있습니다."
-    ];
-    return [
-      "선생님, 안녕하세요. 쌤포트 로컬 AI 도우미입니다.",
-      "",
-      "현재 '" + pageLabel + "' 페이지에 계시네요. " + description,
-      "",
-      "어떤 부분을 확인하고 싶으신가요?",
-      "",
-      features.map(function (item) { return "* **" + title + ":** " + item; }).join("\n"),
-      "",
-      "궁금한 기능이나 필요한 설정이 있다면 말씀해주세요. 학생 상담 기록 등 민감한 정보는 로컬 AI 사용을 우선 권장합니다."
-    ].join("\n");
-  }
-
-  function isGreetingQuestion(question) {
-    return /^(안녕|안녕하세요|하이|hello|hi)$/i.test(String(question || "").trim());
-  }
-
-  function buildManualDirectReply(question) {
-    if (!window.APP_MANUAL || typeof window.APP_MANUAL.findRelevantSections !== "function") return "";
-    var q = String(question || "");
-    var isManualQuestion = /사용법|설명서|도움말|기능|어떻게|어디|뭐.*할 수|무엇.*할 수|pdf|PDF|다운로드|내려받/.test(q);
-    if (!isManualQuestion) return "";
-    if (/pdf|PDF|다운로드|내려받|저장/.test(q) && /설명서|도움말|기능/.test(q)) {
-      return "선생님, 기능 설명서 PDF는 상단의 '설명서' 버튼을 누른 뒤 'PDF 저장'을 선택하면 내려받을 수 있습니다. AI 도우미 안에서는 '설명서 PDF' 버튼으로도 저장할 수 있습니다.";
-    }
-    var sections = window.APP_MANUAL.findRelevantSections(q, currentPage, 2);
-    if (!sections.length) return "";
-    return sections.map(function (section) {
-      return [
-        "선생님, " + section.title + " 기능 안내",
-        section.description,
-        "",
-        "주요 기능",
-        (section.features || []).map(function (item) { return "- " + item; }).join("\n"),
-        (section.tips || []).length ? "\n사용 팁\n" + section.tips.map(function (item) { return "- " + item; }).join("\n") : ""
-      ].filter(Boolean).join("\n");
-    }).join("\n\n");
-  }
-
   function exportManualPdf() {
     if (!api.exportAppManualPdf) {
       toast("설명서 PDF 기능을 사용할 수 없습니다.", "error");
@@ -2936,190 +2833,6 @@
     });
   }
 
-  function buildRuleBasedAiReply(question, settings) {
-    var manualReply = buildManualDirectReply(question);
-    if (manualReply) return manualReply;
-    var engine = settings.ai_engine || "local_lite";
-    if (engine === "local_lite" || engine === "local_basic" || engine === "local_pro" || engine === "rule") {
-      return "선생님, 지금은 로컬 AI(" + engine + ") 연결이 완료되지 않아 구체 답변을 만들 수 없습니다.\n\n1. 설정 → AI 설정에서 '로컬 AI 자동 설치/확인'을 눌러 주세요.\n2. Ollama가 실행 중인지 확인해 주세요.\n3. 모델 연결이 끝나면 같은 질문을 다시 보내시면 현재 페이지 맥락을 반영해 답변하겠습니다.";
-    }
-    return "선생님, AI 연결 정보가 없어 답변을 생성하지 못했습니다. 상단 AI 설정에서 로컬 AI를 선택하거나, 외부 AI를 쓸 경우 API 키를 저장해 주세요.";
-  }
-
-  function normalizeAiHelperAnswer(answer) {
-    var text = String(answer || "").trim();
-    text = text.replace(/^안녕하세요[.!?。]?\s*/g, "선생님, 안녕하세요. ");
-    if (!/^선생님[,\s]/.test(text)) text = "선생님, " + text;
-    return text;
-  }
-
-  function addAiMessage(role, text) {
-    var box = document.getElementById("ai-helper-messages");
-    if (!box) return;
-    var item = document.createElement("div");
-    item.className = "ai-helper-msg " + role;
-    item.innerHTML = "<div>" + escapeAiHtml(text).replace(/\n/g, "<br>") + "</div>";
-    box.appendChild(item);
-    box.scrollTop = box.scrollHeight;
-  }
-
-  function refreshAiHelperStatus() {
-    var status = document.getElementById("ai-helper-status");
-    if (!status) return Promise.resolve({});
-    return api.getAllSettings().then(function (settings) {
-      var engine = settings.ai_engine || "local_lite";
-      if (engine === "local_lite") status.textContent = "Local AI Lite · 빠른 응답 · 학생/상담 기본 로컬 AI";
-      else if (engine === "local_basic") status.textContent = "Local AI Basic · Gemma 4 E2B 권장 · 모델 연결 준비 중";
-      else if (engine === "local_pro") status.textContent = "Local AI Pro · Gemma 4 E4B 권장 · 16GB RAM 이상 권장";
-      else if (engine === "gemini") status.textContent = "Gemini 외부 AI · 입력 내용 외부 전송 가능 · 민감정보 주의";
-      else if (engine === "claude" || engine === "cloud") status.textContent = "Claude 외부 AI · 입력 내용 외부 전송 가능 · 민감정보 주의";
-      else status.textContent = "Local AI · 외부 전송 없음";
-      return settings;
-    });
-  }
-
-  function openAiHelper(seedPrompt) {
-    var panel = document.getElementById("ai-helper-panel");
-    var backdrop = document.getElementById("ai-helper-backdrop");
-    if (!panel || !backdrop) return;
-    panel.classList.add("open");
-    backdrop.classList.add("open");
-    panel.setAttribute("aria-hidden", "false");
-    refreshAiHelperStatus().then(function () {
-      var messages = document.getElementById("ai-helper-messages");
-      if (messages && !messages.children.length) {
-        addAiMessage("assistant", "저는 모든 페이지에서 열리는 AI 도우미입니다. 현재 페이지는 " + getCurrentPageLabel() + "입니다. 무엇을 도와드릴까요?");
-      }
-      if (seedPrompt) {
-        var input = document.getElementById("ai-helper-input");
-        if (input) input.value = seedPrompt;
-      }
-    });
-  }
-
-  function closeAiHelper() {
-    var panel = document.getElementById("ai-helper-panel");
-    var backdrop = document.getElementById("ai-helper-backdrop");
-    if (panel) {
-      panel.classList.remove("open");
-      panel.setAttribute("aria-hidden", "true");
-    }
-    if (backdrop) backdrop.classList.remove("open");
-  }
-
-  var aiHelperInputComposing = false;
-
-  function isAiHelperImeEnter(event) {
-    return aiHelperInputComposing || event.isComposing;
-  }
-
-  function sendAiHelperMessage() {
-    var input = document.getElementById("ai-helper-input");
-    if (!input) return;
-    var question = input.value.trim();
-    if (!question) return;
-    input.value = "";
-    addAiMessage("user", question);
-    addAiMessage("assistant", "생각하는 중...");
-    var box = document.getElementById("ai-helper-messages");
-    var pending = box ? box.lastElementChild : null;
-    var pageContext = "";
-    var manualContext = "";
-    var directAnswer = "";
-    try {
-      if (isGreetingQuestion(question)) {
-        directAnswer = buildAiHelperGreetingReply();
-      }
-      if (typeof window.appGetAiPageContext === "function") {
-        pageContext = window.appGetAiPageContext(question) || "";
-      }
-      manualContext = buildManualAiContext(question);
-    } catch (error) {
-      pageContext = "";
-      directAnswer = "";
-    }
-    if (directAnswer) {
-      if (pending) pending.querySelector("div").innerHTML = escapeAiHtml(normalizeAiHelperAnswer(directAnswer)).replace(/\n/g, "<br>");
-      return;
-    }
-    if (manualContext) {
-      pageContext = [pageContext, manualContext].filter(Boolean).join("\n\n");
-    }
-    api.getAllSettings().then(function (settings) {
-      var externalProvider = settings.ai_engine === "gemini" ? "gemini" : ((settings.ai_engine === "claude" || settings.ai_engine === "cloud") ? "claude" : "");
-      var sensitivePage = /학생|상담|성적|출석|관찰|수업|AI 분석/.test(getCurrentPageLabel() || "") || currentPage === "counseling" || currentPage === "students" || currentPage === "grades" || currentPage === "ai_analysis";
-      var localEngine = (settings.ai_engine === "local_lite" || settings.ai_engine === "local_basic" || settings.ai_engine === "local_pro") ? settings.ai_engine : "";
-      // 클라우드 모드에서 민감 페이지는 강제로 로컬로 떨어뜨리지 않는다.
-      // 대신 메인 프로세스가 학생 식별정보를 가명화(학생A/B…)해서 전송하고 응답을 복원한다.
-      // 단, 클라우드를 쓸 수 없는 상태(외부 provider/API 키 없음)면 안전하게 로컬로 폴백.
-      if (sensitivePage && !localEngine && !(externalProvider && settings.ai_api_key)) localEngine = "local_lite";
-      if (localEngine && api.aiLocalChat) {
-        return api.aiLocalChat({
-          engine: localEngine,
-          page: getCurrentPageLabel(),
-          question: question,
-          context: pageContext
-        }).then(function (result) {
-          return result && result.result ? result.result : buildRuleBasedAiReply(question, settings);
-        }).catch(function () {
-          return buildRuleBasedAiReply(question, settings);
-        });
-      }
-      if (externalProvider && settings.ai_api_key && api.aiAssistantChat) {
-        return api.aiAssistantChat({
-          provider: externalProvider,
-          model: settings.ai_model || "",
-          apiKey: settings.ai_api_key,
-          page: getCurrentPageLabel(),
-          question: question,
-          context: pageContext,
-          sensitive: sensitivePage
-        }).then(function (result) {
-          return result && result.result ? result.result : buildRuleBasedAiReply(question, settings);
-        }).catch(function () {
-          return buildRuleBasedAiReply(question, settings);
-        });
-      }
-      return buildRuleBasedAiReply(question, settings);
-    }).then(function (answer) {
-      if (pending) pending.querySelector("div").innerHTML = escapeAiHtml(normalizeAiHelperAnswer(answer)).replace(/\n/g, "<br>");
-    });
-  }
-
-  function initAiHelper() {
-    var openBtn = document.getElementById("ai-helper-btn");
-    var closeBtn = document.getElementById("ai-helper-close");
-    var backdrop = document.getElementById("ai-helper-backdrop");
-    var sendBtn = document.getElementById("ai-helper-send");
-    var manualPdfBtn = document.getElementById("ai-helper-manual-pdf");
-    var input = document.getElementById("ai-helper-input");
-    if (openBtn) openBtn.addEventListener("click", function () { openAiHelper(); });
-    if (closeBtn) closeBtn.addEventListener("click", closeAiHelper);
-    if (backdrop) backdrop.addEventListener("click", closeAiHelper);
-    if (sendBtn) sendBtn.addEventListener("click", sendAiHelperMessage);
-    if (manualPdfBtn) manualPdfBtn.addEventListener("click", exportManualPdf);
-    if (input) {
-      input.addEventListener("compositionstart", function () {
-        aiHelperInputComposing = true;
-      });
-      input.addEventListener("compositionend", function () {
-        aiHelperInputComposing = false;
-      });
-      input.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" && !event.shiftKey) {
-          if (isAiHelperImeEnter(event)) return;
-          event.preventDefault();
-          sendAiHelperMessage();
-        }
-      });
-    }
-    document.querySelectorAll("[data-ai-prompt]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        openAiHelper(button.getAttribute("data-ai-prompt"));
-      });
-    });
-    window.openAiHelper = openAiHelper;
-  }
 
   window.reloadTopNavigation = function () {
     return api.getSetting("menu_groups_config", "").then(function (raw) {
@@ -3296,7 +3009,6 @@
       initEditButton();
       initOpacityPanel();
       initAiSettingsPanel();
-      initAiHelper();
       updateDate();
       setInterval(updateDate, 60000);
       return initAuthGate();

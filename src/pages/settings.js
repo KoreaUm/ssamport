@@ -269,13 +269,28 @@ async function render(container) {
               <option value="gemini" ${provider === 'gemini' ? 'selected' : ''}>Gemini (Google)</option>
             </select>
           </div>
+          <div class="settings-note" id="ai-key-guide">
+            <div id="ai-key-guide-claude" style="${provider === 'gemini' ? 'display:none' : ''}">
+              <b>Claude API 키 발급 방법</b><br>
+              1. 아래 버튼으로 Anthropic 콘솔 페이지를 열어 로그인(또는 회원가입)합니다.<br>
+              2. 왼쪽 메뉴에서 API Keys를 선택하고 Create Key 버튼을 누릅니다.<br>
+              3. 생성된 키(sk-ant-로 시작)를 복사해 아래 입력칸에 붙여넣습니다.<br>
+              <button type="button" class="btn btn-secondary btn-sm" id="ai-key-link-claude" style="margin-top:6px">Anthropic API 키 발급 페이지 열기</button>
+            </div>
+            <div id="ai-key-guide-gemini" style="${provider === 'gemini' ? '' : 'display:none'}">
+              <b>Gemini API 키 발급 방법</b><br>
+              1. 아래 버튼으로 Google AI Studio 페이지를 열어 구글 계정으로 로그인합니다.<br>
+              2. Create API key 버튼을 눌러 키를 생성합니다.<br>
+              3. 생성된 키를 복사해 아래 입력칸에 붙여넣습니다.<br>
+              <button type="button" class="btn btn-secondary btn-sm" id="ai-key-link-gemini" style="margin-top:6px">Google AI Studio API 키 발급 페이지 열기</button>
+            </div>
+          </div>
           <div class="form-row"><label>외부 AI API \uD0A4</label><input class="input" type="password" id="sk" value="${escapeHtml(settings.ai_api_key || '')}" placeholder="Claude/Gemini를 사용할 때만 입력"></div>
           <div class="form-row">
             <label>\uBAA8\uB378</label>
             <select class="input" id="sm"></select>
           </div>
           <div class="settings-actions">
-            <button class="btn btn-secondary btn-sm" id="ai-helper-test-btn">AI 도우미 열기</button>
             <button class="btn btn-primary btn-sm" id="sv-ai">\uC800\uC7A5</button>
           </div>
         </section>
@@ -700,8 +715,18 @@ async function init() {
     toast('\uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4', 'success');
   };
 
-  document.getElementById('ai-helper-test-btn')?.addEventListener('click', () => {
-    window.openAiHelper?.('현재 AI 설정에서 무엇을 할 수 있어?');
+  document.getElementById('ai-key-link-claude')?.addEventListener('click', () => {
+    api.openUrl?.('https://console.anthropic.com/settings/keys');
+  });
+  document.getElementById('ai-key-link-gemini')?.addEventListener('click', () => {
+    api.openUrl?.('https://aistudio.google.com/apikey');
+  });
+  document.getElementById('sp')?.addEventListener('change', (event) => {
+    const isGemini = event.target.value === 'gemini';
+    const claudeGuide = document.getElementById('ai-key-guide-claude');
+    const geminiGuide = document.getElementById('ai-key-guide-gemini');
+    if (claudeGuide) claudeGuide.style.display = isGemini ? 'none' : '';
+    if (geminiGuide) geminiGuide.style.display = isGemini ? '' : 'none';
   });
 
   document.getElementById('shortcut-add-url').onclick = () => {

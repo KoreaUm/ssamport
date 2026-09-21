@@ -2219,9 +2219,11 @@ renderCalendar = function () {
 
 openDashboardCalendarEventPrompt = async function (defaultDate) {
   const initialDate = defaultDate || formatDashboardDateKey(calYear, calMonth, 1);
+  const initialDateStr = `${initialDate.slice(0,4)}-${initialDate.slice(4,6)}-${initialDate.slice(6,8)}`;
   showModal(`<div class="modal-header"><span class="modal-title">일정 추가</span><button class="modal-close" data-close>×</button></div>
   <div class="modal-body">
-    <div class="form-row"><label>날짜</label><input class="input" type="date" id="dash-cal-date" value="${initialDate.slice(0,4)}-${initialDate.slice(4,6)}-${initialDate.slice(6,8)}"></div>
+    <div class="form-row"><label>시작일</label><input class="input" type="date" id="dash-cal-date" value="${initialDateStr}"></div>
+    <div class="form-row"><label>종료일</label><input class="input" type="date" id="dash-cal-end-date" placeholder="여러 날에 걸친 일정이면 입력"></div>
     <div class="form-row"><label>내용</label><input class="input" id="dash-cal-name" placeholder="예: 회의, 상담, 연수"></div>
     <div class="form-row"><label>색상</label><select class="input" id="dash-cal-color"><option value="#3b82f6">파랑</option><option value="#10b981">초록</option><option value="#f59e0b">주황</option><option value="#ef4444">빨강</option><option value="#8b5cf6">보라</option><option value="#ec4899">분홍</option><option value="#14b8a6">청록</option></select></div>
   </div>
@@ -2232,27 +2234,65 @@ openDashboardCalendarEventPrompt = async function (defaultDate) {
     if (!saveButton) return;
     saveButton.onclick = async () => {
       const dateValue = document.getElementById('dash-cal-date')?.value || '';
+      const endDateValue = document.getElementById('dash-cal-end-date')?.value || '';
       const nameValue = document.getElementById('dash-cal-name')?.value.trim() || '';
       const colorValue = document.getElementById('dash-cal-color')?.value || '#3b82f6';
       const normalizedDate = dateValue.replace(/\D/g, '');
       if (!/^\d{8}$/.test(normalizedDate)) return toast('날짜를 입력해 주세요.', 'error');
       if (!nameValue) return toast('일정 내용을 입력해 주세요.', 'error');
-      const customEvents = await loadDashboardCustomEvents();
-      const customEvent = { id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, date: normalizedDate, name: nameValue, color: colorValue };
-      if (window.addGoogleCalendarCustomEvent) {
-        customEvent.gcal_event_id = await window.addGoogleCalendarCustomEvent(customEvent) || '';
+      let normalizedEndDate = endDateValue.replace(/\D/g, '');
+      if (normalizedEndDate && !/^\d{8}$/.test(normalizedEndDate)) return toast('종료일을 확인해 주세요.', 'error');
+      if (!normalizedEndDate) normalizedEndDate = normalizedDate;
+      if (normalizedEndDate < normalizedDate) return toast('종료일은 시작일보다 빠를 수 없습니다.', 'error');
+
+      const start = new Date(+normalizedDate.slice(0,4), +normalizedDate.slice(4,6) - 1, +normalizedDate.slice(6,8));
+      const end = new Date(+normalizedEndDate.slice(0,4), +normalizedEndDate.slice(4,6) - 1, +normalizedEndDate.slice(6,8));
+      const dateKeys = [];
+      for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        dateKeys.push(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`);
       }
-      customEvents.push(customEvent);
+
+      const customEvents = await loadDashboardCustomEvents();
+      for (const dateKey of dateKeys) {
+        const customEvent = { id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, date: dateKey, name: nameValue, color: colorValue };
+        if (window.addGoogleCalendarCustomEvent) {
+          customEvent.gcal_event_id = await window.addGoogleCalendarCustomEvent(customEvent) || '';
+        }
+        customEvents.push(customEvent);
+      }
       await saveDashboardCustomEvents(customEvents);
       const nextYear = Number(normalizedDate.slice(0, 4));
       const nextMonth = Number(normalizedDate.slice(4, 6));
       if (nextYear !== calYear || nextMonth !== calMonth) { calYear = nextYear; calMonth = nextMonth; }
       closeModal();
       await loadNeisCalendar();
-      toast('일정을 추가했습니다.', 'success');
+      toast(dateKeys.length > 1 ? `${dateKeys.length}일간 일정을 추가했습니다.` : '일정을 추가했습니다.', 'success');
+      openAddCalendarEventToTodoPrompt(nameValue, dateKeys);
     };
   }, 0);
 };
+
+function openAddCalendarEventToTodoPrompt(name, dateKeys) {
+  showModal(`<div class="modal-header"><span class="modal-title">할일 추가</span><button class="modal-close" data-close>×</button></div>
+  <div class="modal-body">
+    <p>"${escapeHtml(name)}" 일정을 오늘의 할일에도 추가하시겠습니까?</p>
+  </div>
+  <div class="modal-footer"><button class="btn btn-secondary" data-close>아니요</button><button class="btn btn-primary" id="cal-todo-confirm-yes">예</button></div>`);
+  setTimeout(() => {
+    const yesButton = document.getElementById('cal-todo-confirm-yes');
+    if (!yesButton) return;
+    yesButton.onclick = async () => {
+      for (const dateKey of dateKeys) {
+        const deadline = `${dateKey.slice(0, 4)}-${dateKey.slice(4, 6)}-${dateKey.slice(6, 8)}`;
+        await api.addTodo({ title: name, deadline, priority: '보통', category: '일정' });
+      }
+      await syncCloudIfPossible();
+      closeModal();
+      await refreshTodos();
+      toast(dateKeys.length > 1 ? `할일 ${dateKeys.length}건을 추가했습니다.` : '할일을 추가했습니다.', 'success');
+    };
+  }, 0);
+}
 
 refreshSchedule = function () {
   const list = document.getElementById('sched-list');
