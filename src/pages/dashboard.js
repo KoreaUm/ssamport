@@ -1063,11 +1063,25 @@ async function refreshStickyWidget(){
     const col = STICKY_COLORS.find(c=>c.id===n.color) || STICKY_COLORS[0];
     const text = (n.content || '').slice(0, 60) || '(빈 메모)';
     const pin = n.pinned ? '📌 ' : '';
-    return `<div class="sticky-widget-chip" style="background:${col.bg};border-color:${col.border}" onclick="navigateTo('sticky_notes')" title="${escapeHtml(n.content||'')}">
-      ${pin}${escapeHtml(text)}${(n.content||'').length > 60 ? '…' : ''}
+    return `<div class="sticky-widget-chip" style="background:${col.bg};border-color:${col.border}" title="${escapeHtml(n.content||'')}">
+      <span class="sticky-widget-chip-text" onclick="navigateTo('sticky_notes')">${pin}${escapeHtml(text)}${(n.content||'').length > 60 ? '…' : ''}</span>
+      <button class="sticky-widget-chip-del" title="삭제" onclick="event.stopPropagation();deleteStickyWidgetNote('${n.id}')">✕</button>
     </div>`;
   }).join('');
 }
+
+window.deleteStickyWidgetNote = async (id) => {
+  if(!confirm('이 메모를 삭제할까요?')) return;
+  let notes = [];
+  try {
+    const raw = await api.getSetting('sticky_notes_v1', '[]');
+    notes = JSON.parse(raw || '[]');
+    if(!Array.isArray(notes)) notes = [];
+  } catch(e) { notes = []; }
+  notes = notes.filter(n => n.id !== id);
+  await api.setSetting('sticky_notes_v1', JSON.stringify(notes));
+  refreshStickyWidget();
+};
 
 function showDdayModal(){
   const COLORS=[['#6366f1','인디고'],['#ef4444','빨강'],['#f59e0b','노랑'],['#10b981','초록'],['#3b82f6','파랑'],['#8b5cf6','보라'],['#ec4899','분홍']];

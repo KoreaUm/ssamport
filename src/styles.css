@@ -3103,12 +3103,32 @@ tbody tr:hover { background: var(--hover); }
   line-height: 1.4;
   color: #333;
   cursor: pointer;
+  transition: box-shadow .12s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sticky-widget-chip:hover { box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.sticky-widget-chip-text {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: box-shadow .12s;
 }
-.sticky-widget-chip:hover { box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.sticky-widget-chip-del {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  color: #666;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: .6;
+}
+.sticky-widget-chip-del:hover { opacity: 1; background: rgba(0,0,0,.08); color: #c00; }
 
 /* ── 업무 효율성 분석 페이지 ────────────────── */
 @media print {
