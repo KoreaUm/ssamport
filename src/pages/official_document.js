@@ -364,30 +364,45 @@
     return { title: title, rest: rest };
   }
 
-  // 사실확인 요청/회신처럼 표로 보여줘야 하는 항목을 [라벨, 값] 배열로부터 HTML 표로 만든다.
-  function buildSvTableHtml(rows) {
-    var trs = rows.map(function (r) {
-      return '<tr><td class="sv-table-label">' + escapeHtml(r[0]).replace(/\n/g, "<br>") +
-        '</td><td class="sv-table-value">' + escapeHtml(r[1]).replace(/\n/g, "<br>") + "</td></tr>";
+  // PDF 서식의 표를 그대로 옮기기 위한 표 데이터 형식:
+  //  - { rows: [[라벨, 값], ...] } : 라벨·값 2단 표 (첫 칸은 라벨처럼 음영 표시)
+  //  - { headers: [...], rows: [[셀, 셀, ...], ...] } : 순번·학교명 등 여러 열을 가진 실제 표(헤더 행 포함)
+  function buildSvTableHtml(table) {
+    var hasHeaders = table.headers && table.headers.length;
+    var headHtml = hasHeaders
+      ? "<tr>" + table.headers.map(function (h) {
+          return '<th class="sv-table-th">' + escapeHtml(h).replace(/\n/g, "<br>") + "</th>";
+        }).join("") + "</tr>"
+      : "";
+    var bodyHtml = table.rows.map(function (row) {
+      return "<tr>" + row.map(function (cell, i) {
+        var cls = hasHeaders ? "sv-table-cell" : (i === 0 ? "sv-table-label" : "sv-table-value");
+        return '<td class="' + cls + '">' + escapeHtml(cell == null ? "" : String(cell)).replace(/\n/g, "<br>") + "</td>";
+      }).join("") + "</tr>";
     }).join("");
-    return '<table class="sv-fact-table">' + trs + "</table>";
+    return '<table class="sv-fact-table">' + headHtml + bodyHtml + "</table>";
   }
 
-  function buildSvTablePlain(rows) {
-    return rows.map(function (r) { return r[0] + "\t" + r[1].replace(/\n/g, " "); }).join("\n");
+  function buildSvTablePlain(table) {
+    var lines = [];
+    if (table.headers && table.headers.length) lines.push(table.headers.join("\t"));
+    table.rows.forEach(function (row) {
+      lines.push(row.map(function (cell) { return (cell == null ? "" : String(cell)).replace(/\n/g, " "); }).join("\t"));
+    });
+    return lines.join("\n");
   }
 
   // "{{TABLE}}" 표시가 있으면 실제 표(html)/탭 구분 표(plain)로 바꿔 렌더링·복사용 결과를 만든다.
-  function renderSvBody(rawBody, tableRows) {
-    if (!tableRows) {
+  function renderSvBody(rawBody, table) {
+    if (!table) {
       return { html: preserveSpacesForHtml(escapeHtml(rawBody)), plain: rawBody };
     }
     var parts = rawBody.split("{{TABLE}}");
     var before = parts[0] || "";
     var after = parts[1] || "";
     return {
-      html: preserveSpacesForHtml(escapeHtml(before)) + buildSvTableHtml(tableRows) + preserveSpacesForHtml(escapeHtml(after)),
-      plain: before + buildSvTablePlain(tableRows) + after
+      html: preserveSpacesForHtml(escapeHtml(before)) + buildSvTableHtml(table) + preserveSpacesForHtml(escapeHtml(after)),
+      plain: before + buildSvTablePlain(table) + after
     };
   }
 
@@ -883,8 +898,8 @@
           try { localStorage.setItem("sv_last_case_no", vals.caseNo); } catch (e) {}
         }
         var parts = splitSvDoc(tpl.generate(vals));
-        var tableRows = tpl.table ? tpl.table(vals) : null;
-        var rendered = renderSvBody(parts.rest, tableRows);
+        var table = tpl.table ? tpl.table(vals) : null;
+        var rendered = renderSvBody(parts.rest, table);
         titleEl.textContent = parts.title;
         bodyEl.innerHTML = rendered.html;
         currentSvBodyPlain = rendered.plain;

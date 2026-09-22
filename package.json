@@ -1,6 +1,6 @@
 {
   "name": "teacher-app",
-  "version": "2.0.130",
+  "version": "2.0.131",
   "description": "쌤포트 Electron 앱",
   "author": "충상",
   "main": "main.js",

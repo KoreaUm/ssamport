@@ -5,6 +5,17 @@
     return (v && v.trim()) ? v.trim() : (fallback || "");
   }
 
+  // "학교 / 성명 / 학번"처럼 한 줄에 "/"로 구분해 입력한 값을 표의 각 칸으로 나눈다.
+  // 줄 수만큼 표의 행이 되고(학생별 한 줄), 모자란 칸은 빈 칸으로 채운다.
+  function splitRows(text) {
+    return f(text, "").split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+  function parseCells(line, n) {
+    var parts = line.split("/").map(function (s) { return s.trim(); });
+    while (parts.length < n) parts.push("");
+    return parts.slice(0, n);
+  }
+
   var TEMPLATES = [
     // ─── 교육지원청 지원 요청 ───────────────────────────────────────────────
     {
@@ -183,14 +194,16 @@
         { id: "teacherName", label: "책임교사 성명 및 연락처", ph: "홍○○(☏010-○○○○-○○○○)", req: true }
       ],
       table: function (v) {
-        return [
-          ["학교명", "△△초등학교"],
-          ["해당자(학년)", f(v.targetStudent, "박@@(4학년)")],
-          ["사건개요", f(v.incident, "")],
-          ["사실확인 요청사항", f(v.confirmRequest, "")],
-          ["사실확인 회신내용", "※ 사안조사 후 사실 확인 작성"],
-          ["책임교사(작성자)", "소속: ○○초등학교 교사 " + f(v.teacherName, "홍○○(☏010-○○○○-○○○○)")]
-        ];
+        return {
+          rows: [
+            ["학교명", "△△초등학교"],
+            ["해당자(학년)", f(v.targetStudent, "박@@(4학년)")],
+            ["사건개요", f(v.incident, "")],
+            ["사실확인 요청사항", f(v.confirmRequest, "")],
+            ["사실확인 회신내용", "※ 사안조사 후 사실 확인 작성"],
+            ["책임교사(작성자)", "소속: ○○초등학교 교사 " + f(v.teacherName, "홍○○(☏010-○○○○-○○○○)")]
+          ]
+        };
       },
       generate: function (v) {
         return [
@@ -233,14 +246,16 @@
         { id: "teacherName", label: "책임교사 성명 및 연락처", ph: "임○○(☏010-○○○○-○○○○)", req: true }
       ],
       table: function (v) {
-        return [
-          ["학교명", "△△초등학교"],
-          ["해당자(학년)", f(v.targetStudent, "박@@(4학년)")],
-          ["사건개요", f(v.incident, "")],
-          ["사실확인 요청사항", f(v.confirmRequest, "")],
-          ["사실확인 회신내용", f(v.confirmContent, "")],
-          ["책임교사(작성자)", "소속: △△초등학교 교사 " + f(v.teacherName, "임○○(☏010-○○○○-○○○○)")]
-        ];
+        return {
+          rows: [
+            ["학교명", "△△초등학교"],
+            ["해당자(학년)", f(v.targetStudent, "박@@(4학년)")],
+            ["사건개요", f(v.incident, "")],
+            ["사실확인 요청사항", f(v.confirmRequest, "")],
+            ["사실확인 회신내용", f(v.confirmContent, "")],
+            ["책임교사(작성자)", "소속: △△초등학교 교사 " + f(v.teacherName, "임○○(☏010-○○○○-○○○○)")]
+          ]
+        };
       },
       generate: function (v) {
         return [
@@ -280,13 +295,20 @@
       fields: [
         { id: "caseNo", label: "사안번호", ph: "○○초-2026-1호", req: true },
         { id: "refDoc", label: "전담기구 심의 결과 보고 기안번호", ph: "○○○○학교-0000(2026.00.00.)" },
-        { id: "students", label: "관련 학생 목록 (한 줄에 하나:\n학교명 성명 학번 심의결과 동의여부)", ph: "피해초등학교 박00 40101 학교장 자체해결 객관적 요건 충족 ○", big: true }
+        { id: "students", label: "관련 학생 목록 (한 줄에 하나: 학교명 / 성명 / 학번 / 전담기구심의결과 / 동의여부)", ph: "피해초등학교 / 박00 / 40101 / 학교장 자체해결 객관적 요건 충족 / ○", big: true, req: true }
       ],
+      table: function (v) {
+        var lines = splitRows(v.students) || [];
+        if (!lines.length) lines = ["피해초등학교 / 박00 / 40101 / 학교장 자체해결 객관적 요건 충족 / ○"];
+        return {
+          headers: ["순번", "학교명", "성명", "학번", "전담기구심의결과", "피해학생·보호자 자체해결 동의 여부"],
+          rows: lines.map(function (line, i) {
+            var c = parseCells(line, 5);
+            return [String(i + 1), c[0], c[1], c[2], c[3], c[4]];
+          })
+        };
+      },
       generate: function (v) {
-        var studentLines = f(v.students, "").split("\n").filter(function(s){ return s.trim(); });
-        var rows = studentLines.map(function(line, i) {
-          return (i + 1) + ". " + line.trim();
-        }).join("\n");
         return [
           "피해초등학교",
           "",
@@ -298,8 +320,7 @@
           "",
           "2. 학교폭력(" + f(v.caseNo, "○○초-2026-1호") + ")관련 사안이 학교장 자체해결 되었음을 알려드립니다.",
           "",
-          "순번  학교명  성명  학번  전담기구심의결과  피해학생·보호자 자체해결 동의 여부",
-          rows || "1. 피해초등학교 박00 40101 학교장 자체해결 객관적 요건 충족 ○",
+          "{{TABLE}}",
           "",
           " 끝.",
           "",
@@ -319,13 +340,20 @@
       fields: [
         { id: "caseNo", label: "사안번호", ph: "○○초-2026-1호", req: true },
         { id: "refDoc", label: "전담기구 심의 결과 보고 기안번호", ph: "○○○○학교-0000(2026.00.00.)" },
-        { id: "students", label: "관련 학생 목록 (한 줄에 하나:\n학교명 성명 학번 심의결과)", ph: "피해초등학교 박00 40101 심의위원회 개최 요청", big: true }
+        { id: "students", label: "관련 학생 목록 (한 줄에 하나: 학교명 / 성명 / 학번 / 전담기구심의결과 / 비고)", ph: "피해초등학교 / 박00 / 40101 / 심의위원회 개최 요청 / ", big: true, req: true }
       ],
+      table: function (v) {
+        var lines = splitRows(v.students) || [];
+        if (!lines.length) lines = ["피해초등학교 / 박00 / 40101 / 심의위원회 개최 요청 / "];
+        return {
+          headers: ["순번", "학교명", "성명", "학번", "전담기구심의결과", "비고"],
+          rows: lines.map(function (line, i) {
+            var c = parseCells(line, 5);
+            return [String(i + 1), c[0], c[1], c[2], c[3], c[4]];
+          })
+        };
+      },
       generate: function (v) {
-        var studentLines = f(v.students, "").split("\n").filter(function(s){ return s.trim(); });
-        var rows = studentLines.map(function(line, i) {
-          return (i + 1) + ". " + line.trim();
-        }).join("\n");
         return [
           "피해초등학교",
           "",
@@ -338,8 +366,7 @@
           "2. 2026. 학교폭력(" + f(v.caseNo, "○○초-2026-1호") + ") 전담기구 심의 결과를 아래와 같이 ○○교육지원청",
           "학교폭력대책심의위원회 개최를 요청할 예정이오니 업무에 참고하시기 바랍니다.",
           "",
-          "순번  학교명  성명  학번  전담기구심의결과  비고",
-          rows || "1. 피해초등학교 박00 40101 심의위원회 개최 요청",
+          "{{TABLE}}",
           "",
           " 끝.",
           "",
@@ -554,18 +581,26 @@
       fields: [
         { id: "caseNo", label: "사안번호", ph: "00중-2026-00호", req: true },
         { id: "refDoc", label: "전담기구 개최 결과보고 기안 공문번호", ph: "○○○○중-00000(2026.00.00.)호" },
-        { id: "victims", label: "피해관련 학생 (한 줄에 하나:\n학교 학년반 이름 생년월일 사안번호)", ph: "○○중학교 3-1 ○○○ 2011.00.00. ○○중 2026-1", req: true, big: true },
-        { id: "offenders", label: "가해관련 학생 (한 줄에 하나:\n학교 학년반 이름 생년월일 사안번호 학생선수○/×)", ph: "○○중학교 3-1 ○○○ 2011.00.00. ○○중 2026-1 ○", big: true }
+        { id: "victims", label: "피해관련 학생 (한 줄에 하나: 소속학교 / 학년반 / 이름 / 생년월일 / 학교 사안번호)", ph: "○○중학교 / 3-1 / ○○○ / 2011.00.00. / ○○중 2026-1", req: true, big: true },
+        { id: "offenders", label: "가해관련 학생 (한 줄에 하나: 소속학교 / 학년반 / 이름 / 생년월일 / 학교 사안번호 / 학생선수○·×)", ph: "○○중학교 / 3-1 / ○○○ / 2011.00.00. / ○○중 2026-1 / ○", big: true }
       ],
+      table: function (v) {
+        var victimLines = splitRows(v.victims);
+        if (!victimLines.length) victimLines = ["○○중학교 / 3-1 / ○○○ / 2011.00.00. / ○○중 2026-1"];
+        var offenderLines = splitRows(v.offenders);
+        var rows = victimLines.map(function (line) {
+          var c = parseCells(line, 5);
+          return ["피해관련학생", c[0], c[1], c[2], c[3], c[4], ""];
+        }).concat(offenderLines.map(function (line) {
+          var c = parseCells(line, 6);
+          return ["가해관련학생", c[0], c[1], c[2], c[3], c[4], c[5]];
+        }));
+        return {
+          headers: ["구분", "소속학교", "학년반", "이름", "생년월일", "학교 사안번호", "학생선수여부\n(가해관련 학생에 한함)"],
+          rows: rows
+        };
+      },
       generate: function (v) {
-        var victimLines = f(v.victims, "").split("\n").filter(function(s){ return s.trim(); });
-        var offenderLines = f(v.offenders, "").split("\n").filter(function(s){ return s.trim(); });
-        var vRows = victimLines.map(function(line, i) {
-          return "피해관련학생 " + (i+1) + ". " + line.trim();
-        }).join("\n");
-        var oRows = offenderLines.map(function(line, i) {
-          return "가해관련학생 " + (i+1) + ". " + line.trim();
-        }).join("\n");
         return [
           "○○중학교",
           "",
@@ -579,8 +614,7 @@
           "",
           "2. 학교폭력대책심의위원회 개최를 다음과 같이 요청합니다.",
           "",
-          vRows || "피해관련학생 1. ○○중학교 3-1 ○○○ 2011.00.00. ○○중 2026-1",
-          oRows || "가해관련학생 1. ○○중학교 3-1 ○○○ 2011.00.00. ○○중 2026-1 ○",
+          "{{TABLE}}",
           "",
           "붙임  1. 학교폭력 사안조사 보고서 1부.",
           "      2. 피해·가해학생 긴급조치 보고서 1부.",
@@ -758,8 +792,16 @@
         { id: "totalHours", label: "총 봉사 시간", ph: "10시간", req: true },
         { id: "schedule", label: "봉사 일정 (한 줄에 하나)", ph: "2026.09.24.(목) ~ 09.25.(금) 00:00~00:00 (3시간×2일=6시간)\n2026.09.26.(토) 00:00~00:00 (4시간)", req: true, big: true },
         { id: "place", label: "장소", ph: "○○○", req: true },
-        { id: "students", label: "참석 대상 학생 (반 이름 / 연락처 / 보호자 연락처)", ph: "3-6 ○○○ / 010-0000-0000 / 보호자 010-0000-0000" }
+        { id: "students", label: "참석 대상 학생 (한 줄에 하나: 반 이름 / 학생 연락처 / 보호자 / 보호자 연락처 / 주소)", ph: "3-6 ○○○ / 010-0000-0000 / ○○○(부) / 010-0000-0000 / ", big: true }
       ],
+      table: function (v) {
+        var lines = splitRows(v.students);
+        if (!lines.length) lines = ["3-6 ○○○ / 010-0000-0000 / ○○○(부) / 010-0000-0000 / "];
+        return {
+          headers: ["대상학생", "연락처", "보호자", "연락처", "주소"],
+          rows: lines.map(function (line) { return parseCells(line, 5); })
+        };
+      },
       generate: function (v) {
         var scheduleLines = f(v.schedule, "").split("\n").map(function(s, i){
           return "  " + (i+1) + ") " + s.trim();
@@ -780,7 +822,7 @@
           scheduleLines,
           " 나. 장소: " + f(v.place, "○○○"),
           " 다. 참석대상 학생",
-          f(v.students, "3-6 ○○○ / 010-0000-0000 / 보호자 010-0000-0000"),
+          "{{TABLE}}",
           "",
           " 끝.",
           "",
@@ -1094,8 +1136,16 @@
         { id: "datetime", label: "일시", ph: "2026.00.00.(요일) 12:00 ~", req: true },
         { id: "place", label: "장소", ph: "본교 1층 회의실", req: true },
         { id: "members", label: "참석 전담기구 위원", ph: "교감 000, 책임교사 000, 보건교사 000, 학부모 위원 000", req: true },
-        { id: "reviewList", label: "심의 학생 목록 (사안번호 학년반번호 성명 조치일자 졸업예정월 심의내용)", ph: "2026-1  6-1-25  홍길동  2026.3.12.  2027.2.  제3호(학교봉사)/제4호(사회봉사)", req: true, big: true }
+        { id: "reviewList", label: "심의 학생 목록 (한 줄에 하나: 사안번호 / 학년 / 반 / 번호 / 성명 / 조치일자 / 졸업예정일(월) / 삭제 심의 내용 / 행정심판·소송 진행여부)", ph: "2026-1 / 6 / 1 / 25 / 홍길동 / 2026.3.12. / 2027.2. / 졸업과 동시 자동삭제: 제3호(학교봉사), 전담기구 심의사항: 제4호(사회봉사) / ", req: true, big: true }
       ],
+      table: function (v) {
+        var lines = splitRows(v.reviewList);
+        if (!lines.length) lines = ["2026-1 / 6 / 1 / 25 / 홍길동 / 2026.3.12. / 2027.2. / 졸업과 동시 자동삭제: 제3호(학교봉사), 전담기구 심의사항: 제4호(사회봉사) / "];
+        return {
+          headers: ["사안번호", "학년", "반", "번호", "성명", "조치일자", "졸업예정일(월)", "삭제 심의 내용", "행정심판·소송 진행여부"],
+          rows: lines.map(function (line) { return parseCells(line, 9); })
+        };
+      },
       generate: function (v) {
         return [
           "○○초등학교",
@@ -1113,8 +1163,7 @@
           " 다. 참석: " + f(v.members, "교감 000, 책임교사 000, 보건교사 000, 학부모 위원 000"),
           " 라. 심의사항: 학교폭력 가해학생 조치사항 생활기록부 삭제 심의",
           "",
-          "[심의 대상]",
-          f(v.reviewList, "2026-1  6-1-25  홍길동  2026.3.12.  2027.2.  제3호(학교봉사)/제4호(사회봉사)"),
+          "{{TABLE}}",
           "",
           "붙임  1. 담임교사 의견서 1부.",
           "      2. 가해학생 선도조치 이행 확인서 1부.",
@@ -1141,8 +1190,16 @@
       fields: [
         { id: "sessionNo", label: "회수", ph: "제0회", req: true },
         { id: "refDoc", label: "전담기구 개최 기안번호", ph: "0000학교-0000(2026.00.00.)" },
-        { id: "reviewResult", label: "심의 결과 (사안번호 성명 조치사항 심의결과)", ph: "2026-1 홍길동 / 제3호(학교봉사) 졸업과 동시에 자동 삭제 / 제4호(사회봉사) 졸업과 동시 삭제 가결", req: true, big: true }
+        { id: "reviewResult", label: "심의 결과 (한 줄에 하나: 사안번호 / 학년 / 반 / 번호 / 성명 / 조치일자 / 졸업예정일(월) / 학교폭력 조치사항 / 생활기록부 삭제 심의결과)", ph: "2026-1 / 6 / 1 / 25 / 홍길동 / 2026.3.12. / 2027.2. / 제3호(학교봉사) / 졸업과 동시에 자동 삭제\n2026-1 / 6 / 1 / 25 / 홍길동 / 2026.3.12. / 2027.2. / 제4호(사회봉사) / 졸업과 동시 삭제 가결", req: true, big: true }
       ],
+      table: function (v) {
+        var lines = splitRows(v.reviewResult);
+        if (!lines.length) lines = ["2026-1 / 6 / 1 / 25 / 홍길동 / 2026.3.12. / 2027.2. / 제3호(학교봉사) / 졸업과 동시에 자동 삭제"];
+        return {
+          headers: ["사안번호", "학년", "반", "번호", "성명", "조치일자", "졸업예정일(월)", "학교폭력 조치사항", "생활기록부 삭제 심의결과"],
+          rows: lines.map(function (line) { return parseCells(line, 9); })
+        };
+      },
       generate: function (v) {
         return [
           "○○초등학교",
@@ -1155,8 +1212,7 @@
           "",
           "2. " + f(v.sessionNo, "제0회") + " 학교폭력 전담기구 심의 결과를 붙임과 같이 보고합니다.",
           "",
-          "[심의 결과]",
-          f(v.reviewResult, "2026-1 홍길동 / 제3호(학교봉사) 졸업과 동시에 자동 삭제 / 제4호(사회봉사) 졸업과 동시 삭제 가결"),
+          "{{TABLE}}",
           "",
           "붙임  전담기구 심의 결과 보고서 1부.  끝.",
           "",
@@ -1180,8 +1236,16 @@
         { id: "refDoc", label: "전담기구(생기부 삭제) 심의 결과 내부결재 공문번호", ph: "00학교-0000(2026. 12. 31)" },
         { id: "datetime", label: "일시", ph: "2026.○○.○○.(○요일) 12:00", req: true },
         { id: "place", label: "장소", ph: "교장실", req: true },
-        { id: "reviewList", label: "심의 대상 학생 및 기재 내용", ph: "초4~6학년 2026-1 홍길동(60125) 2027.2. 제3호,제4호,제7호 / 행동특성·종합의견 기재내용", req: true, big: true }
+        { id: "reviewList", label: "심의 대상 학생 및 기재 내용 (한 줄에 하나: 학년 / 사안번호 / 성명(학번) / 졸업예정일(월) / 학교폭력조치사항 / 심의항목 / 학교생활기록부 기재내용)", ph: "초4~6학년 / 2026-1 / 홍길동(60125) / 2027.2. / 제3호,제4호,제7호 / 행동특성·종합의견 / 학교폭력예방법 제17조 제1항 제3호에 따른 학교에서의 봉사 조치 10시간(2026.04.01.)", req: true, big: true }
       ],
+      table: function (v) {
+        var lines = splitRows(v.reviewList);
+        if (!lines.length) lines = ["초4~6학년 / 2026-1 / 홍길동(60125) / 2027.2. / 제3호,제4호,제7호 / 행동특성·종합의견 / 학교폭력예방법 제17조 제1항 제3호에 따른 학교에서의 봉사 조치 10시간(2026.04.01.)"];
+        return {
+          headers: ["학년", "사안번호", "성명(학번)", "졸업예정일(월)", "학교폭력조치사항", "심의항목", "학교생활기록부 기재내용"],
+          rows: lines.map(function (line) { return parseCells(line, 7); })
+        };
+      },
       generate: function (v) {
         return [
           "○○초등학교",
@@ -1202,8 +1266,7 @@
           " 라. 심의사항: 학교폭력 가해학생 조치사항 및 학교폭력과 관련되어 기재된 행동변화",
           "(긍정, 부정포함) 기재사항 삭제 심의",
           "",
-          "[심의 대상 및 심의 사항]",
-          f(v.reviewList, "초4~6학년 2026-1 홍길동(60125) 2027.2. 제3호,제4호,제7호 행동특성·종합의견 기재내용"),
+          "{{TABLE}}",
           "",
           "붙임  홍길동 생활기록부(정정 전)사본(스캔파일) 1부.  끝.",
           "",
@@ -1267,8 +1330,19 @@
         { id: "gradYear", label: "졸업 예정 연도 및 월", ph: "2027년 2월", req: true },
         { id: "refDoc1", label: "전담기구(생기부 삭제) 심의 결과 내부결재 공문번호", ph: "00학교-0000(2027. 2. 1.)" },
         { id: "refDoc2", label: "학업성적관리위원회 심의 결과 내부결재 공문번호", ph: "00학교-0000(2027. 2. 3.)" },
-        { id: "deleteList", label: "삭제 내역 (이름(학번) / 항목 / 정정전내용 / 정정사유 / 담당자)", ph: "홍길동(60125) / 행동특성·종합의견 / [기재내용] / 학교생활기록 작성 및 관리지침 제18조 / 6-1담임교사", req: true, big: true }
+        { id: "deleteList", label: "삭제 내역 (한 줄에 하나: 이름(학번) / 항목 / 정정 전 내용 / 정정사유 / 삭제 담당자)", ph: "홍길동(60125) / 행동특성·종합의견 / [기재내용] / 학교생활기록 작성 및 관리지침 제18조 / 6-1담임교사", req: true, big: true }
       ],
+      table: function (v) {
+        var lines = splitRows(v.deleteList);
+        if (!lines.length) lines = ["홍길동(60125) / 행동특성·종합의견 / [기재내용] / 학교생활기록 작성 및 관리지침 제18조 / 6-1담임교사"];
+        return {
+          headers: ["이름(학번)", "항목", "정정 전", "정정 후", "정정사유", "삭제 담당자"],
+          rows: lines.map(function (line) {
+            var c = parseCells(line, 5);
+            return [c[0], c[1], c[2], "삭제", c[3], c[4]];
+          })
+        };
+      },
       generate: function (v) {
         return [
           "○○초등학교",
@@ -1285,8 +1359,7 @@
           "2. " + f(v.gradYear, "2027년 2월") + " 졸업예정자 학교생활기록부 학교폭력 조치사항 삭제 결과를 아래와",
           "같이 최종 보고합니다.",
           "",
-          "[삭제 내역]",
-          f(v.deleteList, "홍길동(60125) / 행동특성·종합의견 / [기재내용] / 학교생활기록 작성 및 관리지침 제18조 / 6-1담임교사"),
+          "{{TABLE}}",
           "",
           "붙임  홍길동 생활기록부(정정 후) 사본(스캔파일) 1부.  끝.",
           "",
@@ -1311,11 +1384,26 @@
       fields: [
         { id: "caseNo", label: "사안번호", ph: "○○초-2026-○호", req: true },
         { id: "refDoc", label: "사안접수 보고 기안번호", ph: "0000학교-0000(2026.00.00.)" },
-        { id: "victims", label: "피해관련 학생 (학교 학년반 이름 사안번호 동의여부)", ph: "○○초 3-1 ○○○ ○○초-2026-1 ○", req: true },
-        { id: "offenders", label: "가해관련 학생 (학교 학년반 이름 사안번호 동의여부)", ph: "○○초 3-1 ●●● ○○초-2026-1 ○", req: true },
+        { id: "victims", label: "피해관련 학생 (한 줄에 하나: 소속학교 / 학년반 / 이름 / 학교 사안번호 / 숙려제도 동의여부)", ph: "○○초 / 3-1 / ○○○ / ○○초-2026-1 / ○", req: true, big: true },
+        { id: "offenders", label: "가해관련 학생 (한 줄에 하나: 소속학교 / 학년반 / 이름 / 학교 사안번호 / 숙려제도 동의여부)", ph: "○○초 / 3-1 / ●●● / ○○초-2026-1 / ○", req: true, big: true },
         { id: "plannedDate", label: "전담기구 개최 예정일", ph: "2026년 ○월 ○○일", req: true },
         { id: "deadlineDate", label: "개최 마감일 (접수일 기준 28일)", ph: "2026년 ○월 ○○일", req: true }
       ],
+      table: function (v) {
+        var victimLines = splitRows(v.victims);
+        if (!victimLines.length) victimLines = ["○○초 / 3-1 / ○○○ / ○○초-2026-1 / ○"];
+        var offenderLines = splitRows(v.offenders);
+        if (!offenderLines.length) offenderLines = ["○○초 / 3-1 / ●●● / ○○초-2026-1 / ○"];
+        var rows = victimLines.map(function (line) {
+          return ["피해관련"].concat(parseCells(line, 5));
+        }).concat(offenderLines.map(function (line) {
+          return ["가해관련"].concat(parseCells(line, 5));
+        }));
+        return {
+          headers: ["구분", "소속학교", "학년반", "이름", "학교 사안번호", "숙려제도 동의여부"],
+          rows: rows
+        };
+      },
       generate: function (v) {
         return [
           "○○학교",
@@ -1331,9 +1419,7 @@
           "2. " + f(v.caseNo, "○○초-2026-○호") + " 사안의 관련학생(및 보호자)을 대상으로 갈등 해소와 관계 개선을 위한",
           "관계회복 숙려제도를 운영하고자 합니다.",
           "",
-          "구분   소속학교  학년반  이름  학교 사안번호  숙려제도 동의여부",
-          "피해관련  " + f(v.victims, "○○초 3-1 ○○○ ○○초-2026-1 ○"),
-          "가해관련  " + f(v.offenders, "○○초 3-1 ●●● ○○초-2026-1 ○"),
+          "{{TABLE}}",
           "",
           "3. 아울러 관계회복 숙려제도 운영에 따라 학교폭력 전담기구를 아래와 같이 연기하여 개최하고자",
           "합니다.",
