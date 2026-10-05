@@ -24,7 +24,7 @@ function calendarNextDay(date) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return '';
   const d = new Date(date + 'T00:00:00');
   d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 function buildTodoCalendarEvent(payload) {
@@ -127,7 +127,7 @@ async function syncTodoDelete(gcalId, gtaskId) {
   }
 }
 
-contextBridge.exposeInMainWorld('api', {
+contextBridge.exposeInMainWorld('nativeApi', {
   // Window
   minimize: () => ipcRenderer.send('window-minimize'),
   restore: () => ipcRenderer.send('window-restore'),
@@ -144,6 +144,7 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('widget-window-closed', handler);
     return () => ipcRenderer.removeListener('widget-window-closed', handler);
   },
+  writeRichClipboard: (text, html) => ipcRenderer.invoke('write-rich-clipboard', text, html),
   getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
@@ -225,6 +226,8 @@ contextBridge.exposeInMainWorld('api', {
   deleteAssessment: (id) => ipcRenderer.invoke('delete-assessment', id),
   getAssessmentScores: (id) => ipcRenderer.invoke('get-assessment-scores', id),
   setAssessmentScore: (d) => ipcRenderer.invoke('set-assessment-score', d),
+  setAssessmentScores: (items) => ipcRenderer.invoke('set-assessment-scores', items),
+  flushGoogleDeletions: (token) => ipcRenderer.invoke('google-flush-deletions', token),
 
   // Submissions
   getSubmissions: (f) => ipcRenderer.invoke('get-submissions', f),
@@ -235,6 +238,8 @@ contextBridge.exposeInMainWorld('api', {
   setSubmissionStatus: (d) => ipcRenderer.invoke('set-submission-status', d),
 
   // Todos
+  applyGoogleTask: (task) => ipcRenderer.invoke('apply-google-task', task),
+  markTodoGoogleSynced: (id, timestamp) => ipcRenderer.invoke('mark-todo-google-synced', id, timestamp),
   getTodos: (done) => ipcRenderer.invoke('get-todos', done),
   // addTodo/updateTodo/toggleTodo/deleteTodo는 로컬 저장 후 Google 동기화를 트리거한다.
   // *Raw 변형은 동기화 없이 IPC만 호출 — index.html의 Google Tasks 양방향 동기화가
@@ -259,12 +264,9 @@ contextBridge.exposeInMainWorld('api', {
     return result;
   },
   deleteTodo: async (id) => {
-    let gcalId = '';
-    let gtaskId = '';
-    try { gcalId = await ipcRenderer.invoke('get-todo-gcal-id', id); } catch (_) {}
-    try { gtaskId = await ipcRenderer.invoke('get-todo-google-task-id', id); } catch (_) {}
     const result = await ipcRenderer.invoke('delete-todo', id);
-    syncTodoDelete(gcalId, gtaskId);
+    const token = await googleGetAccessToken();
+    if (token) await ipcRenderer.invoke('google-flush-deletions', token);
     return result;
   },
   addTodoRaw: (d) => ipcRenderer.invoke('add-todo', d),

@@ -68,10 +68,12 @@ async function runGoogleSync(showStatus = true) {
         statusEl.textContent = `마지막 동기화 ${now}`;
       }
       await refreshList();
+    } else if (result && result.error) {
+      if (statusEl) statusEl.textContent = '동기화 실패 · 로컬 내용은 유지됩니다. 다시 시도해 주세요.';
     } else if (result && result.skipped) {
       if (showStatus && statusEl) statusEl.textContent = '';
     }
-  } catch (_) {}
+  } catch (error) { if (statusEl) statusEl.textContent = '동기화 실패: ' + error.message; }
   if (syncBtn) syncBtn.disabled = false;
 }
 

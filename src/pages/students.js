@@ -1,5 +1,7 @@
 (function(){
 
+function esc(value){ return String(value??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 // class_group 형식: "N학년 N반"
 function toClassGroup(grade, cls){ return (grade&&cls)?`${grade}학년 ${cls}반`:'';}
 function parseClassGroup(cg){
@@ -55,9 +57,9 @@ async function refresh(q=''){
   if(!students.length){grid.innerHTML='<div class="empty-state"><div class="icon">👥</div><p>등록된 학생이 없습니다.</p></div>';return;}
   grid.innerHTML=students.map(s=>`
     <div class="student-card" onclick="window.__stEdit(${s.id})">
-      ${s.class_group?`<div style="font-size:10px;color:var(--accent);font-weight:600;margin-bottom:2px">${s.class_group}</div>`:''}
+      ${s.class_group?`<div style="font-size:10px;color:var(--accent);font-weight:600;margin-bottom:2px">${esc(s.class_group)}</div>`:''}
       <div class="num">${s.number}번</div>
-      <div class="name">${s.name}</div>
+      <div class="name">${esc(s.name)}</div>
     </div>`).join('');
 }
 
@@ -78,8 +80,14 @@ function showStudentModal(s){
     </div>
     <div class="form-row row-2">
       <div><label>번호 *</label><input class="input" id="s-num" type="number" min="1" value="${s?s.number:''}"></div>
-      <div><label>이름 *</label><input class="input" id="s-name" value="${s?s.name:''}"></div>
+      <div><label>이름 *</label><input class="input" id="s-name" value="${esc(s?s.name:'')}"></div>
     </div>
+    <div class="form-row row-2">
+      <div><label>학생 연락처</label><input class="input" id="s-phone" type="tel" value="${esc(s?.phone)}"></div>
+      <div><label>보호자 연락처</label><input class="input" id="s-parent-phone" type="tel" value="${esc(s?.parent_phone)}"></div>
+    </div>
+    <div><label>주소</label><input class="input" id="s-address" value="${esc(s?.address)}"></div>
+    <div><label>메모</label><textarea class="input" id="s-note">${esc(s?.note)}</textarea></div>
   </div>
   <div class="modal-footer">
     ${isEdit?`<button class="btn btn-danger" id="s-del">삭제</button>`:''}
@@ -88,17 +96,21 @@ function showStudentModal(s){
   </div>`);
 
   if(isEdit) document.getElementById('s-del').onclick=async()=>{
-    if(confirm(`${s.name} 학생을 삭제하시겠습니까?`)){await api.deleteStudent(s.id);closeModal();refresh();}
+    if(confirm(`${s.name} 학생을 삭제하시겠습니까?\n이 학생의 출결·수행평가 점수·제출 상태도 삭제됩니다.`)){await api.deleteStudent(s.id);closeModal();refresh();}
   };
   document.getElementById('s-save').onclick=async()=>{
     const grade=document.getElementById('s-grade').value.trim();
     const cls=document.getElementById('s-cls').value.trim();
-    const num=parseInt(document.getElementById('s-num').value);
+    const num=Number(document.getElementById('s-num').value);
     const name=document.getElementById('s-name').value.trim();
-    if(!grade||!cls||!num||!name){toast('모든 항목을 입력하세요','error');return;}
-    const data={number:num, name, class_group:toClassGroup(grade,cls), gender:'', birth_date:'', phone:'', parent_phone:'', address:'', note:''};
-    if(isEdit) await api.updateStudent(s.id,data); else await api.addStudent(data);
-    toast(isEdit?'수정되었습니다':'추가되었습니다','success');closeModal();refresh();
+    if(!Number.isInteger(Number(grade))||Number(grade)<1||Number(grade)>6||!Number.isInteger(Number(cls))||Number(cls)<1||!Number.isInteger(num)||num<1||!name){toast('학년·반·번호는 올바른 양의 정수로, 이름은 필수로 입력하세요','error');return;}
+    const data={number:num, name, class_group:toClassGroup(grade,cls), phone:document.getElementById('s-phone').value.trim(), parent_phone:document.getElementById('s-parent-phone').value.trim(), address:document.getElementById('s-address').value.trim(), note:document.getElementById('s-note').value};
+    const button=document.getElementById('s-save');button.disabled=true;
+    try {
+      if(isEdit) await api.updateStudent(s.id,data); else await api.addStudent(data);
+      toast(isEdit?'수정되었습니다':'추가되었습니다','success');closeModal();await refresh();
+    } catch(error){toast('학생 저장 실패: '+error.message,'error');}
+    finally {button.disabled=false;}
   };
 }
 
@@ -108,25 +120,34 @@ async function importCSV(file){
   const text=await file.text();
   const lines=parseCSV(text).filter(row=>row.some(cell=>String(cell||'').trim()));
   const rows=[];
+  const headers=(lines[0]||[]).map(v=>String(v).replace(/^\uFEFF/,'').trim());
   for(let i=1;i<lines.length;i++){
     const cols=lines[i].map(c=>String(c||'').trim());
-    if(cols.length<4)continue;
-    const grade=cols[0], cls=cols[1], num=parseInt(cols[2]), name=cols[3];
-    if(!grade||!cls||!num||!name)continue;
-    rows.push({number:num, name, class_group:toClassGroup(grade,cls), gender:'', birth_date:'', phone:'', parent_phone:'', address:'', note:''});
+    const grade=cols[0], cls=cols[1], num=Number(cols[2]), name=cols[3];
+    if(!/^\d+$/.test(grade)||!/^\d+$/.test(cls)||Number(grade)<1||Number(cls)<1||!Number.isInteger(num)||num<1||!name){
+      toast(`${i+1}행의 학년·반·번호·이름을 확인하세요. 가져오기를 취소했습니다.`,'error');return;
+    }
+    const row={number:num, name, class_group:toClassGroup(grade,cls)};
+    [['학생 연락처','phone'],['보호자 연락처','parent_phone'],['주소','address'],['메모','note']].forEach(([label,key])=>{
+      const index=headers.indexOf(label);
+      if(index>=0 && cols[index]) row[key]=cols[index];
+    });
+    rows.push(row);
   }
   if(input) input.value='';
   if(!rows.length){toast('CSV 파일을 확인하세요','error');return;}
-  if(confirm(`학생 ${rows.length}명을 가져오시겠습니까?\n기존 명단은 모두 삭제됩니다.`)){
-    await api.importStudentsCSV(rows);
-    toast(`${rows.length}명 완료`,'success');
-    refresh();
+  if(confirm(`학생 ${rows.length}명을 가져오시겠습니까?\n같은 학급·번호는 갱신하고 새 학생은 추가합니다.\nCSV에 없는 학생과 기존 출결·평가·제출 기록은 유지됩니다. 빈 연락처도 기존 값을 유지합니다.`)){
+    try {
+      const result=await api.importStudentsCSV(rows);
+      toast(`추가 ${result.added}명 · 갱신 ${result.updated}명 완료`,'success');
+      await refresh();
+    } catch(error) { toast(error.message || '가져오기에 실패했습니다.','error'); }
   }
 }
 
 function downloadStudentTemplate(){
   downloadCSV('학생명단_양식.csv',[
-    ['학년','반','번호','이름'],
+    ['학년','반','번호','이름','학생 연락처','보호자 연락처','주소','메모'],
     ['3','2','1','홍길동'],
     ['3','2','2','김하늘'],
     ['2','1','1','이민준'],

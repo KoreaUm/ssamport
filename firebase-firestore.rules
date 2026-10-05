@@ -14,11 +14,11 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && myUserDoc().data.role == 'admin';
+      return signedIn() && myUserDoc().data.active == true && myUserDoc().data.get('deleted', false) == false && myUserDoc().data.role == 'admin';
     }
 
     function canUseGrades() {
-      return signedIn() && (isAdmin() || myUserDoc().data.gradeAccess == true);
+      return signedIn() && myUserDoc().data.active == true && myUserDoc().data.get('deleted', false) == false && (isAdmin() || myUserDoc().data.gradeAccess == true);
     }
 
     function hasGradeSession() {
@@ -29,15 +29,19 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow create: if isSelf(userId);
+      allow create: if isSelf(userId) &&
+        request.resource.data.keys().hasOnly(['email', 'displayName', 'approved', 'active', 'gradeAccess', 'role', 'createdAt', 'lastLoginAt']) &&
+        request.resource.data.role == 'user' &&
+        request.resource.data.gradeAccess == false &&
+        request.resource.data.approved == true &&
+        request.resource.data.active == true &&
+        request.resource.data.email == request.auth.token.email;
       allow read: if isSelf(userId) || isAdmin();
 
       allow update: if (
         isSelf(userId) &&
-        request.resource.data.role == resource.data.role &&
-        request.resource.data.approved == resource.data.approved &&
-        request.resource.data.active == resource.data.active &&
-        request.resource.data.gradeAccess == resource.data.gradeAccess
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email', 'displayName', 'lastLoginAt']) &&
+        request.resource.data.email == request.auth.token.email
       ) || isAdmin();
     }
 

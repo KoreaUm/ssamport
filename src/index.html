@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<script src="api.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>쌤포트</title>
@@ -91,11 +92,15 @@
         </div>
         <button id="google-connect-btn" class="topbar-btn" title="Google 계정 연동">🔗 Google 연동</button>
         <div class="vdiv"></div>
+        <span id="local-save-status" style="font-size:11px">로컬 저장</span>
+        <span id="sync-status" role="status" style="font-size:11px"></span>
+        <button id="sync-retry" class="topbar-btn" style="display:none">동기화 재시도</button>
         <span id="header-date"></span>
       </div>
     </header>
     <nav id="page-tabs"></nav>
 
+    <div id="remote-change-notice" role="status" style="display:none;padding:8px 16px;background:var(--accent-l)">다른 기기의 변경사항이 있습니다. 작성 중인 내용은 유지됩니다. <button id="apply-remote-change" class="btn btn-secondary btn-sm">현재 화면에 적용</button></div>
     <main id="page-content"></main>
   </div>
 </div>
@@ -104,6 +109,56 @@
 (function () {
   var api = window.api;
   var pageCache = {};
+  var pageLoads = {};
+  var navigationVersion = 0;
+  var navigationQueue = Promise.resolve();
+  var activePage = null;
+
+  async function flushActivePage() {
+    var mod = activePage && pageCache[activePage];
+    if (mod && mod.beforeLeave) return mod.beforeLeave();
+  }
+
+  var syncStates = {};
+  function reportSync(channel, state) {
+    syncStates[channel] = state;
+    document.getElementById('sync-status').textContent = Object.keys(syncStates).map(function (key) {
+      return key + ': ' + syncStates[key];
+    }).join(' · ');
+    document.getElementById('sync-retry').style.display = Object.values(syncStates).some(function (value) { return value === '실패'; }) ? '' : 'none';
+  }
+  window.addEventListener('local-save', function (event) {
+    document.getElementById('local-save-status').textContent = event.detail ? '이 컴퓨터에 저장됨' : '로컬 저장 실패';
+  });
+  document.getElementById('sync-retry').onclick = async function () {
+    await Promise.allSettled([window.syncCloudNow(), syncWithGoogleTasks()]);
+  };
+  function notifyRemoteChange() {
+    if (activePage) document.getElementById('remote-change-notice').style.display = '';
+  }
+  document.getElementById('apply-remote-change').onclick = async function () {
+    if (!confirm('현재 화면을 최신 내용으로 다시 불러올까요? 저장하지 않은 입력은 사라질 수 있습니다.')) return;
+    await navigateTo(currentPage);
+  };
+  var googleWorkQueue = Promise.resolve();
+  function queueGoogleWork(work) {
+    var owner = authUser && authUser.uid;
+    var result = googleWorkQueue.catch(function () {}).then(async function () {
+      if (owner !== (authUser && authUser.uid)) return { skipped: true };
+      var linked = await api.getSetting('gcal_refresh_token', '');
+      if (!linked) { reportSync('Google', '미연결'); return { skipped: true }; }
+      reportSync('Google', '동기화 중');
+      try {
+        var value = await work();
+        if (value === false || (value && (value.error || value.skipped))) throw new Error(value && value.error || 'Google 연동 상태를 확인해 주세요.');
+        reportSync('Google', '완료');
+        return value;
+      } catch (error) { reportSync('Google', '실패'); return { error: error.message }; }
+    });
+    googleWorkQueue = result;
+    return result;
+  }
+
   var currentPage = "dashboard";
   var openGroupKey = "";
 
@@ -189,7 +244,7 @@
 
   api.setSetting = function (key, value) {
     return Promise.resolve(originalSetSetting(key, value)).then(function (result) {
-      if (!isApplyingRemoteData()) pushCloudSettingNow(key, value);
+      if (!isApplyingRemoteData()) pushCloudSettingNow(key, value).catch(function () {});
       return result;
     });
   };
@@ -222,7 +277,7 @@
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "";
     var d = new Date(date + "T00:00:00");
     d.setDate(d.getDate() + 1);
-    return d.toISOString().slice(0, 10);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   }
 
   function normalizeCalendarDate(dateText) {
@@ -276,11 +331,12 @@
       var eventId = values[1];
       if (!token) return false;
       if (!event && eventId && api.gcalDeleteEvent) {
-        return api.gcalDeleteEvent(token, eventId).then(function () {
+        return api.gcalDeleteEvent(token, eventId).then(function (result) {
+          if (result && result.error && ![404, 410].includes(Number(result.status || result.error.code))) return false;
           return api.setTodoGcalId ? api.setTodoGcalId(id, "") : true;
         });
       }
-      if (!event) return false;
+      if (!event) return true;
       if (!eventId) return syncTodoCalendarAfterAdd(id, payload);
       return api.gcalUpdateEvent(token, eventId, event).then(function (updated) {
         if (updated && updated.error) console.warn("google calendar todo update failed", updated.error);
@@ -417,7 +473,7 @@
   // ── Google Tasks 양방향 동기화 ───────────────────────────────────────────────
   var _gtasksSyncing = false;
 
-  function syncWithGoogleTasks() {
+  function performGoogleTaskSync() {
     if (_gtasksSyncing) return Promise.resolve({ skipped: true });
     if (!api.googleTasksListTasks) return Promise.resolve({ skipped: true });
     _gtasksSyncing = true;
@@ -425,7 +481,10 @@
     return getGoogleTasksToken().then(function (token) {
       if (!token) { _gtasksSyncing = false; return { skipped: true }; }
 
-      return api.googleTasksListTasks(token).then(function (remote) {
+      return api.flushGoogleDeletions(token).then(function (deletions) {
+        if (deletions.error) throw new Error(deletions.error);
+        return api.googleTasksListTasks(token);
+      }).then(function (remote) {
         if (!remote || remote.error) { _gtasksSyncing = false; return { skipped: true }; }
 
         // 삭제된 항목 제외
@@ -441,76 +500,29 @@
 
           var ops = [];
 
-          // ── Phase 1: 원격 → 로컬 (새 항목 추가 / 변경 항목 업데이트) ───
-          remoteItems.forEach(function (rt) {
-            var remoteTitle    = (rt.title || '').trim() || '(제목 없음)';
-            var remoteDone     = rt.status === 'completed';
-            var remoteDeadline = rt.due ? rt.due.slice(0, 10) : '';
-            var remoteUpdated  = rt.updated || '';
-
-            var lt = localByGTaskId[rt.id];
-            if (lt) {
-              // 이미 로컬에 있음 — 원격 updated가 로컬 updated_at보다 최신이면 덮어씀
-              var localTs = lt.updated_at || lt.created_at || '';
-              // Google Tasks는 UTC ISO8601, DB는 'YYYY-MM-DD HH:MM:SS' (UTC)
-              // 문자열 대소비교로 충분 (ISO8601 ↔ SQLite datetime 모두 사전순 = 시간순)
-              var remoteIsNewer = !localTs || (remoteUpdated && remoteUpdated > localTs.replace(' ', 'T') + 'Z');
-              if (remoteIsNewer) {
-                if (lt.title !== remoteTitle || lt.deadline !== remoteDeadline) {
-                  ops.push(
-                    originalUpdateTodo(lt.id, {
-                      title: remoteTitle,
-                      deadline: remoteDeadline,
-                      priority: lt.priority || '보통',
-                      category: lt.category || '기타'
-                    })
-                  );
-                }
-                if ((!!lt.is_done) !== remoteDone) {
-                  ops.push(originalToggleTodo(lt.id));
-                }
-              }
-            } else {
-              // 로컬에 없음 — 원격에서 새로 추가
-              ops.push(
-                originalAddTodo({
-                  title: remoteTitle,
-                  deadline: remoteDeadline,
-                  priority: '보통',
-                  category: '기타',
-                  is_ai_generated: 0,
-                  source_text: ''
-                }).then(function (newId) {
-                  if (!newId) return;
-                  var p1 = originalSetTodoGoogleTaskId
-                    ? originalSetTodoGoogleTaskId(newId, rt.id)
-                    : Promise.resolve();
-                  // 완료 상태도 반영
-                  var p2 = remoteDone ? originalToggleTodo(newId) : Promise.resolve();
-                  return Promise.all([p1, p2]);
-                })
-              );
-            }
-          });
+          // The database applies remote timestamps atomically and preserves pending local edits.
+          remoteItems.forEach(function (rt) { ops.push(api.applyGoogleTask(rt)); });
 
           // ── Phase 2: 원격에서 삭제된 항목 → 로컬에서도 삭제 ────────────
           localTodos.forEach(function (lt) {
-            if (lt.google_task_id && !remoteMap[lt.google_task_id]) {
+            if (lt.google_task_id && !remoteMap[lt.google_task_id] && !lt.google_dirty) {
               ops.push(originalDeleteTodo(lt.id));
             }
           });
 
-          // ── Phase 3: 아직 원격에 없는 로컬 항목 → 원격으로 푸시 ─────────
+          // Retry unsent local changes rather than replacing them with stale remote data.
           localTodos.forEach(function (lt) {
-            if (!lt.google_task_id) {
-              ops.push(
-                api.googleTasksAddTask(token, buildGoogleTaskFromLocal(lt.id, lt))
-                  .then(function (created) {
-                    if (created && created.id && originalSetTodoGoogleTaskId) {
-                      return originalSetTodoGoogleTaskId(lt.id, created.id);
-                    }
-                  }).catch(function () {})
-              );
+            if (!lt.google_task_id || lt.google_dirty) {
+              ops.push((async function () {
+                const existingRemote = lt.google_task_id && remoteMap[lt.google_task_id];
+                const result = existingRemote
+                  ? await api.googleTasksUpdateTask(token, lt.google_task_id, buildGoogleTaskFromLocal(lt.id, lt))
+                  : await api.googleTasksAddTask(token, buildGoogleTaskFromLocal(lt.id, lt));
+                if (!result || result.error) throw new Error('Google 할일 저장 실패');
+                if (!existingRemote && result.id) await originalSetTodoGoogleTaskId(lt.id, result.id);
+                if (!await syncTodoCalendarAfterUpdate(lt.id, lt)) throw new Error('Google 일정 저장 실패');
+                await api.markTodoGoogleSynced(lt.id, lt.updated_at);
+              })());
             }
           });
 
@@ -527,43 +539,50 @@
     });
   }
 
+  function syncWithGoogleTasks() { return queueGoogleWork(performGoogleTaskSync); }
   window.syncWithGoogleTasks = syncWithGoogleTasks;
 
-  api.addTodo = function (payload) {
-    return Promise.resolve(originalAddTodo(payload)).then(function (result) {
-      if (!isApplyingRemoteData()) {
-        syncGoogleTaskAfterAdd(result, payload);
-        syncTodoCalendarAfterAdd(result, payload);
+  function queueTodoSync(id) {
+    return queueGoogleWork(async function () {
+      const todo = (await api.getTodos(true)).find(item => Number(item.id) === Number(id));
+      if (!todo) {
+        const token = await getGoogleTasksToken();
+        return token ? api.flushGoogleDeletions(token) : false;
       }
-      return result;
+      const results = await Promise.all([
+        syncGoogleTaskAfterUpdate(id, todo),
+        syncTodoCalendarAfterUpdate(id, todo)
+      ]);
+      if (!results.every(Boolean)) return false;
+      await api.markTodoGoogleSynced(id, todo.updated_at);
+      return true;
+    });
+  }
+  api.addTodo = function (payload) {
+    return Promise.resolve(originalAddTodo(payload)).then(function (id) {
+      if (!isApplyingRemoteData()) queueTodoSync(id);
+      return id;
     });
   };
   api.updateTodo = function (id, payload) {
     return Promise.resolve(originalUpdateTodo(id, payload)).then(function (result) {
-      if (!isApplyingRemoteData()) {
-        syncGoogleTaskAfterUpdate(id, payload);
-        syncTodoCalendarAfterUpdate(id, payload);
-      }
+      if (!isApplyingRemoteData()) queueTodoSync(id);
       return result;
     });
   };
   api.toggleTodo = function (id) {
     return Promise.resolve(originalToggleTodo(id)).then(function (result) {
-      if (!isApplyingRemoteData()) {
-        api.getTodos(true).then(function (items) {
-          var todo = (items || []).find(function (item) { return Number(item.id) === Number(id); });
-          if (todo) syncGoogleTaskStatus(id, !!todo.is_done);
-        }).catch(function () {});
-      }
+      if (!isApplyingRemoteData()) queueTodoSync(id);
       return result;
     });
   };
   api.deleteTodo = function (id) {
-    var deleteRemoteTask = !isApplyingRemoteData() ? deleteGoogleTaskForTodo(id) : Promise.resolve(false);
-    var deleteRemoteCalendar = !isApplyingRemoteData() ? deleteTodoCalendarEvent(id) : Promise.resolve(false);
     return Promise.resolve(originalDeleteTodo(id)).then(function (result) {
-      deleteRemoteTask.catch(function () {});
-      deleteRemoteCalendar.catch(function () {});
+      if (!isApplyingRemoteData()) queueGoogleWork(async function () {
+        var token = await getGoogleTasksToken();
+        if (!token) return false;
+        return api.flushGoogleDeletions(token);
+      });
       return result;
     });
   };
@@ -1188,9 +1207,6 @@
     var user = authUser;
     var deviceId = getLocalDeviceId();
     return Promise.resolve(window.syncCloudNow ? window.syncCloudNow() : false)
-      .catch(function (error) {
-        console.error("logout sync failed", error);
-      })
       .then(function () {
         return getSessionDoc(user.uid).get();
       })
@@ -1242,12 +1258,23 @@
   window.appAuthLogout = function () {
     ensureFirebase();
     if (authUser && authUser.uid) setLastLocalAuthUid(authUser.uid);
-    return releaseCurrentSession().finally(function () {
+    return flushActivePage().then(async function (allowed) {
+      if (allowed === false) throw new Error("작성 중인 내용이 있어 로그아웃을 취소했습니다.");
+      await googleWorkQueue;
+      return releaseCurrentSession();
+    }).then(function () {
       return firebaseAuth.signOut();
     });
   };
 
-  window.appSyncBeforeClose = function () {
+  window.appFlushLocalWrites = async function () {
+    await navigationQueue;
+    if (await flushActivePage() === false) throw new Error('작성 중인 내용이 있어 종료를 취소했습니다.');
+  };
+
+  window.appSyncBeforeClose = async function () {
+    try { await window.appFlushLocalWrites(); }
+    catch (error) { return { ok: false, reason: "local-save-failed", message: error.message }; }
     if (!authUser || !authProfile || authProfile.active === false) {
       return Promise.resolve({ ok: true, skipped: true });
     }
@@ -1258,6 +1285,8 @@
         message: "인터넷에 연결되어 있지 않습니다."
       });
     }
+    const googleResult = await googleWorkQueue;
+    if (googleResult && googleResult.error) return { ok: false, reason: 'sync-failed', message: 'Google 동기화가 완료되지 않았습니다. 로컬 변경사항은 유지됩니다.' };
     return releaseCurrentSession().then(function () {
       return { ok: true };
     }).catch(function (error) {
@@ -1674,11 +1703,6 @@
         }
         return savedPayload;
       }).then(function () {
-        if (window.__pages && window.__pages.dashboard && window.__pages.dashboard.refresh) {
-          return Promise.resolve(window.__pages.dashboard.refresh()).then(function () {
-            return true;
-          });
-        }
         return true;
       });
     });
@@ -1703,10 +1727,7 @@
       var tasks = [];
       if (window.reloadTopNavigation) tasks.push(Promise.resolve(window.reloadTopNavigation()));
       if (window.updateClassInfo) tasks.push(Promise.resolve(window.updateClassInfo()));
-      if (window.__pages && window.__pages.dashboard && window.__pages.dashboard.refresh) {
-        tasks.push(Promise.resolve(window.__pages.dashboard.refresh()));
-      }
-      tasks.push(refreshCurrentPage());
+      // Keep the current editor intact. New settings are used on the next visit.
       return Promise.all(tasks).then(function () {
         return true;
       });
@@ -1740,30 +1761,11 @@
   }
 
   function refreshSharedPages() {
-    var tasks = [];
-    if (window.updateClassInfo) tasks.push(Promise.resolve(window.updateClassInfo()));
-    if (window.reloadTopNavigation) tasks.push(Promise.resolve(window.reloadTopNavigation()));
-    if (window.__pages && window.__pages.dashboard && window.__pages.dashboard.refresh) {
-      tasks.push(Promise.resolve(window.__pages.dashboard.refresh()));
-    }
-    if (window.__pages && window.__pages.todos && window.__pages.todos.refresh) {
-      tasks.push(Promise.resolve(window.__pages.todos.refresh()));
-    }
-    if (window.__pages && window.__pages.timetable && window.__pages.timetable.init) {
-      tasks.push(Promise.resolve(window.__pages.timetable.init()));
-    }
-    return Promise.all(tasks).catch(function () {});
-  }
-
-  function refreshCurrentPage() {
-    if (!currentPage || !window.navigateTo) return Promise.resolve();
-    if (currentPage === "dashboard") {
-      if (window.__pages && window.__pages.dashboard && window.__pages.dashboard.refresh) {
-        return Promise.resolve(window.__pages.dashboard.refresh()).catch(function () {});
-      }
-      return Promise.resolve();
-    }
-    return Promise.resolve(window.navigateTo(currentPage)).catch(function () {});
+    // Do not initialize cached, detached pages or replace an editor during sync.
+    return Promise.all([
+      window.updateClassInfo ? window.updateClassInfo() : null,
+      window.reloadTopNavigation ? window.reloadTopNavigation() : null
+    ]);
   }
 
   window.syncCloudSharedNow = function (kind) {
@@ -1823,7 +1825,7 @@
       return Promise.all(tasks);
     }).then(function () {
       return refreshSharedPages().then(function () {
-        return refreshCurrentPage();
+        return undefined; // Keep in-progress input intact on remote timetable changes.
       }).then(function () {
         return tasks.length > 0;
       });
@@ -1851,6 +1853,7 @@
     if (!canSyncKey(key)) return Promise.resolve(false);
     if (!authUser || !authProfile || authProfile.active === false) return Promise.resolve(false);
 
+    reportSync('클라우드', '동기화 중');
     var payload = {};
     payload[key] = String(value);
     payload.updatedAt = window.firebase.firestore.FieldValue.serverTimestamp();
@@ -1858,9 +1861,10 @@
 
     return getUserDoc(authUser.uid).collection("settings").doc("app")
       .set(payload, { merge: true })
+      .then(function () { reportSync('클라우드', '완료'); return true; })
       .catch(function (error) {
-        console.error("cloud setting push failed", key, error);
-        return false;
+        reportSync('클라우드', '실패');
+        throw error;
       });
   }
 
@@ -1870,19 +1874,22 @@
     if (kind === "timetable") {
       sharedLocalWriteUntil[kind] = Date.now() + 3000;
     }
-    return window.syncCloudSharedNow(kind).catch(function (error) {
-      console.error((kind || "shared") + " cloud push failed", error);
+    reportSync('클라우드', '동기화 중');
+    return window.syncCloudSharedNow(kind).then(function (result) { reportSync('클라우드', '완료'); return result; }).catch(function (error) {
+      reportSync('클라우드', '실패');
       return false;
     });
   }
 
   window.syncCloudNow = function () {
+    reportSync('클라우드', '동기화 중');
     return Promise.all([
       window.syncCloudSettingsNow(),
       window.syncCloudSharedNow()
     ]).then(function (results) {
+      reportSync('클라우드', '완료');
       return results.some(function (item) { return !!item; });
-    });
+    }).catch(function (error) { reportSync('클라우드', '실패'); throw error; });
   };
 
   window.pullCloudNow = function () {
@@ -1904,7 +1911,14 @@
       getUserDoc(authUser.uid).collection("settings").doc("app").onSnapshot(function (snap) {
         if (!snap.exists) return;
         if (snap.metadata && snap.metadata.hasPendingWrites) return;
-        applyCloudSettingsPayload(snap.data() || {}).catch(function (error) {
+        const owner = authUser.uid;
+        api.getAllSettings().then(function (local) {
+          if (!authUser || authUser.uid !== owner) return;
+          const incoming = buildCloudSettingsPayload(snap.data() || {});
+          if (!Object.keys(incoming).some(key => String(incoming[key]) !== String(local[key]))) return;
+          notifyRemoteChange();
+          return applyCloudSettingsPayload(incoming);
+        }).catch(function (error) {
           console.error("cloud settings subscribe failed", error);
         });
       }, function (error) {
@@ -1916,9 +1930,16 @@
       getSharedCollectionDoc("timetable").onSnapshot(function (snap) {
         if (!snap.exists) return;
         if (snap.metadata && snap.metadata.hasPendingWrites) return;
-        if (Date.now() < sharedLocalWriteUntil.timetable) return;
         var timetableData = snap.data() || {};
-        applyCloudSharedItems(null, Array.isArray(timetableData.items) ? timetableData.items : []).catch(function (error) {
+        const owner = authUser.uid;
+        api.getTimetable().then(function (local) {
+          if (!authUser || authUser.uid !== owner) return;
+          const incoming = Array.isArray(timetableData.items) ? timetableData.items : [];
+          const normalized = items => JSON.stringify(items.map(sanitizeTimetableForCloud).sort((a,b) => a.day_of_week-b.day_of_week || a.period-b.period));
+          if (normalized(incoming) === normalized(local)) return;
+          notifyRemoteChange();
+          return applyCloudSharedItems(null, incoming);
+        }).catch(function (error) {
           console.error("cloud timetable subscribe failed", error);
         });
       }, function (error) {
@@ -2037,7 +2058,7 @@
     var logoutButton = document.getElementById("auth-logout-btn");
     if (logoutButton) {
       logoutButton.addEventListener("click", function () {
-        window.appAuthLogout();
+        window.appAuthLogout().catch(function (error) { toast('로그아웃 전 저장 실패: ' + error.message, 'error'); });
       });
     }
   }
@@ -2106,7 +2127,7 @@
         if (!sessionOk) return false;
         var previousLocalUid = getLastLocalAuthUid();
         var shouldMigrateLegacyDb = !previousLocalUid || previousLocalUid === user.uid;
-        return Promise.resolve(api.switchUserDatabase ? api.switchUserDatabase(user.uid, { migrateLegacy: shouldMigrateLegacyDb }) : null).then(function () {
+        return googleWorkQueue.then(function () { return api.switchUserDatabase ? api.switchUserDatabase(user.uid, { migrateLegacy: shouldMigrateLegacyDb }) : null; }).then(function () {
           if (api.switchUserDatabase) return true;
           return clearSyncedLocalDataForAccountSwitch(user.uid).catch(function (error) {
             console.error("account switch local clear failed", error);
@@ -2384,26 +2405,23 @@
 
   function loadPage(key) {
     if (pageCache[key]) return Promise.resolve(pageCache[key]);
-    return new Promise(function (resolve, reject) {
-      if (window.__pages && window.__pages[key]) {
-        pageCache[key] = window.__pages[key];
-        resolve(window.__pages[key]);
-        return;
-      }
-
+    if (pageLoads[key]) return pageLoads[key];
+    pageLoads[key] = new Promise(function (resolve, reject) {
       window.__pageResolvers = window.__pageResolvers || {};
       window.__pageResolvers[key] = function (mod) {
         pageCache[key] = mod;
         resolve(mod);
       };
-
       var script = document.createElement("script");
       script.src = "pages/" + key + ".js";
       script.onerror = function () {
+        delete window.__pageResolvers[key];
+        script.remove();
         reject(new Error("페이지를 불러올 수 없습니다: " + key));
       };
       document.head.appendChild(script);
-    });
+    }).finally(function () { delete pageLoads[key]; });
+    return pageLoads[key];
   }
 
   function showLoading() {
@@ -2417,36 +2435,45 @@
   }
 
   function navigateTo(key) {
-    if (currentPage === "grades" && key !== "grades" && window.appGradesLock) {
-      window.appGradesLock();
-    }
-    _usageOnLeave(key);
-    currentPage = key;
-    var parentGroup = menuGroups.find(function (group) {
-      return group.items.some(function (itemKey) { return itemKey === key; });
-    });
-    openGroupKey = parentGroup ? parentGroup.key : "";
-    syncActiveTabs();
-
-    var item = findMenuPage(key);
-    text("page-title", key === "dashboard" ? "대시보드" : (key === "user_management" ? "회원 관리" : (key === "grades" ? "성적관리" : (item ? item.label : ""))));
-    setDashboardControls(key === "dashboard");
-    showLoading();
-
-    return loadPage(key)
-      .then(function (mod) {
-        var content = document.getElementById("page-content");
-        content.innerHTML = "";
-        return Promise.resolve(mod.render(content)).then(function () {
-          if (mod.init) return mod.init();
-        }).then(function () {
-          if (window.refreshGoogleConnectButton) window.refreshGoogleConnectButton();
-        });
-      })
-      .catch(function (error) {
-        showError(error.message);
-        console.error(error);
+    var version = ++navigationVersion;
+    // Serialize render/init: page modules still use shared document IDs after awaits.
+    var transition = navigationQueue.then(async function () {
+      if (version !== navigationVersion) return;
+      try {
+        if (await flushActivePage() === false) return;
+      } catch (error) {
+        toast("저장하지 못해 화면 이동을 중단했습니다. " + error.message, "error");
+        return;
+      }
+      if (version !== navigationVersion) return;
+      var mod = await loadPage(key);
+      if (version !== navigationVersion) return;
+      if (currentPage === "grades" && key !== "grades" && window.appGradesLock) window.appGradesLock();
+      _usageOnLeave(key);
+      currentPage = key;
+      var parentGroup = menuGroups.find(function (group) {
+        return group.items.some(function (itemKey) { return itemKey === key; });
       });
+      openGroupKey = parentGroup ? parentGroup.key : "";
+      syncActiveTabs();
+      var item = findMenuPage(key);
+      text("page-title", key === "dashboard" ? "대시보드" : (key === "user_management" ? "회원 관리" : (key === "grades" ? "성적관리" : (item ? item.label : ""))));
+      setDashboardControls(key === "dashboard");
+      var content = document.getElementById("page-content");
+      content.oninput = null;
+      content.onchange = null;
+      content.innerHTML = "";
+      activePage = key;
+      document.getElementById('remote-change-notice').style.display = 'none';
+      await mod.render(content);
+      if (mod.init) await mod.init();
+      if (window.refreshGoogleConnectButton) window.refreshGoogleConnectButton();
+    }).catch(function (error) {
+      console.error(error);
+      if (version === navigationVersion) toast("화면을 불러오지 못했습니다. " + error.message, "error");
+    });
+    navigationQueue = transition;
+    return transition;
   }
 
   function updateClassInfo() {
@@ -2908,7 +2935,7 @@
 
   function getReleaseNoticeItems(version) {
     return [
-      "할일 목록은 종료 시에도 로컬에 안전하게 저장되고, 인터넷이 있으면 클라우드에 동기화됩니다.",
+      "할일은 이 컴퓨터에 저장됩니다. Google 연결 시 동기화 상태를 상단에서 확인할 수 있습니다.",
       "대시보드 할일에서 완료 항목은 최근 5개만 보여 더 깔끔하게 정리됩니다.",
       "개인 시간표에서 같은 번호는 같은 색으로 표시할 수 있습니다.",
       "다른 컴퓨터에서 같은 계정으로 로그인할 때 기존 접속을 정리하는 기능이 추가되었습니다."

@@ -7,6 +7,8 @@ const MAX_PERIOD = 7;
 let timetableData = {};
 let selectedImage = null;
 let autosaveTimer = null;
+let pendingCells = null;
+let saveQueue = Promise.resolve();
 
 async function syncCloudIfPossible() {
   if (!window.syncCloudNow) return;
@@ -74,8 +76,8 @@ async function init() {
 }
 
 function bindEvents() {
-  document.getElementById('tt-save').onclick = saveAll;
-  document.getElementById('tt-clear').onclick = clearAll;
+  document.getElementById('tt-save').onclick = () => saveAll().catch(error => toast('시간표 저장 실패: ' + error.message, 'error'));
+  document.getElementById('tt-clear').onclick = () => clearAll().catch(error => toast('시간표 초기화 실패: ' + error.message, 'error'));
   document.getElementById('tt-ai-run').onclick = runTimetableAI;
   document.getElementById('tt-ocr-run').onclick = runTimetableOCR;
   document.getElementById('tt-image-pick').onclick = () => document.getElementById('tt-image-input').click();
@@ -114,14 +116,18 @@ function renderTable() {
 
 async function clearAll() {
   if (!confirm('시간표를 초기화할까요?')) return;
-  await api.replaceTimetable([]);
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  pendingCells = [];
+  await flushAutosave();
   timetableData = {};
   renderTable();
   setStatus('시간표를 초기화했습니다.', 'success');
 }
 
 async function saveAll() {
-  await persistTimetable(readTableData());
+  pendingCells = readTableData();
+  await flushAutosave();
   setStatus('시간표를 저장했습니다.', 'success');
 }
 
@@ -129,7 +135,9 @@ function readTableData() {
   const next = [];
   for (let dayIndex = 0; dayIndex < 5; dayIndex += 1) {
     for (let period = 1; period <= MAX_PERIOD; period += 1) {
-      const subject = document.getElementById(`ts-${dayIndex}-${period}`).value.trim();
+      const input = document.getElementById(`ts-${dayIndex}-${period}`);
+      if (!input) throw new Error('시간표 입력 화면을 찾을 수 없습니다.');
+      const subject = input.value.trim();
       if (!subject) continue;
       next.push({
         day_of_week: dayIndex,
@@ -143,22 +151,40 @@ function readTableData() {
   return next;
 }
 
-async function persistTimetable(cells, shouldRender = true) {
-  await api.replaceTimetable(cells);
-  const nextData = {};
-  for (const cell of cells) {
-    nextData[`${cell.day_of_week}_${cell.period}`] = cell;
+function persistTimetable(cells, shouldRender = true) {
+  if (shouldRender) {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+    pendingCells = null;
   }
-  timetableData = nextData;
-  if (shouldRender) renderTable();
+  const write = saveQueue.catch(() => {}).then(async () => {
+    await api.replaceTimetable(cells);
+    timetableData = Object.fromEntries(cells.map(cell => [`${cell.day_of_week}_${cell.period}`, cell]));
+    if (shouldRender && document.getElementById('tt-body')) renderTable();
+  });
+  saveQueue = write;
+  return write;
+}
+
+async function flushAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  if (pendingCells !== null) {
+    const cells = pendingCells;
+    pendingCells = null;
+    try { await persistTimetable(cells, false); }
+    catch (error) { if (pendingCells === null) pendingCells = cells; throw error; }
+  }
+  await saveQueue;
 }
 
 function scheduleAutosave() {
-  if (autosaveTimer) clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(async () => {
-    autosaveTimer = null;
-    await persistTimetable(readTableData(), false);
-    setStatus('시간표를 자동 저장했습니다.', 'success');
+  // Capture before navigation can remove the inputs.
+  pendingCells = readTableData();
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    flushAutosave().then(() => setStatus('시간표를 자동 저장했습니다.', 'success'))
+      .catch(error => toast('시간표 저장 실패: ' + error.message, 'error'));
   }, 500);
 }
 
@@ -435,5 +461,5 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
-window.registerPage('timetable', { render, init });
+window.registerPage('timetable', { render, init, beforeLeave: flushAutosave });
 })();

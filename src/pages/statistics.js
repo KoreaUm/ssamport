@@ -43,11 +43,13 @@ async function loadAStat(){
   if(!items.length){el.innerHTML='<p style="color:var(--text3);font-size:13px">수행평가가 없습니다.</p>';return;}
   let html='';
   for(const a of items.slice(0,5)){
-    const scores=await api.getAssessmentScores(a.id);
+    const targets=a.class_group?students.filter(s=>s.class_group===a.class_group):students;
+    const targetIds=new Set(targets.map(s=>s.id));
+    const scores=(await api.getAssessmentScores(a.id)).filter(s=>targetIds.has(s.student_id));
     const avg=scores.length?scores.reduce((s,r)=>s+r.score,0)/scores.length:0;
     html+=`<div style="margin-bottom:12px">
       <div style="font-size:13px;font-weight:600;margin-bottom:4px">${a.name} <span class="badge badge-accent">${a.subject}</span></div>
-      <div style="font-size:12px;color:var(--text2)">입력: ${scores.length}/${students.length}명 · 평균: ${avg.toFixed(1)}점</div>
+      <div style="font-size:12px;color:var(--text2)">입력: ${scores.length}/${targets.length}명 · 평균: ${avg.toFixed(1)}점</div>
       <div style="background:var(--bg);border-radius:4px;height:6px;margin-top:6px">
         <div style="background:var(--accent);height:6px;border-radius:4px;width:${Math.min(100,avg/a.max_score*100).toFixed(1)}%"></div>
       </div>

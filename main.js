@@ -1,4 +1,4 @@
-﻿const { app, BrowserWindow, ipcMain, shell, screen, dialog, Tray, Menu } = require('electron');
+﻿const { app, BrowserWindow, ipcMain, shell, screen, dialog, Tray, Menu, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn, spawnSync, execSync } = require('child_process');
@@ -9,6 +9,7 @@ const net = require('net');
 const crypto = require('crypto');
 const { autoUpdater } = require('electron-updater');
 const neisApi = require('./src/neis-api.js');
+const { resolveGoogleOAuthConfig } = require('./src/google_oauth_config.js');
 
 const AppDatabase = require('./src/database.js');
 const SQLiteDatabase = require('better-sqlite3');
@@ -58,7 +59,7 @@ const OLLAMA_MODELS = {
   local_pro: 'gemma4:e4b'
 };
 // Desktop 앱 OAuth (PKCE + 루프백 리디렉트).
-// 2025년 정책 변경 이후 데스크톱 클라이언트도 토큰 교환 시 client_secret을 요구함.
+// 이 앱의 Google OAuth 클라이언트는 토큰 교환 시 client_secret이 필요함.
 // client_secret은 빌드 시 CI가 oauth-config.js에 주입한다(저장소에는 빈 값으로 커밋).
 const GOOGLE_CALENDAR_CLIENT_ID = '780135122795-ldmauftdqlfksb4tfgrmro09b1mguh4f.apps.googleusercontent.com';
 let GOOGLE_CALENDAR_CLIENT_SECRET = '';
@@ -115,13 +116,18 @@ function createPkcePair() {
 }
 
 function getGoogleCalendarOAuthConfig(fallbackClientId = '', fallbackClientSecret = '') {
-  const clientId =
-    String(GOOGLE_CALENDAR_CLIENT_ID || '').trim() ||
-    String(fallbackClientId || '').trim() ||
-    String(db?.getSetting?.('gcal_client_id', '') || '').trim();
-  // client_secret은 앱에 내장된 상수만 사용. DB에 남은 잘못된 값이 토큰 교환을 막을 수 있어 제외.
-  const clientSecret = String(GOOGLE_CALENDAR_CLIENT_SECRET || '').trim();
-  return { clientId, clientSecret };
+  try {
+    return resolveGoogleOAuthConfig({
+      clientId: GOOGLE_CALENDAR_CLIENT_ID,
+      bundledSecret: GOOGLE_CALENDAR_CLIENT_SECRET,
+      savedClientId: fallbackClientId || db?.getSetting?.('gcal_client_id', '') || '',
+      savedClientSecret: fallbackClientId ? fallbackClientSecret : db?.getSetting?.('gcal_client_secret', '') || '',
+      paths: [
+        path.join(app.getPath('userData'), 'google-oauth-client.json'),
+        ...(!app.isPackaged ? [path.join(__dirname, 'oauth-config.local.json')] : [])
+      ]
+    });
+  } catch (error) { return { error: error.message }; }
 }
 
 function buildManualPdfHtml() {
@@ -599,14 +605,14 @@ function setupAutoUpdater() {
 
 function openDatabaseForUser(userId = '', options = {}) {
   const nextUserId = String(userId || '');
-  if (db && activeDbUserId === nextUserId) return db;
+  if (db && db.db.open && activeDbUserId === nextUserId) return db;
 
   const nextPath = AppDatabase.getPathForUser(nextUserId);
   const legacyPath = AppDatabase.getDefaultPath();
   const migrationMarkerPath = path.join(path.dirname(nextPath), '.legacy_migrated');
   if (options.migrateLegacy === true && nextUserId && !fs.existsSync(nextPath) && fs.existsSync(legacyPath) && !fs.existsSync(migrationMarkerPath)) {
     fs.mkdirSync(path.dirname(nextPath), { recursive: true });
-    fs.copyFileSync(legacyPath, nextPath);
+    AppDatabase.snapshotFile(legacyPath, nextPath);
     removeSqliteSidecars(nextPath);
     fs.writeFileSync(migrationMarkerPath, `${nextUserId}\n${new Date().toISOString()}`, 'utf8');
   }
@@ -742,6 +748,18 @@ function createWindow() {
     let syncResult = { ok: true };
 
     try {
+      await mainWindow.webContents.executeJavaScript(
+        'window.appFlushLocalWrites ? window.appFlushLocalWrites() : Promise.resolve()', true
+      );
+    } catch (error) {
+      isClosingAfterCloudSync = false;
+      await dialog.showMessageBox(mainWindow, {
+        type: 'error', title: '저장 실패', message: '변경사항을 저장하지 못해 종료를 취소했습니다.', detail: error.message
+      });
+      return;
+    }
+
+    try {
       syncResult = await Promise.race([
         mainWindow.webContents.executeJavaScript(
           'window.appSyncBeforeClose ? window.appSyncBeforeClose() : Promise.resolve({ ok: true, skipped: true })',
@@ -760,6 +778,15 @@ function createWindow() {
         reason: 'sync-failed',
         message: error?.message || '클라우드 저장에 실패했습니다.',
       };
+    }
+
+    if (syncResult && syncResult.reason === 'local-save-failed') {
+      await dialog.showMessageBox(mainWindow, {
+        type: 'error', title: '저장 실패', message: '변경사항을 저장하지 못해 종료를 취소했습니다.',
+        detail: syncResult.message || '다시 저장한 뒤 종료해 주세요.'
+      });
+      isClosingAfterCloudSync = false;
+      return;
     }
 
     if (!syncResult || syncResult.ok === false) {
@@ -886,8 +913,27 @@ if (!gotSingleInstanceLock) {
   });
 }
 
-app.on('before-quit', () => {
-  isQuitting = true;
+let localWritesFlushedForQuit = false;
+let quitFlushPending = false;
+app.on('before-quit', (event) => {
+  if (localWritesFlushedForQuit || !mainWindow || mainWindow.isDestroyed()) {
+    isQuitting = true;
+    return;
+  }
+  event.preventDefault();
+  isQuitting = false;
+  if (quitFlushPending) return;
+  quitFlushPending = true;
+  mainWindow.webContents.executeJavaScript('window.appFlushLocalWrites ? window.appFlushLocalWrites() : Promise.resolve()', true)
+    .then(() => {
+      localWritesFlushedForQuit = true;
+      isQuitting = true;
+      app.quit();
+    }).catch(async (error) => {
+      await dialog.showMessageBox(mainWindow, {
+        type: 'error', title: '저장 실패', message: '변경사항을 저장하지 못해 종료를 취소했습니다.', detail: error.message
+      });
+    }).finally(() => { quitFlushPending = false; });
 });
 
 app.on('window-all-closed', () => {
@@ -904,6 +950,17 @@ ipcMain.on('window-close', () => mainWindow.close());
 ipcMain.on('window-always-on-top', (e, flag) => mainWindow.setAlwaysOnTop(flag));
 ipcMain.on('window-set-opacity', (e, val) => mainWindow.setOpacity(Math.max(0.1, Math.min(1, Number(val)))));
 ipcMain.handle('window-get-opacity', () => mainWindow.getOpacity());
+// 렌더러의 navigator.clipboard.write(text/html)는 일부 환경에서 조용히 실패해
+// 표 없이 일반 텍스트만 붙여넣기 되는 문제가 있어(예: 한글(HWP) 붙여넣기 시 표 깨짐),
+// Electron 메인 프로세스의 네이티브 clipboard로 text/html을 함께 기록한다.
+ipcMain.handle('write-rich-clipboard', (e, text, html) => {
+  if (html) {
+    clipboard.write({ text: text || '', html: html });
+  } else {
+    clipboard.writeText(text || '');
+  }
+  return true;
+});
 ipcMain.handle('get-update-status', () => updateState);
 ipcMain.handle('check-for-updates', async () => {
   if (!app.isPackaged) {
@@ -938,8 +995,10 @@ ipcMain.handle('download-update', async () => {
   }
   return updateState;
 });
-ipcMain.handle('quit-and-install-update', () => {
+ipcMain.handle('quit-and-install-update', async () => {
   if (!app.isPackaged) return false;
+  await mainWindow.webContents.executeJavaScript('window.appFlushLocalWrites ? window.appFlushLocalWrites() : Promise.resolve()', true);
+  localWritesFlushedForQuit = true;
   setImmediate(() => {
     isQuitting = true;
     autoUpdater.quitAndInstall(false, true);
@@ -1278,6 +1337,7 @@ ipcMain.handle('import-backup', async () => {
     rollbackPath = path.join(app.getPath('temp'), `teacher_app_restore_${formatFileTimestamp(new Date())}.db`);
     await db.backupTo(rollbackPath);
     db.close();
+    db = null;
     removeSqliteSidecars(dbPath);
     fs.copyFileSync(backupPath, dbPath);
     openDatabaseForUser(activeDbUserId);
@@ -1289,6 +1349,7 @@ ipcMain.handle('import-backup', async () => {
   } catch (err) {
     try {
       if (rollbackPath && dbPath && fs.existsSync(rollbackPath)) {
+        if (db) { try { db.close(); } catch (_) {} db = null; }
         removeSqliteSidecars(dbPath);
         fs.copyFileSync(rollbackPath, dbPath);
         removeSqliteSidecars(dbPath);
@@ -1344,6 +1405,7 @@ ipcMain.handle('update-assessment', (e, id, data) => db.updateAssessment(id, dat
 ipcMain.handle('delete-assessment', (e, id) => db.deleteAssessment(id));
 ipcMain.handle('get-assessment-scores', (e, assessId) => db.getAssessmentScores(assessId));
 ipcMain.handle('set-assessment-score', (e, data) => db.setAssessmentScore(data));
+ipcMain.handle('set-assessment-scores', (e, items) => db.setAssessmentScores(items));
 
 ipcMain.handle('get-submissions', (e, filter) => db.getSubmissions(filter));
 ipcMain.handle('add-submission', (e, data) => db.addSubmission(data));
@@ -1357,6 +1419,8 @@ ipcMain.handle('add-todo', (e, data) => db.addTodo(data));
 ipcMain.handle('update-todo', (e, id, data) => db.updateTodo(id, data));
 ipcMain.handle('toggle-todo', (e, id) => db.toggleTodo(id));
 ipcMain.handle('delete-todo', (e, id) => db.deleteTodo(id));
+ipcMain.handle('apply-google-task', (e, task) => db.applyGoogleTask(task));
+ipcMain.handle('mark-todo-google-synced', (e, id, timestamp) => db.markTodoGoogleSynced(id, timestamp));
 ipcMain.handle('replace-todos', (e, items) => db.replaceTodos(items));
 ipcMain.handle('set-todo-gcal-id', (e, id, gcalId) => db.setTodoGcalId(id, gcalId));
 ipcMain.handle('get-todo-gcal-id', (e, id) => db.getTodoGcalId(id));
@@ -1365,10 +1429,9 @@ ipcMain.handle('get-todo-google-task-id', (e, id) => db.getTodoGoogleTaskId(id))
 
 // ── Google Calendar OAuth ─────────────────────────────────
 ipcMain.handle('gcal-oauth-start', async (e, legacyClientId = '', legacyClientSecret = '') => {
-  const { clientId, clientSecret } = getGoogleCalendarOAuthConfig(legacyClientId, legacyClientSecret);
-  if (!clientId) {
-    return { error: 'Google 연동 설정이 아직 앱에 포함되지 않았습니다. 개발자에게 문의해 주세요.' };
-  }
+  const config = getGoogleCalendarOAuthConfig(legacyClientId, legacyClientSecret);
+  const { clientId, clientSecret } = config;
+  if (config.error || !clientId) return { error: config.error || 'Google 연결 설정을 불러오지 못했습니다.' };
   return new Promise((resolve) => {
     const server = http.createServer();
     server.listen(0, '127.0.0.1', () => {
@@ -1398,10 +1461,13 @@ ipcMain.handle('gcal-oauth-start', async (e, legacyClientId = '', legacyClientSe
           return;
         }
 
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`<html><body style="font-family:sans-serif;text-align:center;padding:60px"><h2>${code ? '✅ 연동 완료!' : '⚠️ 연동이 완료되지 않았습니다.'}</h2><p>이 창을 닫고 쌤포트로 돌아가세요.</p></body></html>`);
+        const finishBrowser = (ok) => {
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(`<html><body style="font-family:sans-serif;text-align:center;padding:60px"><h2>${ok ? '✅ 연동 완료!' : '⚠️ 연동이 완료되지 않았습니다.'}</h2><p>이 창을 닫고 쌤포트에서 결과를 확인해 주세요.</p></body></html>`);
+        };
         clearTimeout(timer); server.close();
         if (!code) {
+          finishBrowser(false);
           const detail = oauthErrorDescription || oauthError || 'Google 로그인 또는 권한 동의가 완료되지 않았습니다.';
           return resolve({ error: `Google 연동 실패: ${detail}` });
         }
@@ -1412,14 +1478,16 @@ ipcMain.handle('gcal-oauth-start', async (e, legacyClientId = '', legacyClientSe
           grant_type: 'authorization_code',
           code_verifier: pkce.verifier
         };
-        // Desktop 앱 PKCE: client_secret은 환경변수로 명시된 경우에만 포함
+        // 최초 인증과 갱신 모두 동일한 클라이언트 설정을 사용한다.
         if (clientSecret) tokenPayload.client_secret = clientSecret;
         const body = new URLSearchParams(tokenPayload).toString();
         const tokenRes = await new Promise((r2) => {
           const req2 = https.request({ hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) } }, (res2) => {
             let d = ''; res2.on('data', c => d += c); res2.on('end', () => { try { r2(JSON.parse(d)); } catch { r2({}); } });
-          }); req2.on('error', () => r2({})); req2.write(body); req2.end();
+          }); req2.setTimeout(20000, () => req2.destroy(new Error('토큰 교환 시간 초과')));
+          req2.on('error', () => r2({ error_description: 'Google 토큰 교환에 실패했습니다. 네트워크를 확인하고 다시 연결해 주세요.' })); req2.write(body); req2.end();
         });
+        finishBrowser(!!tokenRes.refresh_token);
         if (tokenRes.refresh_token) resolve({ refresh_token: tokenRes.refresh_token });
         else resolve({ error: tokenRes.error_description || '토큰 교환 실패' });
       });
@@ -1430,10 +1498,12 @@ ipcMain.handle('gcal-oauth-start', async (e, legacyClientId = '', legacyClientSe
 ipcMain.handle('gcal-refresh-token', async (e, arg1 = '', arg2 = '', arg3 = '') => {
   const legacyCall = !!arg3;
   const refreshToken = legacyCall ? arg3 : arg1;
-  const { clientId, clientSecret } = getGoogleCalendarOAuthConfig(legacyCall ? arg1 : '', legacyCall ? arg2 : '');
+  const config = getGoogleCalendarOAuthConfig(legacyCall ? arg1 : '', legacyCall ? arg2 : '');
+  if (config.error) return { error: config.error };
+  const { clientId, clientSecret } = config;
   if (!clientId || !refreshToken) return { error: 'Google 캘린더 연동 정보가 없습니다.' };
   const tokenPayload = { client_id: clientId, refresh_token: refreshToken, grant_type: 'refresh_token' };
-  if (clientSecret) tokenPayload.client_secret = clientSecret; // 환경변수 설정 시에만 포함
+  if (clientSecret) tokenPayload.client_secret = clientSecret;
   const body = new URLSearchParams(tokenPayload).toString();
   return new Promise((resolve) => {
     const req = https.request({ hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) } }, (r) => {
@@ -1460,6 +1530,7 @@ function googleCalendarRequest(accessToken, pathName, method = 'GET', payload = 
         if (!data && res.statusCode >= 200 && res.statusCode < 300) return resolve({ ok: true, status: res.statusCode });
         try {
           const parsed = JSON.parse(data || '{}');
+          parsed.status = res.statusCode;
           if (res.statusCode >= 400 && !parsed.error) parsed.error = { message: `Google Calendar 오류 ${res.statusCode}` };
           resolve(parsed);
         } catch {
@@ -1467,6 +1538,7 @@ function googleCalendarRequest(accessToken, pathName, method = 'GET', payload = 
         }
       });
     });
+    req.setTimeout(20000, () => req.destroy(new Error('Google 요청 시간 초과')));
     req.on('error', (err) => resolve({ error: err.message }));
     if (body) req.write(body);
     req.end();
@@ -1505,6 +1577,7 @@ function googleTasksRequest(accessToken, pathName, method = 'GET', payload = nul
         if (!data && res.statusCode >= 200 && res.statusCode < 300) return resolve({ ok: true, status: res.statusCode });
         try {
           const parsed = JSON.parse(data || '{}');
+          parsed.status = res.statusCode;
           if (res.statusCode >= 400 && !parsed.error) parsed.error = { message: `Google Tasks 오류 ${res.statusCode}` };
           resolve(parsed);
         } catch {
@@ -1512,6 +1585,7 @@ function googleTasksRequest(accessToken, pathName, method = 'GET', payload = nul
         }
       });
     });
+    req.setTimeout(20000, () => req.destroy(new Error('Google 요청 시간 초과')));
     req.on('error', (error) => resolve({ error: { message: error.message } }));
     if (body) req.write(body);
     req.end();
@@ -1534,6 +1608,22 @@ function buildGoogleTaskPayload(task) {
 }
 
 // 전체 목록 조회 (페이지네이션 처리, 완료·숨김 포함)
+ipcMain.handle('google-flush-deletions', async (e, accessToken) => {
+  if (!accessToken) return { error: 'Google 계정을 다시 연결해 주세요.' };
+  const owner = db;
+  for (const item of owner.getGoogleDeletions()) {
+    if (db !== owner || !owner.db.open) return { error: '계정이 변경되어 동기화를 중단했습니다.' };
+    const result = item.kind === 'task'
+      ? await googleTasksRequest(accessToken, `/tasks/v1/lists/%40default/tasks/${encodeURIComponent(item.remote_id)}`, 'DELETE')
+      : await googleCalendarRequest(accessToken, `/calendar/v3/calendars/primary/events/${encodeURIComponent(item.remote_id)}`, 'DELETE');
+    const code = Number(result.status || result.error?.code);
+    if (result.error && code !== 404 && code !== 410) return { error: 'Google 삭제 동기화에 실패했습니다. 다시 시도해 주세요.' };
+    if (db !== owner || !owner.db.open) return { error: '계정이 변경되어 동기화를 중단했습니다.' };
+    owner.acknowledgeGoogleDeletion(item.kind, item.remote_id);
+  }
+  return { ok: true };
+});
+
 ipcMain.handle('gtasks-list-tasks', async (e, accessToken) => {
   if (!accessToken) return { error: 'Google 계정이 연결되지 않았습니다.' };
   let allTasks = [];
@@ -2065,6 +2155,7 @@ async function runClaude(apiKey, model, text, options = {}) {
       });
     });
 
+    req.setTimeout(20000, () => req.destroy(new Error('Google 요청 시간 초과')));
     req.on('error', (err) => resolve({ error: err.message }));
     req.write(body);
     req.end();

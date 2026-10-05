@@ -297,6 +297,14 @@
     if (!text) return;
     var inner = htmlInner != null ? htmlInner : preserveSpacesForHtml(escapeHtml(text));
     var html = '<div style="font-family:\'돋움\',Dotum,sans-serif;font-size:12pt;">' + inner + "</div>";
+    // 브라우저 표준 Clipboard API(navigator.clipboard.write)로 text/html을 함께 써도
+    // 일부 환경(예: 이 앱의 Electron 렌더러)에서는 조용히 실패해 text/plain만 남는다.
+    // 그러면 한글(HWP)에 붙여넣을 때 표가 사라지고 줄바꿈이 깨진 텍스트만 붙는다.
+    // Electron 메인 프로세스의 네이티브 clipboard로 기록하면 이 문제가 없으므로 우선 사용한다.
+    if (window.api && typeof window.api.writeRichClipboard === "function") {
+      window.api.writeRichClipboard(text, html);
+      return;
+    }
     if (navigator.clipboard && window.ClipboardItem) {
       try {
         var item = new ClipboardItem({
@@ -367,20 +375,29 @@
   // PDF 서식의 표를 그대로 옮기기 위한 표 데이터 형식:
   //  - { rows: [[라벨, 값], ...] } : 라벨·값 2단 표 (첫 칸은 라벨처럼 음영 표시)
   //  - { headers: [...], rows: [[셀, 셀, ...], ...] } : 순번·학교명 등 여러 열을 가진 실제 표(헤더 행 포함)
+  //
+  // 클립보드로 복사되는 조각은 이 페이지의 styles.css를 가지고 가지 않으므로(한글/워드 등
+  // 다른 프로그램은 class만 있고 스타일은 없는 태그를 받는다), 화면 표시용 class와 별개로
+  // border 등 표 모양이 실제로 보이도록 인라인 style을 셀마다 함께 적어준다.
+  var SV_TABLE_CELL_STYLE = "border:1px solid #333;padding:8px 10px;vertical-align:top;";
+  var SV_TABLE_TH_STYLE = SV_TABLE_CELL_STYLE + "background:#f3f4f6;font-weight:600;text-align:center;";
+  var SV_TABLE_LABEL_STYLE = SV_TABLE_CELL_STYLE + "width:160px;background:#f3f4f6;font-weight:600;text-align:center;";
+  var SV_TABLE_CENTER_STYLE = SV_TABLE_CELL_STYLE + "text-align:center;";
   function buildSvTableHtml(table) {
     var hasHeaders = table.headers && table.headers.length;
     var headHtml = hasHeaders
       ? "<tr>" + table.headers.map(function (h) {
-          return '<th class="sv-table-th">' + escapeHtml(h).replace(/\n/g, "<br>") + "</th>";
+          return '<th class="sv-table-th" style="' + SV_TABLE_TH_STYLE + '">' + escapeHtml(h).replace(/\n/g, "<br>") + "</th>";
         }).join("") + "</tr>"
       : "";
     var bodyHtml = table.rows.map(function (row) {
       return "<tr>" + row.map(function (cell, i) {
         var cls = hasHeaders ? "sv-table-cell" : (i === 0 ? "sv-table-label" : "sv-table-value");
-        return '<td class="' + cls + '">' + escapeHtml(cell == null ? "" : String(cell)).replace(/\n/g, "<br>") + "</td>";
+        var style = hasHeaders ? SV_TABLE_CENTER_STYLE : (i === 0 ? SV_TABLE_LABEL_STYLE : SV_TABLE_CELL_STYLE);
+        return '<td class="' + cls + '" style="' + style + '">' + escapeHtml(cell == null ? "" : String(cell)).replace(/\n/g, "<br>") + "</td>";
       }).join("") + "</tr>";
     }).join("");
-    return '<table class="sv-fact-table">' + headHtml + bodyHtml + "</table>";
+    return '<table class="sv-fact-table" border="1" cellspacing="0" cellpadding="6" style="width:100%;border-collapse:collapse;margin:8px 0;font-size:14px;">' + headHtml + bodyHtml + "</table>";
   }
 
   function buildSvTablePlain(table) {
@@ -446,7 +463,19 @@
     setText("od-body-output", parts.rest);
   }
 
+  var documentDirty = false;
+  function beforeLeave() {
+    if (!documentDirty) return true;
+    if (!confirm('작성 중인 공문 내용은 아직 저장되지 않았습니다. 화면을 나가면 입력 내용이 사라집니다. 계속할까요?')) return false;
+    documentDirty = false;
+    return true;
+  }
+
   function init() {
+    documentDirty = false;
+    var editor = document.getElementById('page-content');
+    editor.oninput = function () { documentDirty = true; };
+    editor.onchange = function () { documentDirty = true; };
     var rules = window.OfficialDocumentRules;
     if (!rules) {
       setDraftStatus("공문 작성 규칙 모듈을 불러오지 못했습니다.");
@@ -1660,5 +1689,5 @@
     });
   }
 
-  window.registerPage("official_document", { render: render, init: init });
+  window.registerPage("official_document", { render: render, init: init, beforeLeave: beforeLeave });
 })();

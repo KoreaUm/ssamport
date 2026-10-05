@@ -44,6 +44,12 @@ class AppDatabase {
     this._init();
   }
 
+  static snapshotFile(source, destination) {
+    const connection = new Database(source, { readonly: true, fileMustExist: true });
+    try { connection.prepare('VACUUM INTO ?').run(destination); }
+    finally { connection.close(); }
+  }
+
   static getDefaultPath() {
     return DB_PATH;
   }
@@ -91,6 +97,11 @@ class AppDatabase {
 
   _init() {
     this.db.exec(`
+      CREATE TABLE IF NOT EXISTS google_deletions (
+        kind TEXT NOT NULL,
+        remote_id TEXT NOT NULL,
+        PRIMARY KEY(kind, remote_id)
+      );
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT DEFAULT ''
@@ -287,6 +298,7 @@ class AppDatabase {
     try { this.db.exec('ALTER TABLE todos ADD COLUMN gcal_event_id TEXT'); } catch (_) {}
     try { this.db.exec('ALTER TABLE todos ADD COLUMN google_task_id TEXT'); } catch (_) {}
     try { this.db.exec("ALTER TABLE todos ADD COLUMN updated_at TEXT DEFAULT ''"); } catch (_) {}
+    try { this.db.exec("ALTER TABLE todos ADD COLUMN google_dirty INTEGER DEFAULT 0"); } catch (_) {}
   }
 
   _ensureCounselingColumns() {
@@ -524,20 +536,13 @@ class AppDatabase {
   }
 
   updateStudent(id, data) {
+    const previous = this.db.prepare('SELECT * FROM students WHERE id=?').get(id);
+    if (!previous) throw new Error('학생 정보를 찾을 수 없습니다.');
+    const next = { ...previous, ...data };
     this.db.prepare(
       'UPDATE students SET number=?,name=?,gender=?,birth_date=?,phone=?,parent_phone=?,address=?,note=?,class_group=? WHERE id=?'
-    ).run(
-      data.number,
-      data.name,
-      data.gender || '',
-      data.birth_date || '',
-      data.phone || '',
-      data.parent_phone || '',
-      data.address || '',
-      data.note || '',
-      data.class_group || '',
-      id
-    );
+    ).run(next.number, next.name, next.gender || '', next.birth_date || '',
+      next.phone || '', next.parent_phone || '', next.address || '', next.note || '', next.class_group || '', id);
     return true;
   }
 
@@ -547,27 +552,35 @@ class AppDatabase {
   }
 
   importStudentsCSV(rows) {
-    this.db.prepare('DELETE FROM students').run();
-    const insert = this.db.prepare(
-      'INSERT INTO students(number,name,class_group,gender,birth_date,phone,parent_phone,address,note) VALUES(?,?,?,?,?,?,?,?,?)'
-    );
-    const transaction = this.db.transaction((items) => {
+    // Match stable class/number identities without deleting related student records.
+    return this.db.transaction((items) => {
+      if (!Array.isArray(items) || !items.length) throw new Error('가져올 학생이 없습니다.');
+      const seen = new Set();
+      const result = { added: 0, updated: 0 };
+      const find = this.db.prepare('SELECT id FROM students WHERE class_group=? AND number=?');
       for (const row of items) {
-        insert.run(
-          row.number,
-          row.name,
-          row.class_group || '',
-          row.gender || '',
-          row.birth_date || '',
-          row.phone || '',
-          row.parent_phone || '',
-          row.address || '',
-          row.note || ''
-        );
+        const number = Number(row.number);
+        const name = String(row.name || '').trim();
+        const group = String(row.class_group || '').trim();
+        if (!Number.isInteger(number) || number < 1 || !name || !group) {
+          throw new Error('학급, 번호, 이름을 확인해 주세요. 변경사항은 저장되지 않았습니다.');
+        }
+        const key = JSON.stringify([group, number]);
+        if (seen.has(key)) throw new Error(`${group} ${number}번이 CSV에 중복되어 있습니다.`);
+        seen.add(key);
+        const matches = find.all(group, number);
+        if (matches.length > 1) throw new Error(`${group} ${number}번이 기존 명단에 중복되어 있습니다. 먼저 정리해 주세요.`);
+        const data = { ...row, number, name, class_group: group };
+        if (matches.length) {
+          this.updateStudent(matches[0].id, data);
+          result.updated += 1;
+        } else {
+          this.addStudent(data);
+          result.added += 1;
+        }
       }
-    });
-    transaction(rows);
-    return true;
+      return result;
+    })(rows);
   }
 
   getAttendance(date) {
@@ -810,10 +823,27 @@ class AppDatabase {
   }
 
   setAssessmentScore(data) {
+    const assessment = this.db.prepare('SELECT max_score FROM assessments WHERE id=?').get(data.assessment_id);
+    if (!assessment) throw new Error('평가를 찾을 수 없습니다.');
+    if (data.score === '' || data.score === null || data.score === undefined) {
+      this.db.prepare('DELETE FROM assessment_scores WHERE assessment_id=? AND student_id=?').run(data.assessment_id, data.student_id);
+      return true;
+    }
+    const score = Number(data.score);
+    if (!Number.isFinite(score) || score < 0 || score > assessment.max_score) {
+      throw new Error(`점수는 0~${assessment.max_score}점 사이로 입력해 주세요.`);
+    }
     this.db.prepare(
       'INSERT OR REPLACE INTO assessment_scores(assessment_id,student_id,score,note) VALUES(?,?,?,?)'
-    ).run(data.assessment_id, data.student_id, data.score || 0, data.note || '');
+    ).run(data.assessment_id, data.student_id, score, data.note || '');
     return true;
+  }
+
+  setAssessmentScores(items) {
+    return this.db.transaction(() => {
+      for (const item of items) this.setAssessmentScore(item);
+      return true;
+    })();
   }
 
   getSubmissions() {
@@ -860,20 +890,21 @@ class AppDatabase {
 
   addTodo(data) {
     const result = this.db.prepare(
-      "INSERT INTO todos(title,deadline,priority,category,is_ai_generated,source_text,updated_at) VALUES(?,?,?,?,?,?,datetime('now'))"
+      "INSERT INTO todos(title,deadline,priority,category,is_ai_generated,source_text,updated_at,google_dirty) VALUES(?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'),1)"
     ).run(data.title, data.deadline || '', data.priority || '보통', data.category || '기타', data.is_ai_generated ? 1 : 0, data.source_text || '');
     return result.lastInsertRowid;
   }
 
   updateTodo(id, data) {
     this.db.prepare(
-      "UPDATE todos SET title=?,deadline=?,priority=?,category=?,updated_at=datetime('now') WHERE id=?"
+      "UPDATE todos SET title=?,deadline=?,priority=?,category=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),google_dirty=1 WHERE id=?"
     ).run(data.title, data.deadline || '', data.priority || '보통', data.category || '기타', id);
     return true;
   }
 
   setTodoGcalId(id, gcalEventId) {
-    this.db.prepare('UPDATE todos SET gcal_event_id=? WHERE id=?').run(gcalEventId, id);
+    const result = this.db.prepare('UPDATE todos SET gcal_event_id=? WHERE id=?').run(gcalEventId, id);
+    if (!result.changes && gcalEventId) this.db.prepare('INSERT OR IGNORE INTO google_deletions(kind,remote_id) VALUES(?,?)').run('calendar', gcalEventId);
     return true;
   }
 
@@ -883,7 +914,8 @@ class AppDatabase {
   }
 
   setTodoGoogleTaskId(id, googleTaskId) {
-    this.db.prepare('UPDATE todos SET google_task_id=? WHERE id=?').run(googleTaskId, id);
+    const result = this.db.prepare('UPDATE todos SET google_task_id=? WHERE id=?').run(googleTaskId, id);
+    if (!result.changes && googleTaskId) this.db.prepare('INSERT OR IGNORE INTO google_deletions(kind,remote_id) VALUES(?,?)').run('task', googleTaskId);
     return true;
   }
 
@@ -894,14 +926,55 @@ class AppDatabase {
 
   toggleTodo(id) {
     this.db.prepare(
-      "UPDATE todos SET is_done=CASE WHEN is_done=0 THEN 1 ELSE 0 END, updated_at=datetime('now') WHERE id=?"
+      "UPDATE todos SET is_done=CASE WHEN is_done=0 THEN 1 ELSE 0 END, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),google_dirty=1 WHERE id=?"
     ).run(id);
     return true;
   }
 
   deleteTodo(id) {
-    this.db.prepare('DELETE FROM todos WHERE id=?').run(id);
-    return true;
+    return this.db.transaction(() => {
+      const todo = this.db.prepare('SELECT * FROM todos WHERE id=?').get(id);
+      if (todo) {
+        const enqueue = this.db.prepare('INSERT OR IGNORE INTO google_deletions(kind,remote_id) VALUES(?,?)');
+        if (todo.google_task_id) enqueue.run('task', todo.google_task_id);
+        if (todo.gcal_event_id) enqueue.run('calendar', todo.gcal_event_id);
+      }
+      this.db.prepare('DELETE FROM todos WHERE id=?').run(id);
+      return true;
+    })();
+  }
+
+  applyGoogleTask(remote) {
+    return this.db.transaction(() => {
+      if (!remote || !remote.id) throw new Error('Google 할일 ID가 없습니다.');
+      if (this.db.prepare("SELECT 1 FROM google_deletions WHERE kind='task' AND remote_id=?").get(remote.id)) return;
+      const existing = this.db.prepare('SELECT * FROM todos WHERE google_task_id=?').get(remote.id);
+      const remoteTime = Date.parse(remote.updated || '');
+      const localTime = existing ? Date.parse(existing.updated_at.includes('T') ? existing.updated_at : existing.updated_at.replace(' ', 'T') + 'Z') : NaN;
+      if (existing && (existing.google_dirty || (Number.isFinite(localTime) && (!Number.isFinite(remoteTime) || remoteTime <= localTime)))) return;
+      const title = String(remote.title || '').trim() || '(제목 없음)';
+      const deadline = remote.due ? remote.due.slice(0, 10) : '';
+      const updated = Number.isFinite(remoteTime) ? new Date(remoteTime).toISOString() : new Date().toISOString();
+      if (existing) {
+        this.db.prepare('UPDATE todos SET title=?,deadline=?,is_done=?,updated_at=?,google_dirty=0 WHERE id=?')
+          .run(title, deadline, remote.status === 'completed' ? 1 : 0, updated, existing.id);
+      } else {
+        this.db.prepare('INSERT INTO todos(title,deadline,is_done,google_task_id,updated_at,google_dirty) VALUES(?,?,?,?,?,0)')
+          .run(title, deadline, remote.status === 'completed' ? 1 : 0, remote.id, updated);
+      }
+    })();
+  }
+
+  markTodoGoogleSynced(id, timestamp) {
+    this.db.prepare('UPDATE todos SET google_dirty=0 WHERE id=? AND updated_at=?').run(id, timestamp);
+  }
+
+  getGoogleDeletions() {
+    return this.db.prepare('SELECT * FROM google_deletions').all();
+  }
+
+  acknowledgeGoogleDeletion(kind, id) {
+    this.db.prepare('DELETE FROM google_deletions WHERE kind=? AND remote_id=?').run(kind, id);
   }
 
   replaceTodos(items = []) {

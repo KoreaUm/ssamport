@@ -1,6 +1,6 @@
 {
   "name": "teacher-app",
-  "version": "2.0.131",
+  "version": "2.0.132",
   "description": "쌤포트 Electron 앱",
   "author": "충상",
   "main": "main.js",
@@ -10,7 +10,9 @@
     "build:win": "electron-builder --win nsis",
     "build:patch": "powershell -ExecutionPolicy Bypass -File ./패키지만들기.ps1",
     "release:win": "electron-builder --win nsis --publish always",
-    "release:mac": "./release_auto_mac.sh"
+    "release:mac": "./release_auto_mac.sh",
+    "test": "node tests/run.cjs",
+    "test:smoke": "electron tests/electron-smoke.cjs"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.10",

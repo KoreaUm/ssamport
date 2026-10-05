@@ -13,3 +13,6 @@ temp_*.xlsx
 Thumbs.db
 .DS_Store
 *.hwpx
+
+# Local Google OAuth credentials (never commit)
+oauth-config.local.json

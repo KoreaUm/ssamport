@@ -85,11 +85,15 @@ window.__asSc=async(id)=>{
   <div class="modal-footer"><button class="btn btn-secondary" data-close>닫기</button>
     <button class="btn btn-primary" id="sc-sv">저장</button></div>`);
   document.getElementById('sc-sv').onclick=async()=>{
-    for(const s of students){
-      const v=document.getElementById(`sc-${s.id}`).value;
-      if(v!=='')await api.setAssessmentScore({assessment_id:id,student_id:s.id,score:parseFloat(v)});
+    const button=document.getElementById('sc-sv');
+    const values=students.map(s=>({assessment_id:id,student_id:s.id,score:document.getElementById(`sc-${s.id}`).value}));
+    if(values.some(v=>v.score!=='' && (!Number.isFinite(Number(v.score)) || Number(v.score)<0 || Number(v.score)>a.max_score))){
+      toast(`점수는 0~${a.max_score}점 사이로 입력하세요.`,'error');return;
     }
-    toast('저장되었습니다','success');closeModal();
+    button.disabled=true;
+    try { await api.setAssessmentScores(values);toast('저장되었습니다','success');closeModal(); }
+    catch(error){toast('점수 저장 실패: '+error.message,'error');}
+    finally {button.disabled=false;}
   };
 };
 
