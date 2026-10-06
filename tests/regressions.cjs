@@ -337,3 +337,20 @@ test('assessment score writes reject students in a different class even with the
     assert.equal(db.getAssessmentScores(assessment)[0].student_id,first);
   } finally { db.close(); }
 });
+
+test('password reset validates email, prevents duplicate requests and allows retry after failure', async () => {
+  const pending=deferred();let requests=0;
+  const input={value:' Teacher@Example.com ',checkValidity:()=>true,focus:()=>{}};
+  const button={disabled:false,textContent:''},status={textContent:''};
+  const ctx=context({document:{getElementById:id=>({'auth-reset-email':input,'auth-reset-send':button,'auth-reset-status':status}[id])},
+    normalizeEmail:v=>v.trim().toLowerCase(),ensureFirebase:()=>{},
+    firebaseAuth:{sendPasswordResetEmail:email=>{requests++;assert.equal(email,'teacher@example.com');return pending.promise;}},
+    parseFirebaseError:()=> '네트워크 연결을 확인해 주세요.'});
+  vm.runInContext(section(read('src/index.html'),'  async function sendAuthPasswordReset()', '  function renderAuthOverlay('),ctx);
+  input.checkValidity=()=>false;await ctx.sendAuthPasswordReset();assert.equal(requests,0);
+  input.checkValidity=()=>true;const first=ctx.sendAuthPasswordReset();await ctx.sendAuthPasswordReset();assert.equal(requests,1);assert.equal(button.disabled,true);
+  pending.reject({code:'auth/network-request-failed'});await first;assert.equal(button.disabled,false);assert.match(status.textContent,/네트워크/);
+  ctx.firebaseAuth.sendPasswordResetEmail=async()=>{};await ctx.sendAuthPasswordReset();assert.match(status.textContent,/스팸함/);assert.equal(ctx.firebaseAuth.languageCode,'ko');
+  ctx.firebaseAuth.sendPasswordResetEmail=async()=>{throw {code:'auth/too-many-requests'};};await ctx.sendAuthPasswordReset();assert.match(status.textContent,/잠시 후/);
+  ctx.firebaseAuth.sendPasswordResetEmail=async()=>{throw {code:'auth/user-not-found'};};await ctx.sendAuthPasswordReset();assert.match(status.textContent,/가입된 이메일이면/);
+});

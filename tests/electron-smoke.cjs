@@ -42,6 +42,19 @@ app.whenReady().then(async()=>{
  if(document.getElementById('as-s').value!=='음악')throw Error('subject default');
  if(!document.getElementById('as-cls').textContent.includes('1학년 2반'))throw Error('assessment class options');
  })()`);
+ const indexSource=fs.readFileSync(path.join(root,'src/index.html'),'utf8');
+ const authSource=indexSource.slice(indexSource.indexOf('  function escapeAuthHtml('),indexSource.indexOf('  function createOrUpdateUserProfile('));
+ await win.webContents.executeJavaScript(`window.authScreenMode='login';window.ensureAuthOverlay=()=>{let el=document.getElementById('auth-overlay');if(!el){el=document.createElement('div');el.id='auth-overlay';document.body.appendChild(el);}return el;};window.getAuthState=()=>({});window.setAuthLocked=()=>{};window.ensureFirebase=()=>{};window.normalizeEmail=v=>v.trim().toLowerCase();window.parseFirebaseError=()=> '연결 오류';window.firebaseAuth={sendPasswordResetEmail:async email=>{window.resetRequestedEmail=email;}};void 0;`);
+ await win.webContents.executeJavaScript(authSource+';void 0');
+ await win.webContents.executeJavaScript(`(async()=>{
+ renderAuthOverlay('form','','teacher@example.com');document.getElementById('auth-forgot-btn').click();
+ if(document.getElementById('auth-password'))throw Error('reset view still requests password');
+ if(document.getElementById('auth-reset-email').value!=='teacher@example.com')throw Error('email not preserved');
+ await document.getElementById('auth-reset-form').onsubmit({preventDefault(){}});
+ if(window.resetRequestedEmail!=='teacher@example.com')throw Error('reset request failed');
+ if(!document.getElementById('auth-reset-status').textContent.includes('스팸함'))throw Error('missing reset guidance');
+ document.getElementById('auth-reset-back').click();if(!document.getElementById('auth-password'))throw Error('cannot return to login');
+ })()`);
  assert.equal(settings.onboarding_complete,'1');assert.equal(JSON.parse(settings.school_profile).counts['1'],6);
  assert.equal(students.length,1);assert.equal(students[0].class_group,'3학년 2반');
  console.log('Electron smoke passed: isolated bridge, contacts form, memo autosave, timetable navigation save');

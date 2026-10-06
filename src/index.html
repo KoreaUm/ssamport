@@ -2063,10 +2063,50 @@
     pushCloudSharedNow(kind);
   }
 
+  function escapeAuthHtml(value) {
+    return String(value || "").replace(/[&<>"']/g, function (character) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character];
+    });
+  }
+
+  async function sendAuthPasswordReset() {
+    var input = document.getElementById("auth-reset-email");
+    var button = document.getElementById("auth-reset-send");
+    var status = document.getElementById("auth-reset-status");
+    if (!input || !button || button.disabled) return;
+    var email = normalizeEmail(input.value);
+    if (!email || !input.checkValidity()) {
+      status.textContent = "가입할 때 사용한 이메일 주소를 올바르게 입력해 주세요.";
+      input.focus();
+      return;
+    }
+    button.disabled = true;
+    button.textContent = "메일 요청 중…";
+    status.textContent = "";
+    try {
+      ensureFirebase();
+      firebaseAuth.languageCode = "ko";
+      await firebaseAuth.sendPasswordResetEmail(email);
+      status.textContent = "가입된 이메일이면 비밀번호 재설정 메일이 발송됩니다. 받은편지함과 스팸함을 확인해 주세요. 메일의 링크에서 새 비밀번호를 설정한 뒤 앱으로 돌아와 로그인하세요.";
+      button.textContent = "재설정 메일 다시 보내기";
+    } catch (error) {
+      if (error && error.code === "auth/user-not-found") {
+        status.textContent = "가입된 이메일이면 비밀번호 재설정 메일이 발송됩니다. 이메일 주소와 받은편지함·스팸함을 확인해 주세요.";
+      } else if (error && error.code === "auth/too-many-requests") {
+        status.textContent = "요청이 많습니다. 잠시 후 다시 시도해 주세요.";
+      } else {
+        status.textContent = parseFirebaseError(error, "재설정 메일을 요청하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+      button.textContent = "재설정 메일 보내기";
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   function renderAuthOverlay(view, message, emailValue) {
     var overlay = ensureAuthOverlay();
-    var safeMessage = message ? '<div class="auth-message">' + message + '</div>' : "";
-    var safeEmail = String(emailValue || "").replace(/"/g, "&quot;");
+    var safeMessage = message ? '<div class="auth-message" role="status" aria-live="polite">' + escapeAuthHtml(message) + '</div>' : "";
+    var safeEmail = escapeAuthHtml(emailValue);
     var state = getAuthState();
     var modeTabs = view === "form" ? (
       '<div class="auth-tabs">' +
@@ -2085,15 +2125,24 @@
       '<div class="settings-actions auth-actions">' +
         '<button type="button" class="btn btn-primary" id="auth-submit-btn">' + (authScreenMode === "signup" ? '가입하고 시작하기' : '로그인') + '</button>' +
       '</div>' +
+      (authScreenMode === "login" ? '<div class="settings-actions"><button type="button" class="btn btn-secondary btn-sm" id="auth-forgot-btn">비밀번호를 잊으셨나요?</button></div>' : '') +
       '<div class="auth-guest-wrap">' +
         '<button type="button" class="btn btn-secondary" id="auth-guest-btn">로그인 없이 시작하기</button>' +
         '<div class="auth-guest-note">출결·공문·좌석 등 PC에 저장되는 기능은 그대로 사용할 수 있어요. 성적관리, 다른 기기와의 동기화, 공지사항은 로그인해야 사용할 수 있습니다.</div>' +
       '</div>'
     ) : "";
+    if (view === "reset") {
+      formHtml = '<form id="auth-reset-form"><div class="auth-fields">' +
+        '<label class="auth-label" for="auth-reset-email">가입 이메일</label>' +
+        '<input id="auth-reset-email" class="input auth-input" type="email" required autocomplete="email" value="' + safeEmail + '" placeholder="teacher@example.com">' +
+        '</div><p id="auth-reset-status" class="auth-note" role="status" aria-live="polite"></p>' +
+        '<div class="settings-actions auth-actions"><button type="submit" class="btn btn-primary" id="auth-reset-send">재설정 메일 보내기</button>' +
+        '<button type="button" class="btn btn-secondary" id="auth-reset-back">로그인으로 돌아가기</button></div></form>';
+    }
     var infoHtml = view === "blocked"
         ? '<div class="auth-state-box"><div class="auth-state-title">사용 제한됨</div><div class="auth-state-note">이 계정은 현재 사용이 제한되어 있습니다.</div><div class="auth-state-email">' + (state.email || "") + '</div></div>'
         : "";
-    var secondaryButtons = view === "form"
+    var secondaryButtons = view === "form" || view === "reset"
       ? ""
       : '<div class="settings-actions auth-actions"><button type="button" class="btn btn-secondary" id="auth-refresh-btn">상태 다시 확인</button><button type="button" class="btn btn-primary" id="auth-logout-btn">로그아웃</button></div>';
 
@@ -2101,8 +2150,8 @@
       '<div class="auth-overlay-backdrop"></div>' +
       '<section class="auth-card">' +
         '<div class="auth-brand">쌤포트</div>' +
-        '<h2 class="auth-title">계정 확인</h2>' +
-        '<div class="auth-note">가입 후 바로 사용할 수 있으며, 관리자가 필요한 경우 사용을 제한할 수 있습니다.</div>' +
+        '<h2 class="auth-title">' + (view === "reset" ? '비밀번호 재설정' : '계정 확인') + '</h2>' +
+        '<div class="auth-note">' + (view === "reset" ? '가입 이메일로 재설정 메일을 받아 새 비밀번호를 설정하세요.' : '가입 후 바로 사용할 수 있으며, 관리자가 필요한 경우 사용을 제한할 수 있습니다.') + '</div>' +
         modeTabs +
         safeMessage +
         formHtml +
@@ -2118,6 +2167,22 @@
         renderAuthOverlay("form", "", document.getElementById("auth-email") ? document.getElementById("auth-email").value : safeEmail);
       });
     });
+
+    var forgotButton = document.getElementById("auth-forgot-btn");
+    if (forgotButton) forgotButton.onclick = function () {
+      renderAuthOverlay("reset", "", document.getElementById("auth-email").value);
+      document.getElementById("auth-reset-email").focus();
+    };
+    var resetForm = document.getElementById("auth-reset-form");
+    if (resetForm) resetForm.onsubmit = function (event) {
+      event.preventDefault();
+      return sendAuthPasswordReset();
+    };
+    var resetBack = document.getElementById("auth-reset-back");
+    if (resetBack) resetBack.onclick = function () {
+      authScreenMode = "login";
+      renderAuthOverlay("form", "", document.getElementById("auth-reset-email").value);
+    };
 
     var submitButton = document.getElementById("auth-submit-btn");
     if (submitButton) {
