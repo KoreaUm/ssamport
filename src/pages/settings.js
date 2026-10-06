@@ -10,6 +10,16 @@ const MODEL_OPTIONS = {
     { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
     { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
   ],
+  groq: [
+    { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B (무료)' },
+    { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant (무료)' },
+    { value: 'gemma2-9b-it', label: 'Gemma2 9B (무료)' },
+  ],
+  openrouter: [
+    { value: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B (무료)' },
+    { value: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash Exp (무료)' },
+    { value: 'deepseek/deepseek-chat-v3-0324:free', label: 'DeepSeek V3 (무료)' },
+  ],
 };
 
 const MENU_PAGE_OPTIONS = [
@@ -61,7 +71,7 @@ async function render(container) {
   const appMeta = await api.getAppMeta();
   const authState = window.appAuthGetState ? window.appAuthGetState() : null;
   const savedEngine = settings.ai_engine || 'local_lite';
-  const provider = (savedEngine === 'claude' || savedEngine === 'gemini') ? savedEngine : (settings.ai_provider || 'claude');
+  const provider = ['claude', 'gemini', 'groq', 'openrouter'].includes(savedEngine) ? savedEngine : (settings.ai_provider || 'claude');
   const model = settings.ai_model || MODEL_OPTIONS[provider][0].value;
   const aiEngine = savedEngine === 'cloud' ? provider : (savedEngine === 'rule' ? 'local_lite' : savedEngine);
   const classTimetableCount = parseClassTimetableCount(settings.class_timetable_json);
@@ -232,15 +242,15 @@ async function render(container) {
           <div class="ai-engine-list">
             <label class="ai-engine-option ${aiEngine === 'local_lite' ? 'selected' : ''}">
               <input type="radio" name="ai-engine" value="local_lite" ${aiEngine === 'local_lite' ? 'checked' : ''}>
-              <div><b>Local AI Lite · qwen2.5:3b</b><span>보안: 외부 전송 없음 · 용도: 학생/상담 기본값 · 특징: 빠른 편, 1.5B보다 안정적</span></div>
+              <div><b>Local AI Lite · Qwen3 4B</b><span>보안: 외부 전송 없음 · 용도: 학생/상담 기본값 · 특징: 가볍고 빠르며 한국어 품질 우수</span></div>
             </label>
             <label class="ai-engine-option ${aiEngine === 'local_basic' ? 'selected' : ''}">
               <input type="radio" name="ai-engine" value="local_basic" ${aiEngine === 'local_basic' ? 'checked' : ''}>
-              <div><b>Local AI Basic · Gemma 4 E2B</b><span>보안: 외부 전송 없음 · 용도: 더 나은 문장 품질 · 특징: 느릴 수 있음, 8GB RAM 이상 권장</span></div>
+              <div><b>Local AI Basic · Qwen3 8B</b><span>보안: 외부 전송 없음 · 용도: 더 나은 문장 품질 · 특징: 느릴 수 있음, 8GB RAM 이상 권장</span></div>
             </label>
             <label class="ai-engine-option ${aiEngine === 'local_pro' ? 'selected' : ''}">
               <input type="radio" name="ai-engine" value="local_pro" ${aiEngine === 'local_pro' ? 'checked' : ''}>
-              <div><b>Local AI Pro · Gemma 4 E4B</b><span>보안: 외부 전송 없음 · 용도: 고품질 로컬 분석 · 특징: 가장 무거움, 16GB RAM 이상 권장</span></div>
+              <div><b>Local AI Pro · Qwen3 14B</b><span>보안: 외부 전송 없음 · 용도: 고품질 로컬 분석 · 특징: 가장 무거움, 16GB RAM 이상 권장</span></div>
             </label>
             <label class="ai-engine-option danger ${aiEngine === 'claude' ? 'selected' : ''}">
               <input type="radio" name="ai-engine" value="claude" ${aiEngine === 'claude' ? 'checked' : ''}>
@@ -249,6 +259,14 @@ async function render(container) {
             <label class="ai-engine-option danger ${aiEngine === 'gemini' ? 'selected' : ''}">
               <input type="radio" name="ai-engine" value="gemini" ${aiEngine === 'gemini' ? 'checked' : ''}>
               <div><b>Gemini 외부 AI</b><span>보안: 외부 서버 전송 가능 · 보호: 동의 필수, 민감 페이지는 로컬 우선/익명화 · 주의: 학생정보 입력 금지 권장</span></div>
+            </label>
+            <label class="ai-engine-option danger ${aiEngine === 'groq' ? 'selected' : ''}">
+              <input type="radio" name="ai-engine" value="groq" ${aiEngine === 'groq' ? 'checked' : ''}>
+              <div><b>Groq 외부 AI (무료)</b><span>보안: 외부 서버 전송 가능 · 비용: 무료 티어 제공(발급만 하면 바로 사용) · 주의: 학생정보 입력 금지 권장</span></div>
+            </label>
+            <label class="ai-engine-option danger ${aiEngine === 'openrouter' ? 'selected' : ''}">
+              <input type="radio" name="ai-engine" value="openrouter" ${aiEngine === 'openrouter' ? 'checked' : ''}>
+              <div><b>OpenRouter 외부 AI (무료)</b><span>보안: 외부 서버 전송 가능 · 비용: ":free" 모델은 무료 · 주의: 학생정보 입력 금지 권장</span></div>
             </label>
           </div>
           <div class="settings-note" style="margin-bottom:12px">AI 도우미는 모든 페이지 상단의 <b>AI 도우미</b> 버튼으로 열 수 있습니다.</div>
@@ -272,10 +290,12 @@ async function render(container) {
             <select class="input" id="sp">
               <option value="claude" ${provider === 'claude' ? 'selected' : ''}>Claude (Anthropic)</option>
               <option value="gemini" ${provider === 'gemini' ? 'selected' : ''}>Gemini (Google)</option>
+              <option value="groq" ${provider === 'groq' ? 'selected' : ''}>Groq (무료)</option>
+              <option value="openrouter" ${provider === 'openrouter' ? 'selected' : ''}>OpenRouter (무료 모델)</option>
             </select>
           </div>
           <div class="settings-note" id="ai-key-guide">
-            <div id="ai-key-guide-claude" style="${provider === 'gemini' ? 'display:none' : ''}">
+            <div id="ai-key-guide-claude" style="${provider === 'claude' ? '' : 'display:none'}">
               <b>Claude API 키 발급 방법</b><br>
               1. 아래 버튼으로 Anthropic 콘솔 페이지를 열어 로그인(또는 회원가입)합니다.<br>
               2. 왼쪽 메뉴에서 API Keys를 선택하고 Create Key 버튼을 누릅니다.<br>
@@ -283,11 +303,25 @@ async function render(container) {
               <button type="button" class="btn btn-secondary btn-sm" id="ai-key-link-claude" style="margin-top:6px">Anthropic API 키 발급 페이지 열기</button>
             </div>
             <div id="ai-key-guide-gemini" style="${provider === 'gemini' ? '' : 'display:none'}">
-              <b>Gemini API 키 발급 방법</b><br>
+              <b>Gemini API 키 발급 방법 (무료 티어 제공)</b><br>
               1. 아래 버튼으로 Google AI Studio 페이지를 열어 구글 계정으로 로그인합니다.<br>
               2. Create API key 버튼을 눌러 키를 생성합니다.<br>
               3. 생성된 키를 복사해 아래 입력칸에 붙여넣습니다.<br>
               <button type="button" class="btn btn-secondary btn-sm" id="ai-key-link-gemini" style="margin-top:6px">Google AI Studio API 키 발급 페이지 열기</button>
+            </div>
+            <div id="ai-key-guide-groq" style="${provider === 'groq' ? '' : 'display:none'}">
+              <b>Groq API 키 발급 방법 (무료)</b><br>
+              1. 아래 버튼으로 GroqCloud 콘솔 페이지를 열어 로그인(또는 회원가입)합니다.<br>
+              2. 왼쪽 메뉴에서 API Keys를 선택하고 Create API Key 버튼을 누릅니다.<br>
+              3. 생성된 키(gsk_로 시작)를 복사해 아래 입력칸에 붙여넣습니다.<br>
+              <button type="button" class="btn btn-secondary btn-sm" id="ai-key-link-groq" style="margin-top:6px">GroqCloud API 키 발급 페이지 열기</button>
+            </div>
+            <div id="ai-key-guide-openrouter" style="${provider === 'openrouter' ? '' : 'display:none'}">
+              <b>OpenRouter API 키 발급 방법 (":free" 모델은 무료)</b><br>
+              1. 아래 버튼으로 OpenRouter 키 발급 페이지를 열어 로그인(또는 회원가입)합니다.<br>
+              2. Create Key 버튼을 눌러 키를 생성합니다.<br>
+              3. 생성된 키(sk-or-v1-로 시작)를 복사해 아래 입력칸에 붙여넣습니다. 모델은 이름에 ":free"가 붙은 것을 선택하면 과금되지 않습니다.<br>
+              <button type="button" class="btn btn-secondary btn-sm" id="ai-key-link-openrouter" style="margin-top:6px">OpenRouter API 키 발급 페이지 열기</button>
             </div>
           </div>
           <div class="form-row"><label>외부 AI API \uD0A4</label><input class="input" type="password" id="sk" value="${escapeHtml(settings.ai_api_key || '')}" placeholder="Claude/Gemini를 사용할 때만 입력"></div>
@@ -389,25 +423,63 @@ async function init() {
   const autosaveTimers = {};
   let currentAiEngine = document.querySelector('input[name="ai-engine"]:checked')?.value || 'local_lite';
   const selectedAiEngine = () => document.querySelector('input[name="ai-engine"]:checked')?.value || 'local_lite';
-  const isExternalAiEngine = (engine) => engine === 'claude' || engine === 'gemini';
-  const externalAiLabel = (engine) => engine === 'gemini' ? 'Gemini' : 'Claude';
+  const isExternalAiEngine = (engine) => engine === 'claude' || engine === 'gemini' || engine === 'groq' || engine === 'openrouter';
+  const externalAiLabel = (engine) => engine === 'gemini' ? 'Gemini' : engine === 'groq' ? 'Groq' : engine === 'openrouter' ? 'OpenRouter' : 'Claude';
   const setAiEngineSelection = (engine) => {
     document.querySelectorAll('input[name="ai-engine"]').forEach((input) => {
       input.checked = input.value === engine;
       input.closest('.ai-engine-option')?.classList.toggle('selected', input.checked);
     });
   };
+  const syncKeyGuide = (selected) => {
+    ['claude', 'gemini', 'groq', 'openrouter'].forEach((key) => {
+      const guide = document.getElementById(`ai-key-guide-${key}`);
+      if (guide) guide.style.display = selected === key ? '' : 'none';
+    });
+  };
   const confirmExternalAiConsent = (engine) => {
     const label = externalAiLabel(engine);
-    const text = [
+    const bodyLines = [
       `${label} 외부 AI를 사용하면 질문, 상담 문장, 성적/학생 관련 내용 등 사용자가 입력한 정보가 외부 AI 서버로 전송될 수 있습니다.`,
-      '',
       '학생 상담, 성적, 개인정보, 민감정보를 입력할 경우 그에 따른 개인정보 보호 책임은 사용자에게 있습니다.',
       '민감정보는 가능하면 Local AI를 사용하세요. Local AI는 모델과 실행 엔진이 내 PC에서만 동작하므로 외부 전송이 없습니다.',
-      '',
-      '계속하려면 아래 입력창에 정확히 "동의합니다"를 입력하세요.'
-    ].join('\n');
-    return window.prompt(text, '') === '동의합니다';
+      '계속하려면 아래 입력창에 정확히 "동의합니다"를 입력하세요.',
+    ];
+    return new Promise((resolve) => {
+      let settled = false;
+      const settle = (value) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      };
+      const modal = window.showModal(
+        '<div class="modal-header">' +
+        `<span class="modal-title">${escapeHtml(label)} 외부 AI 사용 동의</span>` +
+        '<button class="modal-close" data-close>×</button>' +
+        '</div>' +
+        '<div class="modal-body" style="display:grid;gap:10px">' +
+        bodyLines.map((line) => `<div>${escapeHtml(line)}</div>`).join('') +
+        '<input class="input" id="ai-consent-input" type="text" placeholder="동의합니다" autocomplete="off">' +
+        '</div>' +
+        '<div class="modal-footer">' +
+        '<button class="btn btn-secondary" data-close>취소</button>' +
+        '<button class="btn btn-primary" id="ai-consent-confirm-btn">동의하고 계속</button>' +
+        '</div>',
+        () => settle(false)
+      );
+      const input = modal.el.querySelector('#ai-consent-input');
+      const confirmBtn = modal.el.querySelector('#ai-consent-confirm-btn');
+      confirmBtn.addEventListener('click', () => {
+        const agreed = input.value.trim() === '동의합니다';
+        if (!agreed) {
+          toast('"동의합니다"를 정확히 입력해 주세요.', 'warning');
+          return;
+        }
+        settle(true);
+        modal.close();
+      });
+      input?.focus();
+    });
   };
   const refreshAiStatus = async () => {
     const box = document.getElementById('ai-model-status');
@@ -470,7 +542,7 @@ async function init() {
   document.querySelectorAll('input[name="ai-engine"]').forEach((input) => {
     input.addEventListener('change', async () => {
       const nextEngine = input.value;
-      if (isExternalAiEngine(nextEngine) && !confirmExternalAiConsent(nextEngine)) {
+      if (isExternalAiEngine(nextEngine) && !(await confirmExternalAiConsent(nextEngine))) {
         setAiEngineSelection(currentAiEngine);
         toast('외부 AI 사용 동의가 없어 이전 설정으로 되돌렸습니다.', 'warning', 4500);
         return;
@@ -486,6 +558,7 @@ async function init() {
         if (providerSelect) {
           providerSelect.value = nextEngine;
           renderModelSelect(nextEngine, MODEL_OPTIONS[nextEngine][0].value);
+          syncKeyGuide(nextEngine);
         }
       }
       await refreshAiStatus();
@@ -570,7 +643,7 @@ async function init() {
   await refreshAiStatus();
   document.getElementById('sp')?.addEventListener('change', async (event) => {
     const provider = event.target.value;
-    if (!confirmExternalAiConsent(provider)) {
+    if (!(await confirmExternalAiConsent(provider))) {
       event.target.value = isExternalAiEngine(currentAiEngine) ? currentAiEngine : 'claude';
       toast('외부 AI 사용 동의가 없어 제공업체 변경을 취소했습니다.', 'warning', 4500);
       return;
@@ -709,7 +782,7 @@ async function init() {
 
   document.getElementById('sv-ai').onclick = async () => {
     const selectedEngine = document.querySelector('input[name="ai-engine"]:checked')?.value || 'local_lite';
-    if (isExternalAiEngine(selectedEngine) && !confirmExternalAiConsent(selectedEngine)) {
+    if (isExternalAiEngine(selectedEngine) && !(await confirmExternalAiConsent(selectedEngine))) {
       toast('외부 AI 사용 동의가 없어 저장하지 않았습니다.', 'warning', 4500);
       return;
     }
@@ -730,12 +803,14 @@ async function init() {
   document.getElementById('ai-key-link-gemini')?.addEventListener('click', () => {
     api.openUrl?.('https://aistudio.google.com/apikey');
   });
+  document.getElementById('ai-key-link-groq')?.addEventListener('click', () => {
+    api.openUrl?.('https://console.groq.com/keys');
+  });
+  document.getElementById('ai-key-link-openrouter')?.addEventListener('click', () => {
+    api.openUrl?.('https://openrouter.ai/settings/keys');
+  });
   document.getElementById('sp')?.addEventListener('change', (event) => {
-    const isGemini = event.target.value === 'gemini';
-    const claudeGuide = document.getElementById('ai-key-guide-claude');
-    const geminiGuide = document.getElementById('ai-key-guide-gemini');
-    if (claudeGuide) claudeGuide.style.display = isGemini ? 'none' : '';
-    if (geminiGuide) geminiGuide.style.display = isGemini ? '' : 'none';
+    syncKeyGuide(event.target.value);
   });
 
   document.getElementById('shortcut-add-url').onclick = () => {

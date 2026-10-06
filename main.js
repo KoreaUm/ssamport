@@ -25,25 +25,25 @@ let activeDbUserId = '';
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 const AI_MODEL_DOWNLOADS = {
   local_lite: {
-    label: 'Local AI Lite',
+    label: 'Qwen3 4B Lite',
     settingKey: 'ai_local_lite_model_path',
-    recommendedFile: 'qwen2.5-3b-instruct-q4.gguf',
-    downloadUrl: '',
-    filesUrl: ''
+    recommendedFile: 'Qwen3-4B-Q4_K_M.gguf',
+    downloadUrl: 'https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf?download=true',
+    filesUrl: 'https://huggingface.co/unsloth/Qwen3-4B-GGUF/tree/main'
   },
   local_basic: {
-    label: 'Gemma 4 E2B Basic',
+    label: 'Qwen3 8B Basic',
     settingKey: 'ai_local_basic_model_path',
-    recommendedFile: 'gemma-4-E2B-it-Q4_K_M.gguf',
-    downloadUrl: 'https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf?download=true',
-    filesUrl: 'https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main'
+    recommendedFile: 'Qwen3-8B-Q4_K_M.gguf',
+    downloadUrl: 'https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf?download=true',
+    filesUrl: 'https://huggingface.co/unsloth/Qwen3-8B-GGUF/tree/main'
   },
   local_pro: {
-    label: 'Gemma 4 E4B Pro',
+    label: 'Qwen3 14B Pro',
     settingKey: 'ai_local_pro_model_path',
-    recommendedFile: 'gemma-4-E4B-it-Q4_K_M.gguf',
-    downloadUrl: 'https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q4_K_M.gguf?download=true',
-    filesUrl: 'https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF/tree/main'
+    recommendedFile: 'Qwen3-14B-Q4_K_M.gguf',
+    downloadUrl: 'https://huggingface.co/unsloth/Qwen3-14B-GGUF/resolve/main/Qwen3-14B-Q4_K_M.gguf?download=true',
+    filesUrl: 'https://huggingface.co/unsloth/Qwen3-14B-GGUF/tree/main'
   }
 };
 const AI_RUNTIME_DOWNLOAD_URL = 'https://github.com/ggml-org/llama.cpp/releases/latest';
@@ -54,9 +54,9 @@ const OLLAMA_DOWNLOAD_URL = process.platform === 'darwin'
     ? 'https://ollama.com/download/windows'
     : 'https://ollama.com/download';
 const OLLAMA_MODELS = {
-  local_lite: 'qwen2.5:3b',
-  local_basic: 'gemma4:e2b',
-  local_pro: 'gemma4:e4b'
+  local_lite: 'qwen3:4b',
+  local_basic: 'qwen3:8b',
+  local_pro: 'qwen3:14b'
 };
 // Desktop 앱 OAuth (PKCE + 루프백 리디렉트).
 // 이 앱의 Google OAuth 클라이언트는 토큰 교환 시 client_secret이 필요함.
@@ -499,9 +499,12 @@ async function getAiEngineStatus(engine) {
   const selectedEngine = engine || db.getSetting('ai_engine', 'local_lite');
   const modelDir = getAiModelDir();
   const runtimeDir = getAiRuntimeDir();
-  if (selectedEngine === 'cloud' || selectedEngine === 'claude' || selectedEngine === 'gemini') {
+  if (selectedEngine === 'cloud' || selectedEngine === 'claude' || selectedEngine === 'gemini' || selectedEngine === 'groq' || selectedEngine === 'openrouter') {
     const provider = selectedEngine === 'cloud' ? db.getSetting('ai_provider', 'claude') : selectedEngine;
-    const label = provider === 'gemini' ? 'Gemini 외부 AI' : 'Claude 외부 AI';
+    const label = provider === 'gemini' ? 'Gemini 외부 AI'
+      : provider === 'groq' ? 'Groq 외부 AI'
+      : provider === 'openrouter' ? 'OpenRouter 외부 AI'
+      : 'Claude 외부 AI';
     const hasKey = !!db.getSetting('ai_api_key', '');
     return {
       engine: selectedEngine,
@@ -1253,7 +1256,8 @@ ipcMain.handle('install-ollama-ai', async (e, engine = 'local_lite') => {
     const test = await requestOllamaJson('/api/generate', {
       model,
       prompt: '한국어로 짧게 "로컬 AI 준비 완료"라고 답하세요.',
-      stream: false
+      stream: false,
+      think: false
     }, 60000);
     if (!test.ok) {
       return {
@@ -1806,13 +1810,7 @@ ipcMain.handle('ai-extract-todos', async (e, apiKey, model, provider, text) => {
     // 할일 추출은 학생 단어가 포함돼도 허용 (단순 업무 텍스트 처리)
     const today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '-').replace('.', '');
     const system = `교사의 카카오톡, 문자, 공문에서 할일만 추출하세요. 한 줄에 하나씩 '- [ ] 할일내용 (기한: YYYY-MM-DD)' 형식으로 출력하세요. 기한이 없으면 날짜를 생략하고 설명은 쓰지 마세요. 오늘 날짜는 ${today}입니다. "이번 주", "다음 주", "내일" 등 상대적 표현은 오늘 날짜 기준으로 계산하세요.`;
-    if (provider === 'gemini') {
-      return await runGemini(apiKey, model, text, {
-        system,
-        userPrompt: `다음 텍스트에서 할일을 추출해 주세요:\n\n${text}`,
-      });
-    }
-    return await runClaude(apiKey, model, text, {
+    return await runAiProvider(provider, apiKey, model, text, {
       system,
       userPrompt: `다음 텍스트에서 할일을 추출해 주세요:\n\n${text}`,
     });
@@ -1849,6 +1847,7 @@ async function runLocalTodoExtraction(text) {
     model,
     stream: false,
     prompt,
+    think: false,
     options: {
       temperature: 0.1,
       num_predict: 520
@@ -1893,8 +1892,7 @@ ipcMain.handle('ai-extract-estimate-image', async (e, apiKey, model, provider, f
     const options = isPdf
       ? { system, userPrompt, document: { data: file.data } }
       : { system, userPrompt, image: file };
-    if (provider === 'gemini') return await runGemini(apiKey, model, '', options);
-    return await runClaude(apiKey, model, '', options);
+    return await runAiProvider(provider, apiKey, model, '', options);
   } catch (err) {
     return { error: err.message };
   }
@@ -1905,8 +1903,7 @@ ipcMain.handle('ai-extract-estimate-text', async (e, apiKey, model, provider, te
     if (!text || !String(text).trim()) return { error: '추출할 내용이 비어 있습니다.' };
     const system = '엑셀/CSV에서 뽑아낸 표 형태의 텍스트(탭으로 구분된 행)에서 견적 품목 정보를 찾아 JSON 배열만 출력하세요. 헤더 행, 합계 행, 빈 행은 무시하세요. 각 요소는 {"name":"품목명","spec":"규격","qty":수량,"price":단가} 형식이며 숫자는 쉼표 없이 순수 숫자입니다. 규격이나 수량 정보가 없으면 빈 문자열이나 1로 채우세요. 코드블록이나 설명 없이 JSON 배열만 출력하세요.';
     const userPrompt = `다음 표에서 품목 목록을 추출해서 JSON 배열로 출력하세요:\n\n${text}`;
-    if (provider === 'gemini') return await runGemini(apiKey, model, text, { system, userPrompt });
-    return await runClaude(apiKey, model, text, { system, userPrompt });
+    return await runAiProvider(provider, apiKey, model, text, { system, userPrompt });
   } catch (err) {
     return { error: err.message };
   }
@@ -1991,8 +1988,7 @@ ipcMain.handle('ai-generate-official-doc', async (e, apiKey, model, provider, in
 
     const userPrompt = `다음 정보를 바탕으로 학교 공문 본문(제목~끝.)을 작성해 주세요:\n\n${inputJson}`;
     const options = { system, userPrompt, maxTokens: 2048 };
-    if (provider === 'gemini') return await runGemini(apiKey, model, '', options);
-    return await runClaude(apiKey, model, '', options);
+    return await runAiProvider(provider, apiKey, model, '', options);
   } catch (err) {
     return { error: err.message };
   }
@@ -2029,9 +2025,11 @@ ipcMain.handle('ai-assistant-chat', async (e, payload = {}) => {
       userPrompt: `현재 페이지: ${page}\n\n${context ? `앱에 저장된 관련 맥락:\n${context}\n\n` : ''}사용자 질문:\n${question}`,
       maxTokens: 1200
     };
-    const result = provider === 'gemini'
-      ? await runGemini(apiKey, model || 'gemini-2.5-flash', '', options)
-      : await runClaude(apiKey, model || 'claude-haiku-4-5-20251001', '', options);
+    const defaultModel = provider === 'gemini' ? 'gemini-2.5-flash'
+      : provider === 'groq' ? 'llama-3.3-70b-versatile'
+      : provider === 'openrouter' ? 'meta-llama/llama-3.3-70b-instruct:free'
+      : 'claude-haiku-4-5-20251001';
+    const result = await runAiProvider(provider, apiKey, model || defaultModel, '', options);
     if (result?.result) {
       result.result = normalizeAssistantAddressing(result.result);
       // 클라우드 응답의 가명을 로컬에서 실제 이름으로 복원해 사용자에게 표시
@@ -2077,6 +2075,7 @@ ipcMain.handle('ai-local-chat', async (e, payload = {}) => {
       model,
       stream: false,
       prompt,
+      think: false,
       options: {
         temperature: 0.35,
         num_predict: context ? 900 : 620
@@ -2245,6 +2244,85 @@ async function runGemini(apiKey, model, text, options = {}) {
     req.write(body);
     req.end();
   });
+}
+
+// Groq, OpenRouter는 OpenAI 호환 /chat/completions 포맷을 사용
+async function runOpenAiCompatible(hostname, path, extraHeaders, apiKey, model, text, options = {}) {
+  const content = [];
+  if (options.userPrompt || text) {
+    content.push({ type: 'text', text: options.userPrompt || text });
+  }
+  if (options.image?.data && options.image?.mimeType) {
+    content.push({
+      type: 'image_url',
+      image_url: { url: `data:${options.image.mimeType};base64,${options.image.data}` },
+    });
+  }
+  const messages = [];
+  if (options.system) messages.push({ role: 'system', content: options.system });
+  messages.push({ role: 'user', content: content.length ? content : (options.userPrompt || text || '') });
+
+  const body = JSON.stringify({
+    model,
+    max_tokens: options.maxTokens || 1024,
+    messages,
+  });
+
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname,
+      path,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Length': Buffer.byteLength(body),
+        ...extraHeaders,
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.error) {
+            return resolve({ error: `${hostname} 오류: ${json.error.message || JSON.stringify(json.error)}` });
+          }
+          resolve({ result: json.choices?.[0]?.message?.content || '' });
+        } catch (err) {
+          resolve({ error: `응답 파싱 오류: ${err.message}` });
+        }
+      });
+    });
+    req.setTimeout(20000, () => req.destroy(new Error(`${hostname} 요청 시간 초과`)));
+    req.on('error', (err) => resolve({ error: `네트워크 오류: ${err.message}` }));
+    req.write(body);
+    req.end();
+  });
+}
+
+async function runGroq(apiKey, model, text, options = {}) {
+  return runOpenAiCompatible('api.groq.com', '/openai/v1/chat/completions', {}, apiKey, model || 'llama-3.3-70b-versatile', text, options);
+}
+
+async function runOpenRouter(apiKey, model, text, options = {}) {
+  return runOpenAiCompatible(
+    'openrouter.ai',
+    '/api/v1/chat/completions',
+    { 'HTTP-Referer': 'https://saemport.app', 'X-Title': '쌤포트' },
+    apiKey,
+    model || 'meta-llama/llama-3.3-70b-instruct:free',
+    text,
+    options
+  );
+}
+
+// provider 문자열에 맞는 외부 AI 호출로 분기
+async function runAiProvider(provider, apiKey, model, text, options = {}) {
+  if (provider === 'gemini') return runGemini(apiKey, model, text, options);
+  if (provider === 'groq') return runGroq(apiKey, model, text, options);
+  if (provider === 'openrouter') return runOpenRouter(apiKey, model, text, options);
+  return runClaude(apiKey, model, text, options);
 }
 
 async function parseClassTimetableExcel(buffer) {
@@ -2496,10 +2574,7 @@ ipcMain.handle('ai-extract-timetable', async (e, apiKey, model, provider, text) 
       system: 'Read a teacher timetable memo and return only a JSON array. Each item must be {"day_of_week":0-4,"period":1-7,"subject":"exact cell text","is_my_class":true|false}. Preserve the visible cell text exactly as written. Do not split room numbers or remove leading numbers such as "107음악". IMPORTANT: cells that start with symbols such as "*202기업" or "*201기업" are real classes, not notes or empty cells. Keep the leading "*" in subject exactly. Do not guess missing cells. Do not output markdown or explanations.',
       userPrompt: `Convert the following timetable note into JSON. If a class text begins with *, keep it exactly, for example "*202기업".\n\n${text}`,
     };
-    if (provider === 'gemini') {
-      return await runGemini(apiKey, model, text, options);
-    }
-    return await runClaude(apiKey, model, text, options);
+    return await runAiProvider(provider, apiKey, model, text, options);
   } catch (err) {
     return { error: err.message };
   }
@@ -2515,10 +2590,7 @@ ipcMain.handle('ai-extract-timetable-image', async (e, apiKey, model, provider, 
       userPrompt: 'Extract the visible weekly timetable from this image into JSON. Pay special attention to small leading symbols: keep subjects that begin with * exactly, such as "*202기업".',
       image,
     };
-    if (provider === 'gemini') {
-      return await runGemini(apiKey, model, '', options);
-    }
-    return await runClaude(apiKey, model, '', options);
+    return await runAiProvider(provider, apiKey, model, '', options);
   } catch (err) {
     return { error: err.message };
   }
@@ -3008,6 +3080,7 @@ ipcMain.handle('hwp-generate-markdown', async (_evt, { topic, docType }) => {
     model,
     stream: false,
     prompt,
+    think: false,
     options: { temperature: 0.3, num_predict: 2000 }
   }, 120000);
 
