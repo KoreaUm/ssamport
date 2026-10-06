@@ -90,5 +90,14 @@ service cloud.firestore {
     match /appSecrets/{docId} {
       allow read, write: if false;
     }
+
+    match /feedback/{docId} {
+      allow create: if signedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'open';
+      allow read, list: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
   }
 }

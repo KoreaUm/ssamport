@@ -128,6 +128,9 @@ async function syncTodoDelete(gcalId, gtaskId) {
 }
 
 contextBridge.exposeInMainWorld('nativeApi', {
+  // Platform
+  platform: process.platform,
+
   // Window
   minimize: () => ipcRenderer.send('window-minimize'),
   restore: () => ipcRenderer.send('window-restore'),

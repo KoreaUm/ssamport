@@ -753,6 +753,13 @@
         text: "공지 공지사항 배포 안내 업데이트 내용 관리자",
         run: function () { navigateTo("user_management"); }
       });
+      actions.push({
+        key: "feedback_admin",
+        title: "피드백 관리",
+        desc: "사용자 오류 제보 / 의견 보기",
+        text: "피드백 관리 오류 제보 의견 버그 신고 관리자",
+        run: function () { navigateTo("feedback_admin"); }
+      });
     }
 
     if (window.appGradesCanUse && window.appGradesCanUse()) {
@@ -1701,6 +1708,65 @@
       updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).then(function () {
       return noticeId;
+    });
+  };
+
+  window.appFeedbackSubmit = function (payload) {
+    ensureFirebase();
+    if (!authUser) return Promise.reject(new Error("로그인 후 이용할 수 있습니다."));
+    var message = String((payload && payload.message) || "").trim();
+    if (!message) return Promise.reject(new Error("내용을 입력해 주세요."));
+    var type = String((payload && payload.type) || "bug");
+    if (type !== "bug" && type !== "suggestion") type = "bug";
+    return api.getAppMeta().catch(function () { return {}; }).then(function (meta) {
+      return firebaseDb.collection("feedback").add({
+        userId: authUser.uid,
+        email: normalizeEmail(authUser.email),
+        displayName: authProfile ? String(authProfile.displayName || "") : "",
+        type: type,
+        message: message,
+        appVersion: String((meta && meta.version) || ""),
+        platform: String((window.nativeApi && window.nativeApi.platform) || ""),
+        status: "open",
+        createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }).then(function (docRef) {
+      return docRef.id;
+    });
+  };
+
+  window.appFeedbackList = function () {
+    ensureFirebase();
+    if (!isAdminProfile(authProfile)) return Promise.reject(new Error("관리자만 사용할 수 있습니다."));
+    return firebaseDb.collection("feedback").orderBy("createdAt", "desc").limit(300).get().then(function (snap) {
+      var items = [];
+      snap.forEach(function (doc) {
+        var data = doc.data() || {};
+        items.push({
+          id: doc.id,
+          email: String(data.email || ""),
+          displayName: String(data.displayName || ""),
+          type: String(data.type || "bug"),
+          message: String(data.message || ""),
+          appVersion: String(data.appVersion || ""),
+          platform: String(data.platform || ""),
+          status: String(data.status || "open"),
+          createdAt: data.createdAt || null
+        });
+      });
+      return items;
+    });
+  };
+
+  window.appFeedbackSetStatus = function (feedbackId, status) {
+    ensureFirebase();
+    if (!isAdminProfile(authProfile)) return Promise.reject(new Error("관리자만 사용할 수 있습니다."));
+    var nextStatus = status === "resolved" ? "resolved" : "open";
+    if (!feedbackId) return Promise.reject(new Error("대상을 찾을 수 없습니다."));
+    return firebaseDb.collection("feedback").doc(feedbackId).update({
+      status: nextStatus,
+      resolvedBy: nextStatus === "resolved" ? normalizeEmail(authUser && authUser.email) : window.firebase.firestore.FieldValue.delete(),
+      resolvedAt: nextStatus === "resolved" ? window.firebase.firestore.FieldValue.serverTimestamp() : window.firebase.firestore.FieldValue.delete()
     });
   };
 
@@ -2976,6 +3042,61 @@
     });
     return { close: close, el: overlay };
   };
+
+  (function setupFeedbackFab() {
+    var fab = document.createElement("button");
+    fab.id = "feedback-fab";
+    fab.className = "feedback-fab";
+    fab.type = "button";
+    fab.title = "오류 제보 / 의견 보내기";
+    fab.textContent = "💬";
+    fab.addEventListener("click", openFeedbackModal);
+    document.body.appendChild(fab);
+  })();
+
+  function openFeedbackModal() {
+    var authState = getAuthState();
+    if (!authState.loggedIn) {
+      toast("로그인 후 이용할 수 있습니다.", "error");
+      return;
+    }
+    var modal = window.showModal(
+      '<div class="modal-header">' +
+      '<span class="modal-title">오류 제보 / 의견 보내기</span>' +
+      '<button class="modal-close" data-close>×</button>' +
+      '</div>' +
+      '<div class="modal-body" style="display:grid;gap:12px">' +
+      '<div class="form-row">' +
+      '<label>유형</label>' +
+      '<select class="input" id="feedback-type-input">' +
+      '<option value="bug">오류 제보</option>' +
+      '<option value="suggestion">의견/제안</option>' +
+      '</select>' +
+      '</div>' +
+      '<div class="form-row">' +
+      '<label>내용</label>' +
+      '<textarea class="input" id="feedback-message-input" style="min-height:140px;resize:vertical" placeholder="어떤 문제가 있었는지, 또는 어떤 점이 불편했는지 적어 주세요."></textarea>' +
+      '</div>' +
+      '</div>' +
+      '<div class="modal-footer">' +
+      '<button class="btn btn-secondary" data-close>취소</button>' +
+      '<button class="btn btn-primary" id="feedback-submit-btn">보내기</button>' +
+      '</div>'
+    );
+    var submitBtn = modal.el.querySelector("#feedback-submit-btn");
+    submitBtn.addEventListener("click", function () {
+      var type = modal.el.querySelector("#feedback-type-input").value;
+      var message = modal.el.querySelector("#feedback-message-input").value;
+      submitBtn.disabled = true;
+      window.appFeedbackSubmit({ type: type, message: message }).then(function () {
+        toast("보내 주셔서 감사합니다. 확인 후 조치할게요.", "success");
+        modal.close();
+      }).catch(function (error) {
+        submitBtn.disabled = false;
+        toast((error && error.message) || "제보를 보내지 못했습니다.", "error");
+      });
+    });
+  }
 
   window.closeModal = function () {
     if (window.__closeModal) window.__closeModal();
