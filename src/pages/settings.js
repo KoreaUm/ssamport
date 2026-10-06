@@ -122,7 +122,7 @@ async function render(container) {
           </div>
           <div class="settings-actions">
             ${authState?.guest ? '' : '<button class="btn btn-secondary btn-sm" id="cloud-pull-btn">설정/시간표 불러오기</button><button class="btn btn-secondary btn-sm" id="cloud-push-btn">설정/시간표 동기화</button>'}
-            ${authState?.isAdmin ? '<button class="btn btn-secondary btn-sm" id="open-user-management-btn">회원 관리</button>' : ''}
+            ${authState?.isAdmin ? '<button class="btn btn-secondary btn-sm" id="open-user-management-btn">회원 관리</button><button class="btn btn-secondary btn-sm" id="open-feedback-admin-btn">피드백 관리</button>' : ''}
             <button class="btn btn-primary btn-sm" id="auth-logout-btn">${authState?.guest ? '로그인하기' : '로그아웃'}</button>
           </div>
         </section>
@@ -608,6 +608,10 @@ async function init() {
 
   document.getElementById('open-user-management-btn')?.addEventListener('click', () => {
     if (window.navigateTo) window.navigateTo('user_management');
+  });
+
+  document.getElementById('open-feedback-admin-btn')?.addEventListener('click', () => {
+    if (window.navigateTo) window.navigateTo('feedback_admin');
   });
 
   document.getElementById('sv-cl').onclick = async () => {

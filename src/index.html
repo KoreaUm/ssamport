@@ -2589,7 +2589,7 @@
       openGroupKey = parentGroup ? parentGroup.key : "";
       syncActiveTabs();
       var item = findMenuPage(key);
-      text("page-title", key === "dashboard" ? "대시보드" : (key === "user_management" ? "회원 관리" : (key === "grades" ? "성적관리" : (item ? item.label : ""))));
+      text("page-title", key === "dashboard" ? "대시보드" : (key === "user_management" ? "회원 관리" : (key === "feedback_admin" ? "피드백 관리" : (key === "grades" ? "성적관리" : (item ? item.label : "")))));
       setDashboardControls(key === "dashboard");
       var content = document.getElementById("page-content");
       content.oninput = null;
