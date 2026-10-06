@@ -11,6 +11,7 @@
     "build:patch": "powershell -ExecutionPolicy Bypass -File ./패키지만들기.ps1",
     "release:win": "electron-builder --win nsis --publish always",
     "release:mac": "./release_auto_mac.sh",
+    "notice:publish": "node scripts/publish-release-notice.js",
     "test": "node tests/run.cjs",
     "test:smoke": "electron tests/electron-smoke.cjs"
   },
@@ -25,7 +26,8 @@
   },
   "devDependencies": {
     "electron": "^29.4.6",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "firebase-admin": "^12.7.0"
   },
   "build": {
     "appId": "com.teacher.app",

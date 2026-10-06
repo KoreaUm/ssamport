@@ -55,3 +55,10 @@ jobs:
           gh release edit $tag --draft=false --repo $env:GITHUB_REPOSITORY
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish in-app update notice
+        shell: bash
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: npm run notice:publish
