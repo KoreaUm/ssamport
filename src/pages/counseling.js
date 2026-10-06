@@ -402,11 +402,11 @@
           <div><label>위험도</label><select class="input" id="co-risk">${selectOptions(RISKS, r.risk_level || "낮음")}</select></div>
         </div>
         <div class="form-row"><label>상담 주제</label><input class="input" id="co-topic" value="${esc(r.topic || "")}" placeholder="예: 교우관계 갈등, 학습 습관, 진로 고민"></div>
-        <div class="form-row"><label>상담 요약</label><textarea class="input" id="co-summary" style="height:70px" placeholder="핵심 상황을 한두 문장으로 정리">${esc(r.summary || "")}</textarea></div>
-        <div class="form-row"><label>상담 내용</label><textarea class="input" id="co-c" style="height:120px" placeholder="학생 발화, 관찰 사실, 상담 과정 중심으로 기록">${esc(r.content || "")}</textarea></div>
+        <div class="form-row"><label>상담 요약</label><textarea class="input textarea-sm" id="co-summary" placeholder="핵심 상황을 한두 문장으로 정리">${esc(r.summary || "")}</textarea></div>
+        <div class="form-row"><label>상담 내용</label><textarea class="input textarea-lg" id="co-c" placeholder="학생 발화, 관찰 사실, 상담 과정 중심으로 기록">${esc(r.content || "")}</textarea></div>
         <div class="form-row row-2">
-          <div><label>결과</label><textarea class="input" id="co-r" style="height:80px">${esc(r.result || "")}</textarea></div>
-          <div><label>후속 조치</label><textarea class="input" id="co-f" style="height:80px">${esc(r.follow_up || "")}</textarea></div>
+          <div><label>결과</label><textarea class="input textarea-md" id="co-r">${esc(r.result || "")}</textarea></div>
+          <div><label>후속 조치</label><textarea class="input textarea-md" id="co-f">${esc(r.follow_up || "")}</textarea></div>
         </div>
         <div class="form-row row-2">
           <div><label>다음 조치</label><input class="input" id="co-next-action" value="${esc(r.next_action || "")}" placeholder="예: 5월 8일 생활 변화 확인"></div>
@@ -468,7 +468,7 @@
           <div><label>상담 분야</label><select class="input" id="co-domain">${renderDomainOptions(r.teacher_role || "담임교사", r.domain || "")}</select></div>
         </div>
         <div class="form-row"><label>상담 주제</label><input class="input" id="co-topic" value="${esc(r.topic || "")}" placeholder="예: 교우관계 갈등, 학습 습관, 진로 고민"></div>
-        <div class="form-row"><label>핵심 내용</label><textarea class="input" id="co-summary" style="height:96px" placeholder="학생 발화, 관찰 사실, 핵심 상황을 짧게 기록">${esc(r.summary || r.content || "")}</textarea></div>
+        <div class="form-row"><label>핵심 내용</label><textarea class="input textarea-md" id="co-summary" placeholder="학생 발화, 관찰 사실, 핵심 상황을 짧게 기록">${esc(r.summary || r.content || "")}</textarea></div>
         <div class="form-row row-2">
           <div><label>다음 조치</label><input class="input" id="co-next-action" value="${esc(r.next_action || "")}" placeholder="예: 관련 학생 개별 상담 후 재확인"></div>
           <div><label>후속 예정일</label><input class="input" type="date" id="co-next-date" value="${esc(r.next_date || "")}"></div>
@@ -484,10 +484,10 @@
             <div><label>위험도</label><select class="input" id="co-risk">${selectOptions(RISKS, r.risk_level || "낮음")}</select></div>
             <div><label>민감 메모</label><input class="input" id="co-private" value="${esc(r.confidential_note || "")}" placeholder="공유 전 확인할 민감 사항"></div>
           </div>
-          <div class="form-row"><label>상담 내용 상세</label><textarea class="input" id="co-c" style="height:110px" placeholder="학생 발화, 관찰 사실, 상담 과정 중심으로 기록">${esc(r.content || "")}</textarea></div>
+          <div class="form-row"><label>상담 내용 상세</label><textarea class="input textarea-lg" id="co-c" placeholder="학생 발화, 관찰 사실, 상담 과정 중심으로 기록">${esc(r.content || "")}</textarea></div>
           <div class="form-row row-2">
-            <div><label>결과</label><textarea class="input" id="co-r" style="height:80px">${esc(r.result || "")}</textarea></div>
-            <div><label>후속 조치 메모</label><textarea class="input" id="co-f" style="height:80px">${esc(r.follow_up || "")}</textarea></div>
+            <div><label>결과</label><textarea class="input textarea-md" id="co-r">${esc(r.result || "")}</textarea></div>
+            <div><label>후속 조치 메모</label><textarea class="input textarea-md" id="co-f">${esc(r.follow_up || "")}</textarea></div>
           </div>
           <div class="form-row">
             <label>위험 신호 체크</label>

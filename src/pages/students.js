@@ -20,7 +20,7 @@ async function render(c){
       <button class="btn btn-primary" id="st-add-btn">+ 학생 추가</button>
     </div>
   </div>
-  <div id="st-class-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+  <div id="st-class-tabs" class="flex flex-wrap mb-3" style="gap:6px"></div>
   <div id="student-grid" class="student-grid"></div>
   </div>`;
 }

@@ -5,16 +5,16 @@ async function render(c){
   selDate=today();
   c.innerHTML=`<div class="page-wrap">
   <div class="page-header"><h1 class="page-header-title">🗒️ 학급 메모</h1></div>
-  <div style="display:grid;grid-template-columns:260px 1fr;gap:16px;height:calc(100vh - 180px)">
-    <div class="card" style="overflow:hidden;display:flex;flex-direction:column">
-      <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border)">
+  <div class="grid gap-4" style="grid-template-columns:260px 1fr;height:calc(100vh - 180px)">
+    <div class="card flex flex-col" style="overflow:hidden">
+      <div class="flex items-center gap-2" style="padding:12px 14px;border-bottom:1px solid var(--border)">
         <button class="cal-nav-btn" id="mp">◀</button>
         <span id="ml" style="flex:1;text-align:center;font-weight:700;font-size:13px"></span>
         <button class="cal-nav-btn" id="mn">▶</button>
       </div>
       <div id="mc" class="scroll-area" style="padding:8px"></div>
     </div>
-    <div class="card" style="overflow:hidden;display:flex;flex-direction:column">
+    <div class="card flex flex-col" style="overflow:hidden">
       <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px" id="md"></div>
       <textarea id="mt" class="input" style="flex:1;border:none;border-radius:0;resize:none;font-size:14px;line-height:1.7;padding:16px" placeholder="이 날의 메모를 작성하세요..."></textarea>
       <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">

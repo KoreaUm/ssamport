@@ -26,118 +26,120 @@ async function render(container) {
         <p class="page-header-desc">마크다운으로 작성 → 한글 공문서 표준 서식으로 자동 변환</p>
       </div>
 
-      <!-- 워크플로우 -->
-      <div style="background:linear-gradient(135deg,#e0e7ff,#f3e8ff);border-radius:12px;padding:16px;margin-bottom:18px;font-size:12px;color:#4338ca">
-        <b>📋 3가지 방법:</b>
-        ① 주제만 입력 → <b>로컬 AI</b>로 자동 생성  ·
-        ② 주제 입력 → <b>프롬프트 복사</b> → ChatGPT/Claude 활용  ·
-        ③ 마크다운을 <b>직접 작성/편집</b>
-      </div>
+      <div class="hwp-stack">
+        <!-- 워크플로우 -->
+        <div class="hwp-tip">
+          <b>📋 3가지 방법:</b>
+          ① 주제만 입력 → <b>로컬 AI</b>로 자동 생성  ·
+          ② 주제 입력 → <b>프롬프트 복사</b> → ChatGPT/Claude 활용  ·
+          ③ 마크다운을 <b>직접 작성/편집</b>
+        </div>
 
-      <!-- Step 1: 주제 + 양식 -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px">
-        <div style="font-weight:600;font-size:14px;margin-bottom:10px">1️⃣ 주제 입력 + 양식 선택</div>
-        <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
-          <input id="hwpf-school" class="input" type="text" placeholder="부서/기관명 — 표지·본문 헤더에 자동 삽입 (예: 충청북도교육청 중등교육과)" value="${escapeHtml(savedSchool)}" style="flex:1;font-size:13px;padding:6px 8px;box-sizing:border-box">
-        </div>
-        <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
-          <button class="btn btn-secondary btn-sm" id="hwpf-logo-pick" style="white-space:nowrap;flex-shrink:0">🖼 학교 로고 선택</button>
-          <span id="hwpf-logo-name" style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${savedLogo ? savedLogo.split(/[\\/]/).pop() : '선택된 로고 없음 (없으면 기관명만 표시)'}</span>
-          <button class="btn btn-secondary btn-sm" id="hwpf-logo-clear" style="display:${savedLogo ? 'inline-block' : 'none'}">✕</button>
-        </div>
-        <div style="display:grid;grid-template-columns:160px 1fr;gap:8px;margin-bottom:10px">
-          <select id="hwpf-doctype" class="input" style="font-size:13px;padding:6px 8px">
-            ${DOC_TYPES.map(t => `<option ${t === savedType ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}
-          </select>
-          <input id="hwpf-topic" class="input" type="text" placeholder="예: 2026 학생 봉사활동 운영" value="${escapeHtml(savedTopic)}" style="font-size:13px;padding:6px 8px">
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <button class="btn btn-secondary btn-sm" id="hwpf-sections-edit">⚙️ 섹션 구성</button>
-          <span id="hwpf-sections-summary" style="font-size:11px;color:var(--text2)"></span>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">
-          <button class="btn btn-primary btn-sm" id="hwpf-ai-gen">🤖 로컬 AI로 자동 생성</button>
-          <button class="btn btn-secondary btn-sm" id="hwpf-copy-prompt">📋 프롬프트 복사</button>
-          <div style="display:flex;gap:4px;padding-left:4px;border-left:1px solid var(--border);margin-left:4px">
-            <button class="btn btn-secondary btn-sm hwpf-open-ai" data-url="https://chatgpt.com" title="ChatGPT 열기" style="padding:4px 10px">💬 ChatGPT</button>
-            <button class="btn btn-secondary btn-sm hwpf-open-ai" data-url="https://claude.ai/new" title="Claude 열기" style="padding:4px 10px">🤖 Claude</button>
-            <button class="btn btn-secondary btn-sm hwpf-open-ai" data-url="https://gemini.google.com/app" title="Gemini 열기" style="padding:4px 10px">✨ Gemini</button>
+        <!-- Step 1: 주제 + 양식 -->
+        <div class="card hwp-step">
+          <div class="hwp-step-title">1️⃣ 주제 입력 + 양식 선택</div>
+          <div class="hwp-row">
+            <input id="hwpf-school" class="input hwp-field-grow" type="text" placeholder="부서/기관명 — 표지·본문 헤더에 자동 삽입 (예: 충청북도교육청 중등교육과)" value="${escapeHtml(savedSchool)}">
           </div>
-          <span id="hwpf-ai-status" style="font-size:12px;color:var(--text2);align-self:center"></span>
+          <div class="hwp-row">
+            <button class="btn btn-secondary btn-sm hwp-no-shrink" id="hwpf-logo-pick">🖼 학교 로고 선택</button>
+            <span id="hwpf-logo-name" class="hwp-logo-name">${savedLogo ? savedLogo.split(/[\\/]/).pop() : '선택된 로고 없음 (없으면 기관명만 표시)'}</span>
+            <button class="btn btn-secondary btn-sm" id="hwpf-logo-clear" style="display:${savedLogo ? 'inline-block' : 'none'}">✕</button>
+          </div>
+          <div class="hwp-doctype-row">
+            <select id="hwpf-doctype" class="input">
+              ${DOC_TYPES.map(t => `<option ${t === savedType ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}
+            </select>
+            <input id="hwpf-topic" class="input" type="text" placeholder="예: 2026 학생 봉사활동 운영" value="${escapeHtml(savedTopic)}">
+          </div>
+          <div class="hwp-row">
+            <button class="btn btn-secondary btn-sm" id="hwpf-sections-edit">⚙️ 섹션 구성</button>
+            <span id="hwpf-sections-summary" class="hwp-section-summary"></span>
+          </div>
+          <div class="hwp-row">
+            <button class="btn btn-primary btn-sm" id="hwpf-ai-gen">🤖 로컬 AI로 자동 생성</button>
+            <button class="btn btn-secondary btn-sm" id="hwpf-copy-prompt">📋 프롬프트 복사</button>
+            <div class="hwp-ai-divider">
+              <button class="btn btn-secondary btn-sm hwpf-open-ai" data-url="https://chatgpt.com" title="ChatGPT 열기">💬 ChatGPT</button>
+              <button class="btn btn-secondary btn-sm hwpf-open-ai" data-url="https://claude.ai/new" title="Claude 열기">🤖 Claude</button>
+              <button class="btn btn-secondary btn-sm hwpf-open-ai" data-url="https://gemini.google.com/app" title="Gemini 열기">✨ Gemini</button>
+            </div>
+            <span id="hwpf-ai-status" class="hwp-status-text"></span>
+          </div>
+        </div>
+
+        <!-- Step 2: 마크다운 편집 -->
+        <div class="card hwp-step">
+          <div class="hwp-md-head">
+            <div class="hwp-step-title">2️⃣ 마크다운 작성/편집</div>
+            <div class="hwp-md-hint">
+              <code>제목:</code> · <code>부제목:</code> · <code>부서:</code> · <code>대제목:</code> · <code>소제목:</code> · <code>◦ 항목</code> · <code>  - 세부항목</code> · <code>※ 주석</code> · <code>표:</code> · <code>붙임:</code>
+            </div>
+          </div>
+          <textarea id="hwpf-md" class="input hwp-md-textarea">${escapeHtml(savedMd)}</textarea>
+          <div class="hwp-md-meta">
+            <span>위계: 제목→부제목→부서→대제목(로마자 박스)→소제목(□)→◦항목→  -세부항목→※주석→표: · 붙임(전폭 박스, 자동 번호)</span>
+            <span><span id="hwpf-md-count">0</span>자</span>
+          </div>
+        </div>
+
+        <!-- Step 3: 한글 변환 -->
+        <div class="card hwp-step hwp-step-main">
+          <div class="hwp-step-title">3️⃣ 한글 파일로 저장 + 서식 적용</div>
+          <div id="hwpf-status-text" class="hwp-status-block">
+            위 마크다운을 한글 공문서 표준 서식으로 변환합니다.
+          </div>
+          <div class="hwp-build-row">
+            <button class="btn btn-primary hwp-build-btn" id="hwpf-build-hwpx">
+              🎨 hwpx 파일 만들기
+            </button>
+          </div>
+          <div id="hwpf-spinner" class="hwp-spinner" style="display:none">⏳ 처리 중...</div>
+        </div>
+
+        <!-- 결과 -->
+        <div id="hwpf-result" style="display:none"></div>
+
+        <!-- 표준 안내 -->
+        <details class="card hwp-details">
+          <summary>📐 적용되는 서식 (충청북도교육청 현장지원단 운영 계획 스타일)</summary>
+          <div class="hwp-details-body">
+            • <b>대제목</b>: 남색(#18304B) 박스 + 흰색 로마자(Ⅰ,Ⅱ,Ⅲ…) + 파란 구분선 + 제목 텍스트<br>
+            • <b>소제목</b>: □ 스타일, 굵은 본문<br>
+            • <b>◦ 항목</b>: 수준1 불릿 (들여쓰기 적용)<br>
+            • <b>  - 세부항목</b>: 수준2 대시 불릿<br>
+            • <b>표</b>: 검정 테두리 + 첫 행 헤더 스타일<br>
+            • <b>페이지</b>: A4 세로, 표준 여백
+          </div>
+        </details>
+
+        <div class="hwp-note">
+          🎨 한글(HWP) 프로그램 없이도 동작합니다. Python은 앱에 내장되어 있어 별도 설치가 필요 없습니다.
         </div>
       </div>
 
       <!-- 섹션 구성 모달 -->
-      <div id="hwpf-sections-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center">
-        <div style="background:#fff;border-radius:12px;padding:20px;width:min(640px,92vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <div style="font-weight:700;font-size:16px">⚙️ 섹션 구성</div>
-            <button class="btn btn-secondary btn-sm" id="hwpf-sections-close" style="padding:4px 10px">✕</button>
+      <div id="hwpf-sections-modal" class="hwp-modal-overlay" style="display:none">
+        <div class="hwp-modal-box">
+          <div class="hwp-modal-head">
+            <div class="hwp-modal-title">⚙️ 섹션 구성</div>
+            <button class="btn btn-secondary btn-sm" id="hwpf-sections-close">✕</button>
           </div>
-          <div style="font-size:12px;color:#666;margin-bottom:14px;line-height:1.5">
+          <div class="hwp-modal-desc">
             대제목 섹션의 <b>포함 여부</b>, <b>순서</b>(드래그), <b>이름</b>, <b>작성 주체</b>(🤖 AI 생성 / ✍️ 직접 작성)를 정할 수 있습니다.
           </div>
-          <div id="hwpf-sections-list" style="overflow-y:auto;flex:1;padding-right:4px"></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-            <div style="display:flex;gap:6px">
+          <div id="hwpf-sections-list" class="hwp-modal-list"></div>
+          <div class="hwp-modal-footer">
+            <div class="hwp-modal-actions">
               <button class="btn btn-secondary btn-sm" id="hwpf-sections-add">➕ 섹션 추가</button>
               <button class="btn btn-secondary btn-sm" id="hwpf-sections-add-attach" style="border-color:#18304b55;color:#18304b">📎 붙임 추가</button>
             </div>
-            <div style="display:flex;gap:8px">
+            <div class="hwp-modal-actions-right">
               <button class="btn btn-secondary btn-sm" id="hwpf-sections-reset">↺ 기본값</button>
               <button class="btn btn-primary btn-sm" id="hwpf-sections-apply">적용</button>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Step 2: 마크다운 편집 -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="font-weight:600;font-size:14px">2️⃣ 마크다운 작성/편집</div>
-          <div style="font-size:11px;color:var(--text2)">
-            <code>제목:</code> · <code>부제목:</code> · <code>부서:</code> · <code>대제목:</code> · <code>소제목:</code> · <code>◦ 항목</code> · <code>  - 세부항목</code> · <code>※ 주석</code> · <code>표:</code> · <code>붙임:</code>
-          </div>
-        </div>
-        <textarea id="hwpf-md" style="width:100%;min-height:320px;padding:12px;font-family:'D2Coding',Consolas,monospace;font-size:13px;line-height:1.6;border:1px solid var(--border);border-radius:8px;resize:vertical;background:#fafafa">${escapeHtml(savedMd)}</textarea>
-        <div style="margin-top:6px;display:flex;justify-content:space-between;font-size:11px;color:var(--text2)">
-          <span>위계: 제목→부제목→부서→대제목(로마자 박스)→소제목(□)→◦항목→  -세부항목→※주석→표: · 붙임(전폭 박스, 자동 번호)</span>
-          <span><span id="hwpf-md-count">0</span>자</span>
-        </div>
-      </div>
-
-      <!-- Step 3: 한글 변환 -->
-      <div style="background:var(--card);border:2px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;display:flex;flex-direction:column;align-items:center;gap:12px">
-        <div style="font-weight:600;font-size:14px">3️⃣ 한글 파일로 저장 + 서식 적용</div>
-        <div id="hwpf-status-text" style="font-size:12px;color:var(--text2);text-align:center">
-          위 마크다운을 한글 공문서 표준 서식으로 변환합니다.
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-          <button class="btn btn-primary" id="hwpf-build-hwpx" style="font-size:14px;padding:10px 28px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#4f46e5);border:0;color:#fff">
-            🎨 hwpx 파일 만들기
-          </button>
-        </div>
-        <div id="hwpf-spinner" style="display:none;font-size:13px;color:var(--accent)">⏳ 처리 중...</div>
-      </div>
-
-      <!-- 결과 -->
-      <div id="hwpf-result" style="display:none;margin-bottom:14px"></div>
-
-      <!-- 표준 안내 -->
-      <details style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12px;color:var(--text2);margin-bottom:10px">
-        <summary style="cursor:pointer;font-weight:600;color:var(--text1)">📐 적용되는 서식 (충청북도교육청 현장지원단 운영 계획 스타일)</summary>
-        <div style="margin-top:10px;line-height:1.9">
-          • <b>대제목</b>: 남색(#18304B) 박스 + 흰색 로마자(Ⅰ,Ⅱ,Ⅲ…) + 파란 구분선 + 제목 텍스트<br>
-          • <b>소제목</b>: □ 스타일, 굵은 본문<br>
-          • <b>◦ 항목</b>: 수준1 불릿 (들여쓰기 적용)<br>
-          • <b>  - 세부항목</b>: 수준2 대시 불릿<br>
-          • <b>표</b>: 검정 테두리 + 첫 행 헤더 스타일<br>
-          • <b>페이지</b>: A4 세로, 표준 여백
-        </div>
-      </details>
-
-      <div style="background:#dbeafe;border:1px solid #93c5fd;border-radius:10px;padding:12px;font-size:12px;color:#1e40af">
-        🎨 한글(HWP) 프로그램 없이도 동작합니다. Python은 앱에 내장되어 있어 별도 설치가 필요 없습니다.
       </div>
     </div>
   `;
@@ -203,28 +205,28 @@ async function render(container) {
           ? '붙임 자료 내용을 자유롭게 입력하세요.\n\n예시:\n설문지 양식 1부\n수업 계획서 1부'
           : '자유롭게 한 줄씩 적으세요. 자동으로 마크다운 규칙이 적용됩니다.\n\n예시 입력:\n학생 자발성 강조\n안전사고 예방\n  세부 지침 작성\n※ 비고 사항\n\n→ 자동 변환 결과:\n◦ 학생 자발성 강조\n◦ 안전사고 예방\n  - 세부 지침 작성\n※ 비고 사항';
         manualBox =
-          '<div style="padding:6px 10px 10px 36px;background:' + (isAttach ? '#f0f4ff' : '#f0f9ff') + ';border-top:1px dashed ' + (isAttach ? '#18304b55' : '#93c5fd') + '">' +
-            '<div style="font-size:11px;color:' + (isAttach ? '#18304b' : '#0369a1') + ';margin-bottom:4px">✍️ 직접 작성 — ' + (isAttach ? '붙임 자료 제목/설명을 입력하세요' : '한 줄씩 자유롭게 입력하면 자동으로 ◦ / 세부항목 형식이 적용됩니다 (커서 떠날 때 변환)') + '</div>' +
-            '<textarea class="hwpf-sec-body" placeholder="' + escapeHtml(placeholder) + '" style="width:100%;min-height:60px;font-family:\'D2Coding\',Consolas,monospace;font-size:12px;line-height:1.5;padding:8px;border:1px solid ' + (isAttach ? '#18304b55' : '#93c5fd') + ';border-radius:6px;background:#fff;resize:vertical;box-sizing:border-box">' + escapeHtml(s.body || '') + '</textarea>' +
+          '<div class="hwp-sec-manual-box' + (isAttach ? ' hwp-sec-manual-box--attach' : '') + '">' +
+            '<div class="hwp-sec-manual-label">✍️ 직접 작성 — ' + (isAttach ? '붙임 자료 제목/설명을 입력하세요' : '한 줄씩 자유롭게 입력하면 자동으로 ◦ / 세부항목 형식이 적용됩니다 (커서 떠날 때 변환)') + '</div>' +
+            '<textarea class="hwpf-sec-body hwp-sec-body-input' + (isAttach ? ' hwp-sec-body-input--attach' : '') + '" placeholder="' + escapeHtml(placeholder) + '">' + escapeHtml(s.body || '') + '</textarea>' +
           '</div>';
       }
       // 타입 토글 (대제목 / 붙임)
       var typeToggle =
-        '<div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;margin-right:2px">' +
-          '<button class="hwpf-sec-type" data-type="heading" style="border:0;padding:3px 7px;background:' + (!isAttach ? '#18304b' : '#fff') + ';color:' + (!isAttach ? '#fff' : '#666') + ';cursor:pointer;white-space:nowrap">대제목</button>' +
-          '<button class="hwpf-sec-type" data-type="attachment" style="border:0;padding:3px 7px;background:' + (isAttach ? '#18304b' : '#fff') + ';color:' + (isAttach ? '#fff' : '#666') + ';cursor:pointer;white-space:nowrap">📎붙임</button>' +
+        '<div class="hwp-sec-type-toggle">' +
+          '<button class="hwpf-sec-type hwp-sec-type-btn' + (!isAttach ? ' active' : '') + '" data-type="heading">대제목</button>' +
+          '<button class="hwpf-sec-type hwp-sec-type-btn' + (isAttach ? ' active' : '') + '" data-type="attachment">📎붙임</button>' +
         '</div>';
-      return '<div class="hwpf-sec-wrap" data-idx="' + i + '" style="border:1px solid ' + (isAttach ? '#18304b44' : 'var(--border)') + ';border-radius:8px;margin-bottom:6px;background:' + (s.included ? '#fff' : '#f5f5f5') + ';overflow:hidden">' +
-        '<div class="hwpf-sec-row" style="display:flex;align-items:center;gap:8px;padding:8px">' +
-          '<span class="hwpf-sec-handle" draggable="true" title="드래그하여 순서 변경" style="cursor:grab;color:#999;font-size:14px;user-select:none;padding:4px 6px">⋮⋮</span>' +
-          '<input type="checkbox" class="hwpf-sec-inc" ' + (s.included ? 'checked' : '') + ' style="cursor:pointer">' +
-          '<input type="text" class="hwpf-sec-name input" value="' + escapeHtml(s.name) + '" style="flex:1;font-size:13px;padding:4px 6px">' +
+      return '<div class="hwpf-sec-wrap hwp-sec-wrap' + (isAttach ? ' hwp-sec-wrap--attach' : '') + (s.included ? '' : ' hwp-sec-wrap--excluded') + '" data-idx="' + i + '">' +
+        '<div class="hwpf-sec-row hwp-sec-row">' +
+          '<span class="hwpf-sec-handle hwp-sec-handle" draggable="true" title="드래그하여 순서 변경">⋮⋮</span>' +
+          '<input type="checkbox" class="hwpf-sec-inc hwp-sec-inc-input" ' + (s.included ? 'checked' : '') + '>' +
+          '<input type="text" class="hwpf-sec-name input hwp-sec-name-input" value="' + escapeHtml(s.name) + '">' +
           typeToggle +
-          '<div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:12px">' +
-            '<button class="hwpf-sec-mode" data-mode="ai" style="border:0;padding:4px 8px;background:' + (aiActive ? '#7c3aed' : '#fff') + ';color:' + (aiActive ? '#fff' : '#666') + ';cursor:pointer">🤖 AI</button>' +
-            '<button class="hwpf-sec-mode" data-mode="manual" style="border:0;padding:4px 8px;background:' + (!aiActive ? '#0ea5e9' : '#fff') + ';color:' + (!aiActive ? '#fff' : '#666') + ';cursor:pointer">✍️ 직접</button>' +
+          '<div class="hwp-sec-mode-toggle">' +
+            '<button class="hwpf-sec-mode hwp-sec-mode-btn hwp-sec-mode-ai' + (aiActive ? ' active' : '') + '" data-mode="ai">🤖 AI</button>' +
+            '<button class="hwpf-sec-mode hwp-sec-mode-btn hwp-sec-mode-manual' + (!aiActive ? ' active' : '') + '" data-mode="manual">✍️ 직접</button>' +
           '</div>' +
-          '<button class="hwpf-sec-del" title="삭제" style="border:0;background:transparent;cursor:pointer;color:#dc2626;font-size:16px;padding:0 4px">🗑</button>' +
+          '<button class="hwpf-sec-del hwp-sec-del-btn" title="삭제">🗑</button>' +
         '</div>' +
         manualBox +
       '</div>';
@@ -519,7 +521,7 @@ async function render(container) {
     var includedSections = sections.filter(function (s) { return s.included && s.name.trim(); });
     if (!includedSections.length) {
       statusEl.textContent = '⚠ 포함된 섹션이 없습니다. ⚙️ 섹션 구성에서 추가하세요.';
-      statusEl.style.color = '#dc2626';
+      statusEl.style.color = 'var(--danger)';
       return;
     }
     var r = await window.api.hwpBuildPrompt({
@@ -532,11 +534,11 @@ async function render(container) {
       try {
         await navigator.clipboard.writeText(r.prompt);
         statusEl.textContent = '✓ 복사됨! GPT/Claude에 붙여넣으세요';
-        statusEl.style.color = '#059669';
+        statusEl.style.color = 'var(--success)';
         setTimeout(() => { statusEl.textContent = ''; }, 3000);
       } catch (e) {
         statusEl.textContent = '복사 실패: ' + e.message;
-        statusEl.style.color = '#dc2626';
+        statusEl.style.color = 'var(--danger)';
       }
     }
   });
@@ -546,7 +548,7 @@ async function render(container) {
     var topic = topicEl.value.trim();
     if (!topic) {
       statusEl.textContent = '⚠ 주제를 먼저 입력하세요';
-      statusEl.style.color = '#dc2626';
+      statusEl.style.color = 'var(--danger)';
       return;
     }
     var btn = container.querySelector('#hwpf-ai-gen');
@@ -561,14 +563,14 @@ async function render(container) {
         updateCount();
         api.setSetting('hwp_md_draft', r.markdown);
         statusEl.textContent = '✓ 생성 완료 (' + (r.model || '') + ')';
-        statusEl.style.color = '#059669';
+        statusEl.style.color = 'var(--success)';
       } else {
         statusEl.textContent = '❌ ' + (r.error || '생성 실패');
-        statusEl.style.color = '#dc2626';
+        statusEl.style.color = 'var(--danger)';
       }
     } catch (e) {
       statusEl.textContent = '❌ ' + String(e);
-      statusEl.style.color = '#dc2626';
+      statusEl.style.color = 'var(--danger)';
     } finally {
       btn.disabled = false;
     }
@@ -582,8 +584,8 @@ async function render(container) {
         ? '저장: ' + escapeHtml(result.savedTo)
         : (result.blocks ? result.blocks + '개 단락/표 처리됨' : '');
       resultDiv.innerHTML = `
-        <div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:10px;padding:14px;font-size:13px;color:#065f46">
-          <b>✅ 완료!</b>${detail ? '<br><span style="font-size:11px">' + detail + '</span>' : ''}
+        <div class="hwp-result hwp-result-ok">
+          <b>✅ 완료!</b>${detail ? '<br><span class="hwp-result-detail">' + detail + '</span>' : ''}
         </div>`;
     } else if (result && result.canceled) {
       resultDiv.style.display = 'none';
@@ -591,7 +593,7 @@ async function render(container) {
       var errMsg = (result && result.error) ? result.error : '알 수 없는 오류';
       statusText.textContent = '오류 발생';
       resultDiv.innerHTML = `
-        <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:14px;font-size:13px;color:#991b1b">
+        <div class="hwp-result hwp-result-err">
           <b>❌ 오류</b><br>${escapeHtml(errMsg)}
         </div>`;
     }

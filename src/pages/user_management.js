@@ -22,15 +22,15 @@ async function render(container) {
 
   container.innerHTML = `
     <div class="page-wrap" style="max-width:920px;margin:0 auto">
-      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div class="page-header flex items-center justify-between gap-3 flex-wrap">
         <h1 class="page-header-title">회원 관리</h1>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="flex gap-2 flex-wrap">
           <button class="btn btn-secondary btn-sm" id="user-management-refresh">새로고침</button>
           <button class="btn btn-primary btn-sm" id="user-management-back">설정으로 돌아가기</button>
         </div>
       </div>
 
-      <section class="card settings-card" style="margin-bottom:16px">
+      <section class="card settings-card mb-4">
         <div class="settings-head">
           <div>
             <div class="settings-title">공지사항 배포</div>
@@ -49,14 +49,14 @@ async function render(container) {
           <label>내용</label>
           <textarea class="input" id="notice-body" style="min-height:130px;resize:vertical" placeholder="- 변경된 내용&#10;- 사용자가 알아야 할 내용"></textarea>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="flex items-center gap-2 flex-wrap">
           <button class="btn btn-primary btn-sm" id="notice-publish-btn">공지사항 배포</button>
           <button class="btn btn-secondary btn-sm" id="notice-load-btn">현재 공지 불러오기</button>
           <span id="notice-status" class="settings-note"></span>
         </div>
       </section>
 
-      <section class="card settings-card" style="margin-bottom:16px">
+      <section class="card settings-card mb-4">
         <div class="settings-head">
           <div>
             <div class="settings-title">성적관리 비밀번호</div>
@@ -67,7 +67,7 @@ async function render(container) {
           <label>새 비밀번호</label>
           <input class="input" id="grades-password-new" type="text" placeholder="새 비밀번호 입력" style="max-width:260px">
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="flex items-center gap-2 flex-wrap">
           <button class="btn btn-primary btn-sm" id="grades-password-save-btn">비밀번호 변경</button>
           <span id="grades-password-admin-status" class="settings-note"></span>
         </div>
@@ -86,22 +86,22 @@ async function render(container) {
           <input class="input" id="user-management-search" placeholder="이름 또는 이메일 검색" value="${escapeHtml(searchKeyword)}">
         </div>
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px">
+        <div class="flex gap-2 flex-wrap" style="margin:12px 0 16px">
           <button class="btn btn-sm user-filter-btn${statusFilter === 'all' ? ' btn-primary' : ' btn-secondary'}" data-filter="all">전체</button>
           <button class="btn btn-sm user-filter-btn${statusFilter === 'active' ? ' btn-primary' : ' btn-secondary'}" data-filter="active">사용 중</button>
           <button class="btn btn-sm user-filter-btn${statusFilter === 'blocked' ? ' btn-primary' : ' btn-secondary'}" data-filter="blocked">사용 중지</button>
           <button class="btn btn-sm user-filter-btn${statusFilter === 'deleted' ? ' btn-primary' : ' btn-secondary'}" data-filter="deleted">삭제됨</button>
         </div>
 
-        <div id="user-management-summary" class="settings-note" style="margin-bottom:12px"></div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)">
+        <div id="user-management-summary" class="settings-note mb-3"></div>
+        <div class="flex items-center flex-wrap" style="gap:10px;margin-bottom:10px">
+          <label class="flex items-center" style="gap:6px;font-size:13px;color:var(--text)">
             <input type="checkbox" id="user-select-all">
             전체 선택
           </label>
           <button class="btn btn-danger btn-sm" id="user-bulk-delete-btn" disabled>선택 삭제 (<span id="user-bulk-delete-count">0</span>)</button>
         </div>
-        <div id="user-management-list" style="display:flex;flex-direction:column;gap:10px;max-height:560px;overflow:auto;padding-right:4px"></div>
+        <div id="user-management-list" class="flex-col" style="gap:10px;max-height:560px;overflow:auto;padding-right:4px"></div>
       </section>
     </div>
   `;
@@ -270,20 +270,20 @@ function renderUserList() {
     const canSelect = user.uid !== state?.uid && !user.deleted;
     return `
     <div class="menu-group-card" style="padding:14px 16px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
-        <div style="flex:1;min-width:240px;display:flex;gap:10px;align-items:flex-start">
+      <div class="flex justify-between gap-4 flex-wrap" style="align-items:flex-start">
+        <div class="flex" style="flex:1;min-width:240px;gap:10px;align-items:flex-start">
           ${canSelect ? `<input type="checkbox" class="user-select-checkbox" data-uid="${escapeHtml(user.uid)}" style="margin-top:3px" ${selectedUids.has(user.uid) ? 'checked' : ''}>` : '<span style="width:13px;display:inline-block"></span>'}
           <div>
           <div style="font-size:14px;font-weight:700;color:var(--text)">${escapeHtml(user.displayName || user.email)}</div>
-          <div class="settings-note" style="margin-top:4px">${escapeHtml(user.email)}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+          <div class="settings-note mt-1">${escapeHtml(user.email)}</div>
+          <div class="flex flex-wrap mt-2" style="gap:6px">
             <span class="chip ${user.role === 'admin' ? 'primary' : ''}">${user.role === 'admin' ? '관리자' : '사용자'}</span>
             <span class="chip ${user.deleted ? 'danger' : (user.active ? 'success' : 'danger')}">${user.deleted ? '삭제됨' : (user.active ? '사용 중' : '사용 중지')}</span>
             ${user.gradeAccess ? '<span class="chip primary">성적관리 권한</span>' : ''}
           </div>
           </div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <div class="flex gap-2 flex-wrap" style="justify-content:flex-end">
           ${user.uid === state?.uid ? '<span class="settings-note">내 계정</span>' : ''}
           ${!user.deleted && user.gradeAccess ? `<button class="btn btn-secondary btn-sm user-grade-off-btn" data-uid="${escapeHtml(user.uid)}">성적권한 해제</button>` : ''}
           ${!user.deleted && !user.gradeAccess ? `<button class="btn btn-primary btn-sm user-grade-on-btn" data-uid="${escapeHtml(user.uid)}">성적권한 부여</button>` : ''}

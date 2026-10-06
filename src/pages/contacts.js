@@ -18,7 +18,7 @@ async function render(c){
       <input type="text" id="ct-search" class="input" placeholder="이름/번호/학급 검색..." style="width:200px" autofocus>
     </div>
   </div>
-  <div id="ct-list" style="display:flex;flex-direction:column;gap:6px"></div>
+  <div id="ct-list" class="flex flex-col" style="gap:6px"></div>
   </div>`;
 }
 
@@ -38,17 +38,17 @@ async function refresh(q=''){
   }
   if(!students.length){list.innerHTML='<div class="empty-state"><div class="icon">📞</div><p>검색 결과가 없습니다.</p></div>';return;}
   list.innerHTML=students.map(s=>`
-    <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div class="card flex items-center gap-3 flex-wrap" style="padding:10px 14px">
       <div style="min-width:120px">
         ${s.class_group?`<div style="font-size:11px;color:var(--accent);font-weight:600">${s.class_group} ${s.number}번</div>`:`<div style="font-size:11px;color:var(--text3)">${s.number}번</div>`}
         <div style="font-weight:700">${s.name}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px">
+      <div class="flex items-center" style="gap:6px;font-size:12px">
         <span style="color:var(--text3)">본인</span>
         <span style="color:var(--text2)">${s.phone||'-'}</span>
         ${s.phone?`<button class="btn btn-xs btn-secondary" onclick="window.__ctCopy('${s.phone}','${s.name} 본인 번호')">복사</button>`:''}
       </div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px">
+      <div class="flex items-center" style="gap:6px;font-size:12px">
         <span style="color:var(--text3)">보호자</span>
         <span style="color:var(--text2)">${s.parent_phone||'-'}</span>
         ${s.parent_phone?`<button class="btn btn-xs btn-secondary" onclick="window.__ctCopy('${s.parent_phone}','${s.name} 보호자 번호')">복사</button>`:''}

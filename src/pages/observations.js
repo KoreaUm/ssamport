@@ -30,7 +30,7 @@ async function showM(r){
       <option value="">미지정</option>
       ${students.map(s=>`<option value="${s.id}" ${r&&r.student_id===s.id?'selected':''}>${s.number}번 ${s.name}</option>`).join('')}
     </select></div>
-    <div class="form-row"><label>관찰 내용</label><textarea class="input" id="ob-c" style="height:120px">${r?r.content:''}</textarea></div>
+    <div class="form-row"><label>관찰 내용</label><textarea class="input textarea-lg" id="ob-c">${r?r.content:''}</textarea></div>
   </div>
   <div class="modal-footer">
     ${isEdit?`<button class="btn btn-danger" id="ob-del">삭제</button>`:''}

@@ -5,8 +5,8 @@ async function render(c){
   c.innerHTML=`<div class="page-wrap">
   <div class="page-header"><h1 class="page-header-title">📊 수행평가</h1>
     <button class="btn btn-primary" id="as-add">+ 평가 추가</button></div>
-  <div id="as-class-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
-  <div id="as-list" style="display:flex;flex-direction:column;gap:12px"></div>
+  <div id="as-class-tabs" class="flex flex-wrap mb-3" style="gap:6px"></div>
+  <div id="as-list" class="flex flex-col gap-3"></div>
   </div>`;
 }
 
@@ -41,14 +41,14 @@ async function refresh(){
     return;
   }
   list.innerHTML=filtered.map(a=>`<div class="card" style="padding:16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div class="flex items-center justify-between" style="margin-bottom:8px">
       <div>
         <span style="font-size:15px;font-weight:700">${escHtml(a.name)}</span>
         ${a.class_group?`<span class="badge badge-accent" style="margin-left:6px">🏫 ${escHtml(a.class_group)}</span>`:''}
         <span class="badge badge-accent" style="margin-left:6px">${escHtml(a.subject)}</span>
         <span class="badge badge-gray" style="margin-left:4px">${escHtml(a.type)}</span>
       </div>
-      <div style="display:flex;gap:6px">
+      <div class="flex" style="gap:6px">
         <button class="btn btn-secondary btn-sm" onclick="window.__asSc(${a.id})">점수 입력</button>
         <button class="btn btn-secondary btn-sm" onclick="window.__asE(${a.id})">수정</button>
       </div>

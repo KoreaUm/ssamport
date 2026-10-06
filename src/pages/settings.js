@@ -89,8 +89,12 @@ async function render(container) {
 
   container.innerHTML = `
     <div class="page-wrap settings-page-wrap">
-      <div class="page-header">
-        <h1 class="page-header-title">\uD658\uACBD \uC124\uC815</h1>
+      <div class="settings-hero">
+        <div class="settings-hero-badge">\u2699\uFE0F</div>
+        <div>
+          <h1>\uD658\uACBD \uC124\uC815</h1>
+          <p>\uC571\uACFC \uD559\uAE09, AI, \uBA54\uB274\uB97C \uD55C \uAD6C\uC5D0\uC11C \uAD00\uB9AC\uD558\uC138\uC694.</p>
+        </div>
       </div>
 
       <div class="settings-layout">
@@ -127,7 +131,7 @@ async function render(container) {
           </div>
         </section>
 
-        <section class="card settings-card"><div class="settings-title">학교 · 담당 학급 초기 설정</div><p>학교급, 학급 수, 담당 반, 교과, 날씨와 급식 학교를 설정합니다.</p><button class="btn btn-primary" onclick="navigateTo('onboarding')">초기 설정 열기 / 수정</button></section>
+        <section class="card settings-card" id="settings-onboarding-link"><div class="settings-title">학교 · 담당 학급 초기 설정</div><p class="settings-note" style="margin:4px 0 12px">학교급, 학급 수, 담당 반, 교과, 날씨와 급식 학교를 설정합니다.</p><button class="btn btn-primary" onclick="navigateTo('onboarding')">초기 설정 열기 / 수정</button></section>
         <section class="card settings-card" id="settings-class">
           <div class="settings-head">
             <div class="settings-title">\uD559\uAE09 \uC815\uBCF4</div>
@@ -207,7 +211,7 @@ async function render(container) {
           </div>
         </section>
 
-        <section class="card settings-card">
+        <section class="card settings-card" id="settings-subject-color">
           <div class="settings-head">
             <div>
               <div class="settings-title">학급 시간표 색상</div>
@@ -299,7 +303,7 @@ async function render(container) {
         <section class="card settings-card" id="settings-google">
           <div class="settings-head">
             <div>
-              <div class="settings-title">✅ Google 계정 연동</div>
+              <div class="settings-title">Google 계정 연동</div>
               <div class="settings-note">할일은 Google Tasks에 동기화하고, 일정형 마감은 Google 캘린더와 함께 사용할 수 있습니다.</div>
             </div>
           </div>
@@ -343,7 +347,7 @@ async function render(container) {
           </div>
         </section>
 
-        <section class="card settings-card">
+        <section class="card settings-card" id="settings-shortcuts">
           <div class="settings-head">
             <div>
               <div class="settings-title">\uBC14\uB85C\uAC00\uAE30</div>
@@ -358,7 +362,7 @@ async function render(container) {
           </div>
         </section>
 
-        <section class="card settings-card">
+        <section class="card settings-card" id="settings-patch">
           <div class="settings-head">
             <div>
               <div class="settings-title">프로그램 패치 적용</div>

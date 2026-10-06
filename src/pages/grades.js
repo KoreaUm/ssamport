@@ -34,11 +34,11 @@ async function render(container) {
       ? '로그인 없이 사용 중입니다. 성적관리는 로그인 후 관리자에게 권한을 받아야 사용할 수 있습니다.'
       : '관리자가 성적관리 권한을 부여한 교사만 사용할 수 있습니다.';
     container.innerHTML = `
-      <div class="page-wrap" style="max-width:920px">
+      <div class="page-wrap page-wrap-md">
         <div class="page-header"><h1 class="page-header-title">취업 데이터 관리</h1></div>
         <section class="card settings-card">
           <div class="settings-title">접근 권한이 없습니다.</div>
-          <div class="settings-note" style="margin-top:6px">${note}</div>
+          <div class="settings-note mt-2">${note}</div>
         </section>
       </div>`;
     return;
@@ -46,16 +46,16 @@ async function render(container) {
 
   if (!unlocked) {
     container.innerHTML = `
-      <div class="page-wrap" style="max-width:520px">
+      <div class="page-wrap page-wrap-sm">
         <div class="page-header"><h1 class="page-header-title">취업 데이터 관리</h1></div>
         <section class="card settings-card">
           <div class="settings-title">보안 확인</div>
-          <div class="settings-note" style="margin-top:6px">학생 성적, 자격증, 취업 정보가 포함되어 있습니다. 성적관리 비밀번호를 입력해야 열람할 수 있습니다.</div>
-          <div class="form-row" style="margin-top:16px">
+          <div class="settings-note mt-2">학생 성적, 자격증, 취업 정보가 포함되어 있습니다. 성적관리 비밀번호를 입력해야 열람할 수 있습니다.</div>
+          <div class="form-row mt-4">
             <label>성적관리 비밀번호</label>
             <input class="input" id="grades-password-input" type="password" autocomplete="current-password" placeholder="비밀번호 입력">
           </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="flex items-center gap-2 flex-wrap">
             <button class="btn btn-primary btn-sm" id="grades-password-submit">입장</button>
             <span id="grades-password-status" class="settings-note"></span>
           </div>
@@ -65,7 +65,7 @@ async function render(container) {
   }
 
   container.innerHTML = `
-    <div class="page-wrap grades-secret-shell" style="max-width:none">
+    <div class="page-wrap grades-secret-shell">
       <div class="grades-hero">
         <div class="grades-hero-copy">
           <div class="grades-kicker">SECURE CAREER INTELLIGENCE</div>
@@ -77,75 +77,75 @@ async function render(container) {
           <button class="btn btn-secondary btn-sm" id="career-import-btn">CSV 올리기</button>
           <button class="btn btn-secondary btn-sm" id="career-export-btn">CSV 내려받기</button>
           <button class="btn btn-primary btn-sm" id="career-add-btn">+ 학생 데이터 추가</button>
-          <input type="file" id="career-import-input" accept=".csv" style="display:none">
+          <input type="file" id="career-import-input" accept=".csv" class="hidden">
         </div>
       </div>
 
-      <section class="card settings-card grades-panel" style="margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <section class="card settings-card grades-panel mb-4">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div class="settings-title">온라인 빠른 바로가기</div>
-            <div class="settings-note" style="margin-top:4px">성적관리 페이지 안에서만 쓰는 온라인 자료 링크입니다.</div>
+            <div class="settings-note mt-1">성적관리 페이지 안에서만 쓰는 온라인 자료 링크입니다.</div>
           </div>
           <button class="btn btn-primary btn-sm" id="quick-link-add-btn">+ 링크 추가</button>
         </div>
-        <div id="quick-link-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px"></div>
+        <div id="quick-link-list" class="grades-quick-link-grid mt-3"></div>
       </section>
 
-      <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px">
+      <section class="grades-analysis-grid mb-4">
         <div class="card settings-card grades-panel grades-analysis-panel">
           <div class="settings-title">학생 이름으로 분석</div>
-          <div class="settings-note" style="margin:4px 0 14px">현학생 이름을 검색하면 내신, 자격증, 희망회사를 불러오고 졸업생 데이터를 기준으로 가능성이 있는 회사를 보여줍니다.</div>
+          <div class="settings-note settings-note-lead">현학생 이름을 검색하면 내신, 자격증, 희망회사를 불러오고 졸업생 데이터를 기준으로 가능성이 있는 회사를 보여줍니다.</div>
           <div class="form-row">
             <label>현학생 검색</label>
             <input class="input" id="student-search-input" placeholder="예: 홍길동">
           </div>
-          <div id="student-search-results" style="display:grid;gap:8px;margin:10px 0"></div>
+          <div id="student-search-results" class="grid gap-2" style="margin:10px 0"></div>
           <div id="student-analysis-result"></div>
         </div>
 
         <div class="card settings-card grades-panel grades-analysis-panel">
           <div class="settings-title">회사 이름으로 분석</div>
-          <div class="settings-note" style="margin:4px 0 14px">회사명을 검색하면 그 회사에 합격한 졸업생들의 평균 내신, 자격증, 세부 데이터를 확인합니다.</div>
+          <div class="settings-note settings-note-lead">회사명을 검색하면 그 회사에 합격한 졸업생들의 평균 내신, 자격증, 세부 데이터를 확인합니다.</div>
           <div class="form-row">
             <label>회사/직무 검색</label>
             <input class="input" id="company-search-input" placeholder="예: 삼성, 전기, 자동화">
           </div>
           <button class="btn btn-primary btn-sm" id="company-search-btn">회사 데이터 조회</button>
-          <div id="company-analysis-result" style="margin-top:14px"></div>
+          <div id="company-analysis-result" class="mt-3"></div>
         </div>
       </section>
 
-      <section class="card settings-card grades-panel grades-ai-panel" style="margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <section class="card settings-card grades-panel grades-ai-panel mb-4">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div class="grades-kicker">LOCAL AI BRIEFING</div>
             <div class="settings-title">로컬 AI 상담 요약</div>
-            <div class="settings-note" style="margin-top:4px">외부 서버로 데이터를 보내지 않고, 현재 저장된 졸업생/현학생 데이터만 읽어서 상담용 요약과 데이터 오류 후보를 만듭니다.</div>
+            <div class="settings-note mt-1">외부 서버로 데이터를 보내지 않고, 현재 저장된 졸업생/현학생 데이터만 읽어서 상담용 요약과 데이터 오류 후보를 만듭니다.</div>
           </div>
           <button class="btn btn-primary btn-sm" id="local-ai-run-btn">AI 요약 생성</button>
         </div>
-        <div id="local-ai-result" style="margin-top:14px"></div>
+        <div id="local-ai-result" class="mt-3"></div>
       </section>
 
-      <section class="card settings-card grades-panel" style="margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <section class="card settings-card grades-panel mb-4">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div class="grades-kicker">OFFICIAL PUBLIC HIRING DATA</div>
             <div class="settings-title">기관별 자격증 가산점 조회</div>
-            <div class="settings-note" style="margin-top:4px">기업/공공기관에 취업할 때 어떤 자격증이 가산점인지, 몇 점 또는 몇 %인지 공식 공고 근거로 확인합니다.</div>
+            <div class="settings-note mt-1">기업/공공기관에 취업할 때 어떤 자격증이 가산점인지, 몇 점 또는 몇 %인지 공식 공고 근거로 확인합니다.</div>
           </div>
         </div>
-        <div class="form-row row-2" style="margin-top:14px">
+        <div class="form-row row-2 mt-3">
           <div><label>기관/기업명</label><input class="input" id="public-rule-company-input" placeholder="예: 한국전력공사, 한국수자원공사"></div>
           <div><label>자격증/분야</label><input class="input" id="public-rule-cert-input" placeholder="예: 전기기능사, 한국사, 컴퓨터활용능력"></div>
         </div>
-        <div id="public-rule-year-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div id="public-rule-year-tabs" class="flex gap-2 flex-wrap" style="margin-bottom:10px"></div>
+        <div class="flex gap-2 flex-wrap" style="margin-bottom:10px">
           <button class="btn btn-primary btn-sm" id="public-rule-search-btn">가산점 조회</button>
           <button class="btn btn-secondary btn-sm" id="public-rule-finance-btn">금융권만 보기</button>
           <button class="btn btn-secondary btn-sm" id="public-rule-verified-btn">검증된 가산점만 보기</button>
-          <label class="settings-note" style="display:flex;align-items:center;gap:6px">
+          <label class="settings-note flex items-center gap-2">
             <input type="checkbox" id="public-rule-include-restricted">
             제한전형 포함
           </label>
@@ -154,9 +154,9 @@ async function render(container) {
         <div id="public-company-rules-summary"></div>
       </section>
 
-      <section class="card settings-card grades-panel" style="margin-bottom:16px">
+      <section class="card settings-card grades-panel mb-4">
         <div class="settings-title">직접 조건으로 분석</div>
-        <div class="settings-note" style="margin:4px 0 14px">아직 현학생 데이터를 올리지 않았을 때 임시로 조건을 입력해서 조회할 수 있습니다.</div>
+        <div class="settings-note settings-note-lead">아직 현학생 데이터를 올리지 않았을 때 임시로 조건을 입력해서 조회할 수 있습니다.</div>
         <div class="form-row row-2">
           <div><label>학생 이름</label><input class="input" id="rec-name" placeholder="예: 홍길동"></div>
           <div><label>현재 평균 내신</label><input class="input" id="rec-grade" type="number" step="0.01" placeholder="예: 3.2"></div>
@@ -166,16 +166,16 @@ async function render(container) {
           <div><label>희망 회사/분야</label><input class="input" id="rec-company" placeholder="예: A회사 또는 전기"></div>
         </div>
         <button class="btn btn-primary btn-sm" id="rec-run-btn">졸업생 데이터로 조회</button>
-        <div id="recommendation-result" style="margin-top:14px"></div>
+        <div id="recommendation-result" class="mt-3"></div>
       </section>
 
       <section class="card settings-card grades-panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+        <div class="flex items-center justify-between gap-3 flex-wrap mb-3">
           <div>
             <div class="settings-title">현학생 / 졸업생 데이터</div>
             <div class="settings-note">CSV로 현학생과 졸업생을 함께 올릴 수 있습니다. 자격증은 쉼표로 구분합니다.</div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <div class="flex gap-2 flex-wrap items-center">
             <select class="input" id="career-type-filter" style="max-width:150px">
               <option value="all">전체</option>
               <option value="current">현학생</option>

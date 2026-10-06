@@ -1793,6 +1793,10 @@ ipcMain.handle('neis-get-weather', async (e, region) => {
   try { return await neisApi.getWeather(region); } catch (err) { return { error: err.message }; }
 });
 
+ipcMain.handle('neis-search-schools', async (e, keyword) => {
+  try { return await neisApi.searchSchools(keyword); } catch (err) { return []; }
+});
+
 
 ipcMain.handle('ai-extract-todos', async (e, apiKey, model, provider, text) => {
   try {

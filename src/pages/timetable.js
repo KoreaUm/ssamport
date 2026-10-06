@@ -22,41 +22,41 @@ async function render(container) {
     <div class="page-wrap">
       <div class="page-header">
         <h1 class="page-header-title">시간표 관리</h1>
-        <div style="display:flex;gap:8px">
+        <div class="flex gap-2">
           <button class="btn btn-secondary" id="tt-clear">초기화</button>
           <button class="btn btn-primary" id="tt-save">저장</button>
         </div>
       </div>
 
-      <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div class="card tt-card">
         <div style="display:flex;flex-direction:column;gap:10px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
             <div style="font-size:13px;font-weight:700;color:var(--text)">AI 시간표 불러오기</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div class="flex gap-2 flex-wrap">
               <button class="btn btn-secondary btn-sm" id="tt-image-pick">사진 선택</button>
               <button class="btn btn-secondary btn-sm" id="tt-ai-run">☁️ AI 분석 후 채우기</button>
               <button class="btn btn-secondary btn-sm" id="tt-ocr-run">📷 로컬 OCR 채우기</button>
             </div>
           </div>
-          <input type="file" id="tt-image-input" accept="image/*" style="display:none">
-          <div id="tt-image-name" style="font-size:12px;color:var(--text2)">시간표 사진을 선택하거나 아래에 메모를 붙여 넣어 주세요.</div>
+          <input type="file" id="tt-image-input" accept="image/*" class="hidden">
+          <div id="tt-image-name" class="text-sm text-muted">시간표 사진을 선택하거나 아래에 메모를 붙여 넣어 주세요.</div>
           <textarea id="tt-ai-input" class="input" style="min-height:96px;resize:vertical" placeholder="사진이 없으면 텍스트로도 가능합니다. 예: 월 1 107음악 / 수 3 105음악"></textarea>
-          <div id="tt-ai-status" style="font-size:12px;color:var(--text3)"></div>
+          <div id="tt-ai-status" class="text-sm text-muted"></div>
         </div>
 
         <div style="overflow-x:auto">
           <table id="tt-table" style="width:100%;border-collapse:separate;border-spacing:4px">
             <thead>
               <tr>
-                <th style="width:54px">교시</th>
-                ${DAYS.map((day) => `<th style="min-width:160px">${day}</th>`).join('')}
+                <th class="tt-th-period">교시</th>
+                ${DAYS.map((day) => `<th class="tt-th-day">${day}</th>`).join('')}
               </tr>
             </thead>
             <tbody id="tt-body"></tbody>
           </table>
         </div>
 
-        <div style="font-size:12px;color:var(--text3)">장소는 따로 분리하지 않고, 사진에 보이는 셀 텍스트를 그대로 과목 칸에 저장합니다.</div>
+        <div class="text-sm text-muted">장소는 따로 분리하지 않고, 사진에 보이는 셀 텍스트를 그대로 과목 칸에 저장합니다.</div>
       </div>
     </div>
   `;
@@ -93,19 +93,18 @@ function renderTable() {
     const period = index + 1;
     return `
       <tr>
-        <td style="text-align:center;font-weight:600;color:var(--text2)">${period}교시</td>
+        <td class="tt-period-cell">${period}교시</td>
         ${DAYS.map((_, dayIndex) => {
           const cell = timetableData[`${dayIndex}_${period}`] || {};
           return `
             <td>
               <input
-                class="input"
+                class="input tt-cell-input"
                 id="ts-${dayIndex}-${period}"
                 value="${escapeHtml(cell.subject || '')}"
                 placeholder="과목"
-                style="height:32px;font-size:12px;margin-bottom:4px"
               >
-              <div style="font-size:11px;color:var(--primary);font-weight:600">내 수업</div>
+              <div class="tt-my-class-label">내 수업</div>
             </td>
           `;
         }).join('')}

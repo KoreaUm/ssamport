@@ -119,10 +119,10 @@ async function render(c){
     </div>
   </div>
 
-  <div class="card sb-card" id="w-todo" data-widget="todo" style="overflow:hidden;display:flex;flex-direction:column">
+  <div class="card sb-card dash-widget-flex" id="w-todo" data-widget="todo">
     <div class="card-header">
       <span class="card-title">✅ 오늘의 할일</span>
-      <div style="display:flex;align-items:center;gap:5px">
+      <div class="dash-row dash-gap-5">
         <button class="btn btn-secondary btn-xs" id="todo-sort-btn" onclick="window.__dtTogSort()" title="마감일 순으로 정렬">마감순↑</button>
         <button class="sb-sel" id="todo-cleanup-btn" onclick="window.__dtTogHideDone()" title="완료된 할일 숨기기" style="cursor:pointer;font-size:13px;padding:0 6px">✅</button>
         <button class="btn btn-primary btn-xs" id="todo-add-btn" onclick="window.__dtAdd('')">+ 추가</button>
@@ -131,9 +131,9 @@ async function render(c){
     <div class="scroll-area" id="todo-by-date" style="flex:1;padding:0 0 6px"></div>
   </div>
 
-  <div class="card sb-card" id="w-sched" data-widget="sched" style="display:flex;flex-direction:column">
+  <div class="card sb-card dash-widget-flex" id="w-sched" data-widget="sched">
     <div class="card-header">
-      <div style="display:flex;align-items:center;gap:4px">
+      <div class="dash-row dash-gap-4">
         <button class="cal-nav-btn" id="sched-prev">◀</button>
         <span class="card-title" id="sched-title">📅 학사일정</span>
         <button class="cal-nav-btn" id="sched-next">▶</button>
@@ -142,7 +142,7 @@ async function render(c){
     <div class="scroll-area" id="sched-list" style="padding:0 12px 8px;flex:1"></div>
   </div>
 
-  <div class="card sb-card" id="w-meal" data-widget="meal" style="display:flex;flex-direction:column">
+  <div class="card sb-card dash-widget-flex" id="w-meal" data-widget="meal">
     <div class="card-header">
       <span class="card-title">🍱 오늘의 급식</span>
       <select class="sb-sel" id="meal-date-sel" style="max-width:130px"></select>
@@ -151,7 +151,7 @@ async function render(c){
   </div>
 
   <div class="card sb-card dday-setup-card" id="w-dday-setup" data-widget="dday-setup">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px">
+    <div class="dash-dday-setup-header">
       <span class="card-title">📅 D-Day 설정</span>
       <button class="btn btn-primary btn-xs" id="dday-add-btn">+ 추가</button>
     </div>
@@ -160,7 +160,7 @@ async function render(c){
   <div class="card sb-card" id="w-personal-tt" data-widget="personal-tt">
     <div class="card-header">
       <span class="card-title">🗓️ 개인 시간표</span>
-      <div style="display:flex;align-items:center;gap:4px">
+      <div class="dash-row dash-gap-4">
         <label class="toggle-switch toggle-switch-sm" title="같은 번호는 같은 색으로 표시">
           <input type="checkbox" id="tt-number-color-toggle">
           <span class="toggle-track"></span>
@@ -171,24 +171,24 @@ async function render(c){
     <div id="tt-grid-wrap" style="padding:2px 8px 8px"></div>
   </div>
 
-  <div class="card sb-card" id="w-teacher-contact" data-widget="teacher-contact" style="overflow:hidden;display:flex;flex-direction:column">
-    <div class="card-header" style="padding:8px 10px 0">
-      <span class="card-title" style="font-size:11px">📞 교사 연락처</span>
+  <div class="card sb-card dash-widget-flex" id="w-teacher-contact" data-widget="teacher-contact">
+    <div class="card-header dash-card-header-compact">
+      <span class="card-title dash-card-title-compact">📞 교사 연락처</span>
     </div>
-    <div style="padding:4px 8px 8px;display:flex;flex-direction:column;flex:1;min-height:0">
+    <div class="dash-contact-body">
       <input class="sb-mini-input" id="teacher-q" placeholder="🔍 검색...">
-      <div id="teacher-list" style="margin-top:3px;flex:1;overflow-y:auto;min-height:0"></div>
+      <div id="teacher-list" class="dash-contact-list"></div>
     </div>
   </div>
 
-  <div class="card sb-card" id="w-student-contact" data-widget="student-contact" style="overflow:hidden;display:flex;flex-direction:column">
-    <div class="card-header" style="padding:8px 10px 0">
-      <span class="card-title" style="font-size:11px">👤 학생 연락처</span>
+  <div class="card sb-card dash-widget-flex" id="w-student-contact" data-widget="student-contact">
+    <div class="card-header dash-card-header-compact">
+      <span class="card-title dash-card-title-compact">👤 학생 연락처</span>
       <button class="btn-icon-flat" onclick="navigateTo('contacts')" title="전체 연락처 검색">📞</button>
     </div>
-    <div style="padding:4px 8px 8px;display:flex;flex-direction:column;flex:1;min-height:0">
+    <div class="dash-contact-body">
       <input class="sb-mini-input" id="student-q" placeholder="🔍 검색...">
-      <div id="student-list" style="margin-top:3px;flex:1;overflow-y:auto;min-height:0"></div>
+      <div id="student-list" class="dash-contact-list"></div>
     </div>
   </div>
 
@@ -210,10 +210,10 @@ async function render(c){
     <div id="shortcut-list" style="padding:4px 12px 12px;display:flex;flex-wrap:wrap;gap:8px"></div>
   </div>
 
-  <div class="card sb-card" id="w-school-tt" data-widget="school-tt" style="overflow:hidden;display:flex;flex-direction:column">
+  <div class="card sb-card dash-widget-flex" id="w-school-tt" data-widget="school-tt">
     <div class="card-header">
       <span class="card-title">🏫 학급 시간표</span>
-      <div style="display:flex;align-items:center;gap:3px">
+      <div class="dash-row dash-gap-3">
         <select class="sb-sel" id="neis-grade-sel" style="width:58px"></select>
         <select class="sb-sel" id="neis-class-sel" style="width:44px"></select>
         <button class="cal-nav-btn" id="neis-prev">◀</button>
@@ -239,7 +239,7 @@ async function render(c){
     </div>
   </div>
 
-  <div class="card sb-card" id="w-sticky" data-widget="sticky" style="overflow:hidden;display:flex;flex-direction:column">
+  <div class="card sb-card dash-widget-flex" id="w-sticky" data-widget="sticky">
     <div class="card-header">
       <span class="card-title">📝 스티커 메모</span>
       <button class="btn btn-primary btn-xs" id="sticky-add-btn">+ 추가</button>

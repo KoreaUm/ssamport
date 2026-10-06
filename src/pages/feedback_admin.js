@@ -39,9 +39,9 @@ async function render(container) {
 
   container.innerHTML = `
     <div class="page-wrap" style="max-width:920px;margin:0 auto">
-      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div class="page-header flex items-center justify-between gap-3 flex-wrap">
         <h1 class="page-header-title">피드백 관리</h1>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="flex gap-2 flex-wrap">
           <button class="btn btn-secondary btn-sm" id="feedback-admin-refresh">새로고침</button>
           <button class="btn btn-primary btn-sm" id="feedback-admin-back">설정으로 돌아가기</button>
         </div>
@@ -54,7 +54,7 @@ async function render(container) {
             <div class="settings-note">앱 안의 피드백 버튼으로 사용자가 보낸 제보 목록입니다.</div>
           </div>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="flex gap-2 mb-3 flex-wrap">
           <button class="btn btn-sm feedback-filter-btn ${statusFilter === 'open' ? 'btn-primary' : 'btn-secondary'}" data-filter="open">처리 전</button>
           <button class="btn btn-sm feedback-filter-btn ${statusFilter === 'resolved' ? 'btn-primary' : 'btn-secondary'}" data-filter="resolved">처리 완료</button>
           <button class="btn btn-sm feedback-filter-btn ${statusFilter === 'all' ? 'btn-primary' : 'btn-secondary'}" data-filter="all">전체</button>
@@ -77,7 +77,7 @@ function renderList() {
 
   root.innerHTML = filtered.map((item) => `
     <div class="card" style="margin-bottom:10px;padding:14px" data-feedback-id="${escapeHtml(item.id)}">
-      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+      <div class="flex justify-between gap-3 flex-wrap" style="align-items:flex-start">
         <div>
           <div style="font-weight:600">${item.type === 'bug' ? '🐞 오류 제보' : '💡 의견/제안'}</div>
           <div class="settings-note">${escapeHtml(item.displayName || item.email)} (${escapeHtml(item.email)}) · ${escapeHtml(formatDate(item.createdAt))}</div>

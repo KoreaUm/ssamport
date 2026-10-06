@@ -36,7 +36,7 @@ async function render(c) {
     <div id="seat-wrap">
       <div style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:4px">↑ 교실 뒤쪽</div>
       <div id="seat-grid"></div>
-      <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">교사 시점 (칠판 쪽) ↓</div>
+      <div class="mt-1" style="font-size:11px;color:var(--text3);text-align:center">교사 시점 (칠판 쪽) ↓</div>
       <div id="seat-board">📋 칠판</div>
     </div>
   </div>`;

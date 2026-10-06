@@ -3,10 +3,10 @@ async function render(c){
   const now=new Date();
   c.innerHTML=`<div class="page-wrap">
   <div class="page-header"><h1 class="page-header-title">📈 통계·출력</h1></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="grid gap-4" style="grid-template-columns:1fr 1fr">
     <div class="card" style="padding:20px">
-      <div class="card-title" style="margin-bottom:12px">📅 출결 통계</div>
-      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+      <div class="card-title mb-3">📅 출결 통계</div>
+      <div class="flex items-center gap-2 mb-3">
         <input type="number" id="sy" class="input" value="${now.getFullYear()}" style="width:90px">년
         <select id="sm" class="input" style="width:90px">
           ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===now.getMonth()+1?'selected':''}>${i+1}월</option>`).join('')}
@@ -19,7 +19,7 @@ async function render(c){
       </table></div>
     </div>
     <div class="card" style="padding:20px">
-      <div class="card-title" style="margin-bottom:12px">📋 수행평가 현황</div>
+      <div class="card-title mb-3">📋 수행평가 현황</div>
       <div id="astat"></div>
     </div>
   </div>
@@ -47,7 +47,7 @@ async function loadAStat(){
     const targetIds=new Set(targets.map(s=>s.id));
     const scores=(await api.getAssessmentScores(a.id)).filter(s=>targetIds.has(s.student_id));
     const avg=scores.length?scores.reduce((s,r)=>s+r.score,0)/scores.length:0;
-    html+=`<div style="margin-bottom:12px">
+    html+=`<div class="mb-3">
       <div style="font-size:13px;font-weight:600;margin-bottom:4px">${a.name} <span class="badge badge-accent">${a.subject}</span></div>
       <div style="font-size:12px;color:var(--text2)">입력: ${scores.length}/${targets.length}명 · 평균: ${avg.toFixed(1)}점</div>
       <div style="background:var(--bg);border-radius:4px;height:6px;margin-top:6px">

@@ -69,7 +69,7 @@ async function render(container) {
     <div class="page-wrap">
       <div class="page-header">
         <h1 class="page-header-title">학사 일정</h1>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="flex items-center gap-2 flex-wrap">
           <button class="btn btn-secondary btn-sm" id="sc-add">일정 추가</button>
           <button class="cal-nav-btn" id="sc-p">◀</button>
           <span id="sc-l" style="font-size:15px;font-weight:700;min-width:120px;text-align:center"></span>
@@ -87,7 +87,7 @@ async function render(container) {
         </div>
 
         <div class="card" style="padding:16px;overflow-y:auto;max-height:680px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
+          <div class="flex items-center justify-between gap-2 mb-3">
             <div style="font-weight:700;font-size:13px" id="sc-el-title"></div>
             <div style="font-size:11px;color:var(--text3)" id="sc-selected-date"></div>
           </div>
@@ -212,14 +212,7 @@ function renderGrid() {
 
     const cell = document.createElement('button');
     cell.type = 'button';
-    cell.className = 'cal-cell' + (isToday ? ' today' : isHoliday ? ' holiday' : dayOfWeek === 0 ? ' sun' : dayOfWeek === 6 ? ' sat' : '') + (isSelected ? ' active' : '');
-    cell.style.minHeight = '88px';
-    cell.style.width = '100%';
-    cell.style.textAlign = 'left';
-    cell.style.background = '#fff';
-    cell.style.cursor = 'pointer';
-    cell.style.position = 'relative';
-    cell.style.border = isSelected ? '2px solid var(--primary)' : '1px solid var(--border)';
+    cell.className = 'cal-cell sc-day-cell' + (isToday ? ' today' : isHoliday ? ' holiday' : dayOfWeek === 0 ? ' sun' : dayOfWeek === 6 ? ' sat' : '') + (isSelected ? ' active' : '');
 
     cell.onclick = () => {
       selectedDate = dateKey;
@@ -241,21 +234,18 @@ function renderGrid() {
 
     for (const event of dayEvents.slice(0, 3)) {
       const item = document.createElement('div');
-      item.className = 'cal-event' + (event.is_holiday ? ' is-holiday' : ' normal');
+      item.className = 'cal-event' + (event.is_holiday ? ' is-holiday' : ' normal') + (event.source === 'custom' ? ' sc-custom-event' : '');
       item.textContent = truncateText(event.name || '', 10);
       if (event.source === 'custom') {
-        item.style.background = `${event.color || '#3b82f6'}22`;
-        item.style.color = event.color || '#3b82f6';
-        item.style.borderLeft = `3px solid ${event.color || '#3b82f6'}`;
+        item.style.setProperty('--sc-color', event.color || '#3b82f6');
+        item.style.setProperty('--sc-bg', `${event.color || '#3b82f6'}22`);
       }
       cell.appendChild(item);
     }
 
     if (dayEvents.length > 3) {
       const more = document.createElement('div');
-      more.style.fontSize = '11px';
-      more.style.color = 'var(--text3)';
-      more.style.marginTop = '3px';
+      more.className = 'sc-day-more';
       more.textContent = `+${dayEvents.length - 3}개`;
       cell.appendChild(more);
     }
@@ -306,19 +296,19 @@ function renderList() {
     const badgeClass = event.is_holiday ? 'badge-danger' : event.source === 'custom' ? 'badge-primary' : 'badge-accent';
     const badgeText = event.is_holiday ? '휴일' : event.source === 'custom' ? '내 일정' : '학사';
     const deleteButton = event.source === 'custom'
-      ? `<button class="btn btn-secondary btn-sm sc-del-btn" data-id="${escapeHtml(event.id)}" style="padding:4px 8px;font-size:11px">삭제</button>`
+      ? `<button class="btn btn-secondary btn-sm sc-del-btn sc-del-btn-sm" data-id="${escapeHtml(event.id)}">삭제</button>`
       : '';
     const rowClass = previousDate && previousDate !== dateKey ? 'sc-list-row group-start' : 'sc-list-row';
     previousDate = dateKey;
-    const badgeStyle = event.source === 'custom' && event.color
-      ? `background:${event.color};color:#fff;`
-      : '';
+    const isCustomColor = event.source === 'custom' && event.color;
+    const badgeClasses = 'badge ' + badgeClass + ' sc-badge' + (isCustomColor ? ' sc-badge-custom' : '');
+    const badgeStyle = isCustomColor ? `--sc-color:${event.color}` : '';
 
     return `
       <div class="${rowClass}">
-        <span style="font-size:11px;color:var(--text2);font-weight:600;width:92px;flex-shrink:0">${date.getMonth() + 1}/${date.getDate()} (${DAY_LABELS[date.getDay()]})</span>
-        <span class="badge ${badgeClass}" style="flex-shrink:0;${badgeStyle}">${badgeText}</span>
-        <span style="font-size:13px;flex:1;min-width:0">${escapeHtml(event.name)}</span>
+        <span class="sc-list-date">${date.getMonth() + 1}/${date.getDate()} (${DAY_LABELS[date.getDay()]})</span>
+        <span class="${badgeClasses}" style="${badgeStyle}">${badgeText}</span>
+        <span class="sc-list-name">${escapeHtml(event.name)}</span>
         ${deleteButton}
       </div>
     `;
@@ -352,16 +342,16 @@ async function openAddEventModal(defaultDate) {
       <button class="modal-close" data-close>✕</button>
     </div>
     <div class="modal-body" style="display:grid;gap:12px">
-      <label style="display:grid;gap:6px">
-        <span style="font-size:13px;color:var(--text2)">날짜</span>
+      <label class="sc-field">
+        <span class="sc-field-label">날짜</span>
         <input id="scm-date" class="input" type="date" value="${toInputDate(defaultDate)}">
       </label>
-      <label style="display:grid;gap:6px">
-        <span style="font-size:13px;color:var(--text2)">내용</span>
+      <label class="sc-field">
+        <span class="sc-field-label">내용</span>
         <input id="scm-name" class="input" type="text" placeholder="일정 내용을 입력하세요">
       </label>
-      <label style="display:grid;gap:6px">
-        <span style="font-size:13px;color:var(--text2)">색상</span>
+      <label class="sc-field">
+        <span class="sc-field-label">색상</span>
         <select id="scm-color" class="input">
           ${CUSTOM_COLOR_OPTIONS.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
         </select>

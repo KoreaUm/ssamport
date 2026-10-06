@@ -99,14 +99,14 @@ function periodStripHtml(studentId, st) {
   for (let p = 1; p <= periodCount; p++) {
     const on = set.has(p);
     const inner = on
-      ? `<span style="position:absolute;top:0;left:2px;font-size:8px;color:${color}">${p}</span>
-         <span style="font-size:16px;font-weight:700;line-height:26px;color:${color}">/</span>`
-      : `<span style="font-size:11px;line-height:26px;color:var(--fg-3)">${p}</span>`;
-    cells.push(`<button class="att-period-cell" data-id="${studentId}" data-p="${p}"
-      style="width:26px;height:26px;border-radius:6px;border:1.5px solid ${on ? color : 'var(--border)'};background:${on ? color + '18' : 'transparent'};cursor:pointer;position:relative;padding:0;text-align:center">${inner}</button>`);
+      ? `<span class="att-period-cell-idx is-on" style="--att-color:${color}">${p}</span>
+         <span class="att-period-cell-slash" style="--att-color:${color}">/</span>`
+      : `<span class="att-period-cell-idx">${p}</span>`;
+    cells.push(`<button class="att-period-cell${on ? ' is-on' : ''}" data-id="${studentId}" data-p="${p}"
+      style="${on ? `--att-color:${color};--att-bg:${color}18` : ''}">${inner}</button>`);
   }
-  return `<div style="display:flex;gap:3px;margin-top:6px;flex-wrap:wrap;align-items:center">
-    <span style="font-size:11px;color:var(--fg-3);margin-right:2px">교시</span>${cells.join('')}
+  return `<div class="att-period-strip">
+    <span class="att-period-strip-label">교시</span>${cells.join('')}
   </div>`;
 }
 
@@ -207,30 +207,30 @@ async function renderDaily(container) {
       STATUSES.forEach((s) => { if (hasStatus(st.status, s.val)) counts[s.val]++; });
     });
     return STATUSES.map((s) => `
-      <div style="display:flex;align-items:center;gap:6px;background:${s.color}18;border:1px solid ${s.color}44;border-radius:20px;padding:4px 12px;font-size:12px">
-        <span style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0"></span>
-        <span style="color:var(--fg-2)">${s.label}</span>
-        <strong id="sum-${s.val}" style="color:${s.color};min-width:14px;text-align:center">${counts[s.val]}</strong>
+      <div class="att-summary-chip" style="--att-color:${s.color};--att-bg:${s.color}18;--att-border:${s.color}44">
+        <span class="att-summary-dot"></span>
+        <span class="att-summary-label">${s.label}</span>
+        <strong id="sum-${s.val}" class="att-summary-count">${counts[s.val]}</strong>
       </div>
     `).join('');
   }
 
   container.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-      <input type="date" class="input" id="att-date" value="${currentDate}" style="width:180px">
+    <div class="att-toolbar att-mb-10">
+      <input type="date" class="input att-date-input" id="att-date" value="${currentDate}">
       <button class="btn btn-secondary btn-sm" id="att-all">전체 출석</button>
       <button class="btn btn-primary btn-sm" id="att-save">저장</button>
-      <span id="att-saved-lbl" style="font-size:12px;color:var(--success);display:none">✓ 저장됨</span>
+      <span id="att-saved-lbl" class="att-saved-lbl">✓ 저장됨</span>
     </div>
-    <div id="att-summary" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">${summaryHtml()}</div>
+    <div id="att-summary" class="att-summary-row">${summaryHtml()}</div>
     <div class="tbl-wrap">
-      <table class="att-table" style="border-collapse:separate;border-spacing:0 3px">
+      <table class="att-table">
         <thead>
           <tr>
-            <th style="width:40px">번호</th>
-            <th style="width:78px">이름</th>
-            <th style="min-width:280px">출결 상태</th>
-            <th style="width:110px">범주</th>
+            <th class="att-col-num">번호</th>
+            <th class="att-col-name">이름</th>
+            <th class="att-col-status">출결 상태</th>
+            <th class="att-col-cat">범주</th>
             <th>사유</th>
           </tr>
         </thead>
@@ -266,18 +266,14 @@ async function renderDaily(container) {
 
     // 버튼 스타일 업데이트
     tbody.querySelectorAll(`.att-status-btn[data-id="${id}"]`).forEach((b) => {
-      const s = STATUS_MAP[b.dataset.val];
       const active = hasStatus(stateMap[id].status, b.dataset.val);
-      b.style.borderColor = active ? s.color : 'var(--border)';
-      b.style.background = active ? s.color : 'transparent';
-      b.style.color = active ? '#fff' : 'var(--fg-2)';
-      b.style.fontWeight = active ? '600' : '400';
+      b.classList.toggle('is-active', active);
     });
 
     // 범주 select 표시/숨김
     const catEl = tbody.querySelector(`.att-cat[data-id="${id}"]`);
     if (catEl) {
-      catEl.style.display = isNonAttendance(stateMap[id].status) ? '' : 'none';
+      catEl.classList.toggle('att-hidden', !isNonAttendance(stateMap[id].status));
       if (isNonAttendance(stateMap[id].status)) catEl.value = stateMap[id].category;
     }
 
@@ -330,8 +326,8 @@ function buildDailyRows(studentList, stateMap) {
     const st = stateMap[student.id];
     const statusBtns = STATUSES.map((s) => {
       const active = hasStatus(st.status, s.val);
-      return `<button class="att-status-btn" data-id="${student.id}" data-val="${s.val}"
-        style="padding:4px 9px;border-radius:16px;border:1.5px solid ${active ? s.color : 'var(--border)'};background:${active ? s.color : 'transparent'};color:${active ? '#fff' : 'var(--fg-2)'};font-size:12px;font-weight:${active ? '600' : '400'};cursor:pointer;transition:all 0.12s;white-space:nowrap"
+      return `<button class="att-status-btn${active ? ' is-active' : ''}" data-id="${student.id}" data-val="${s.val}"
+        style="--att-color:${s.color}"
       >${s.label}</button>`;
     }).join('');
 
@@ -340,22 +336,22 @@ function buildDailyRows(studentList, stateMap) {
     ).join('');
 
     return `
-      <tr style="height:42px">
-        <td style="text-align:center;font-size:13px">${student.number}</td>
-        <td style="font-weight:600;font-size:13px">${escapeHtml(student.name)}</td>
+      <tr class="att-row">
+        <td class="att-cell-center att-cell-sm">${student.number}</td>
+        <td class="att-cell-strong att-cell-sm">${escapeHtml(student.name)}</td>
         <td>
-          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">${statusBtns}</div>
+          <div class="att-status-row">${statusBtns}</div>
           <div class="att-period-wrap" data-id="${student.id}">${periodStripHtml(student.id, st)}</div>
         </td>
         <td>
-          <select class="input att-cat" data-id="${student.id}"
-            style="height:32px;font-size:12px;display:${isNonAttendance(st.status) ? '' : 'none'};border-color:${CATEGORY_COLORS[st.category] || 'var(--border)'}">
+          <select class="input att-cat att-cat-select${isNonAttendance(st.status) ? '' : ' att-hidden'}" data-id="${student.id}"
+            style="--att-cat-color:${CATEGORY_COLORS[st.category] || 'var(--border)'}">
             ${catOpts}
           </select>
         </td>
         <td>
-          <input class="input att-reason" data-id="${student.id}"
-            style="height:32px;font-size:12px;width:100%" placeholder="사유" value="${escapeHtml(st.reason)}">
+          <input class="input att-reason att-reason-input" data-id="${student.id}"
+            placeholder="사유" value="${escapeHtml(st.reason)}">
         </td>
       </tr>
     `;
@@ -364,7 +360,7 @@ function buildDailyRows(studentList, stateMap) {
   tbody.querySelectorAll('.att-cat').forEach((select) => {
     select.onchange = () => {
       stateMap[select.dataset.id].category = select.value;
-      select.style.borderColor = CATEGORY_COLORS[select.value] || 'var(--border)';
+      select.style.setProperty('--att-cat-color', CATEGORY_COLORS[select.value] || 'var(--border)');
       saveSingleFromState(select.dataset.id, stateMap[select.dataset.id]);
     };
   });
@@ -420,25 +416,25 @@ async function saveAll(stateMap) {
 async function renderStats(container) {
   const now = new Date();
   container.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <input type="number" class="input" id="sy" value="${now.getFullYear()}" style="width:90px">년
-      <select class="input" id="sm" style="width:80px">
+    <div class="att-toolbar att-mb-14">
+      <input type="number" class="input att-year-input" id="sy" value="${now.getFullYear()}">년
+      <select class="input att-month-select" id="sm">
         ${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}"${i + 1 === now.getMonth() + 1 ? ' selected' : ''}>${i + 1}월</option>`).join('')}
       </select>
       <button class="btn btn-primary btn-sm" id="sl">조회</button>
       <button class="btn btn-secondary btn-sm" id="sl-all">전체 내역</button>
     </div>
-    <div id="stats-summary" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap"></div>
+    <div id="stats-summary" class="att-stats-summary-row"></div>
     <div class="tbl-wrap">
-      <table style="border-collapse:collapse;width:100%">
+      <table class="att-stats-table">
         <thead>
           <tr>
-            <th style="width:46px;text-align:center">번호</th>
-            <th style="width:90px;text-align:left">이름</th>
+            <th class="att-stats-col-num">번호</th>
+            <th class="att-stats-col-name">이름</th>
             ${STATUS_COLS.map((c) => `
-              <th style="width:80px;text-align:center">
-                <span style="display:inline-flex;align-items:center;gap:4px">
-                  <span style="width:7px;height:7px;border-radius:50%;background:${c.color};display:inline-block"></span>
+              <th class="att-stats-col-status">
+                <span class="att-stats-col-head">
+                  <span class="att-stats-dot" style="--att-color:${c.color}"></span>
                   ${c.label}
                 </span>
               </th>
@@ -470,10 +466,10 @@ async function renderStats(container) {
     stats.forEach((row) => { STATUS_COLS.forEach((c) => { totals[c.key] += row[c.key] || 0; }); });
 
     document.getElementById('stats-summary').innerHTML = STATUS_COLS.map((c) => `
-      <div style="background:${c.color}15;border:1.5px solid ${c.color}44;border-radius:12px;padding:10px 18px;text-align:center;min-width:72px">
-        <div style="font-size:11px;color:var(--fg-2);margin-bottom:4px;font-weight:500">${c.label}</div>
-        <div style="font-size:26px;font-weight:700;color:${c.color};line-height:1">${totals[c.key]}</div>
-        <div style="font-size:10px;color:var(--fg-3);margin-top:3px">누계</div>
+      <div class="att-stat-card" style="--att-color:${c.color};--att-bg:${c.color}15;--att-border:${c.color}44">
+        <div class="att-stat-card-label">${c.label}</div>
+        <div class="att-stat-card-value">${totals[c.key]}</div>
+        <div class="att-stat-card-sub">누계</div>
       </div>
     `).join('');
 
@@ -481,19 +477,19 @@ async function renderStats(container) {
       const cells = STATUS_COLS.map((c) => {
         const count = row[c.key] || 0;
         if (count === 0) {
-          return `<td style="text-align:center"><span style="font-size:13px;color:var(--fg-4,#ccc)">—</span></td>`;
+          return `<td class="att-cell-center"><span class="att-dash">—</span></td>`;
         }
         return `
-          <td style="text-align:center">
+          <td class="att-cell-center">
             <button class="att-badge-num" data-sid="${row.student_id || row.id}" data-status="${c.status}" data-name="${escapeHtml(row.name)}" data-label="${c.label}" data-color="${c.color}"
-              style="cursor:pointer;background:${c.color}18;color:${c.color};border:1.5px solid ${c.color}55;border-radius:12px;padding:2px 10px;font-size:13px;font-weight:700;min-width:28px"
+              style="--att-color:${c.color};--att-bg:${c.color}18;--att-border:${c.color}55"
             >${count}</button>
           </td>
         `;
       }).join('');
       return `<tr>
-        <td style="text-align:center">${row.number}</td>
-        <td style="font-weight:600">${escapeHtml(row.name)}</td>
+        <td class="att-cell-center">${row.number}</td>
+        <td class="att-cell-strong">${escapeHtml(row.name)}</td>
         ${cells}
       </tr>`;
     }).join('');
@@ -511,35 +507,35 @@ async function renderStats(container) {
 
         const rows = studentRecords.length
           ? studentRecords.map((r, i) => `
-              <tr style="border-bottom:1px solid var(--border);${i % 2 === 1 ? 'background:var(--bg2,#f8f9fa)' : ''}">
-                <td style="padding:10px 12px;white-space:nowrap">${formatDate(r.date)}</td>
-                <td style="padding:10px 12px">
-                  <span style="display:inline-block;padding:3px 10px;border-radius:20px;background:${CATEGORY_COLORS[r.category] || color};color:#fff;font-size:12px;font-weight:600">${r.category} · ${label}</span>
-                  ${formatPeriods(r.note) ? `<span style="margin-left:6px;font-size:12px;color:var(--text2)">${formatPeriods(r.note)}</span>` : ''}
+              <tr class="att-modal-row${i % 2 === 1 ? ' att-modal-row-alt' : ''}">
+                <td class="att-modal-cell att-modal-cell-nowrap">${formatDate(r.date)}</td>
+                <td class="att-modal-cell">
+                  <span class="att-pill" style="--att-color:${CATEGORY_COLORS[r.category] || color}">${r.category} · ${label}</span>
+                  ${formatPeriods(r.note) ? `<span class="att-period-note">${formatPeriods(r.note)}</span>` : ''}
                 </td>
-                <td style="padding:10px 12px;color:var(--text2);word-break:break-all">${escapeHtml(r.reason || '—')}</td>
+                <td class="att-modal-cell att-modal-cell-muted">${escapeHtml(r.reason || '—')}</td>
               </tr>
             `).join('')
-          : `<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">기록 없음</td></tr>`;
+          : `<tr><td colspan="3" class="att-modal-empty">기록 없음</td></tr>`;
 
         showModal(`
           <div class="modal-header">
             <h3 class="modal-title">
-              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};margin-right:6px;vertical-align:middle"></span>
+              <span class="att-modal-dot" style="--att-color:${color}"></span>
               ${name} · ${label} 내역
             </h3>
             <button class="btn btn-secondary btn-sm" data-close>닫기</button>
           </div>
-          <table style="width:100%;border-collapse:collapse;margin-top:16px;table-layout:fixed">
+          <table class="att-modal-table att-mt-16">
             <colgroup><col style="width:110px"><col style="width:140px"><col></colgroup>
             <thead>
-              <tr style="background:var(--bg2,#f8f9fa);border-bottom:2px solid var(--border)">
-                <th style="padding:10px 12px;text-align:left;font-size:12px;color:var(--text2);font-weight:600">날짜</th>
-                <th style="padding:10px 12px;text-align:left;font-size:12px;color:var(--text2);font-weight:600">유형</th>
-                <th style="padding:10px 12px;text-align:left;font-size:12px;color:var(--text2);font-weight:600">사유</th>
+              <tr class="att-modal-thead-row">
+                <th class="att-modal-th">날짜</th>
+                <th class="att-modal-th">유형</th>
+                <th class="att-modal-th">사유</th>
               </tr>
             </thead>
-            <tbody style="font-size:13px">${rows}</tbody>
+            <tbody class="att-modal-tbody">${rows}</tbody>
           </table>
         `);
       };
@@ -571,21 +567,21 @@ function showAllRecords(stats, recordMap, year, month) {
   dates.forEach((date) => {
     const entries = byDate[date].sort((a, b) => a.number - b.number);
     sections.push(`
-      <tr style="background:var(--bg2,#f1f5f9)">
-        <td colspan="4" style="padding:8px 12px;font-weight:700;font-size:13px;border-top:2px solid var(--border)">📅 ${formatDate(date)}</td>
+      <tr class="att-modal-date-row">
+        <td colspan="4" class="att-modal-date-cell">📅 ${formatDate(date)}</td>
       </tr>
     `);
     entries.forEach(({ number, name, record: r }) => {
       const color = statusColor(r.status);
       sections.push(`
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:8px 10px;text-align:center">${number}</td>
-          <td style="padding:8px 10px;font-weight:600">${escapeHtml(name)}</td>
-          <td style="padding:8px 10px">
-            <span style="display:inline-block;padding:2px 9px;border-radius:20px;background:${color};color:#fff;font-size:12px;font-weight:600">${r.category} · ${statusLabels(r.status)}</span>
-            ${formatPeriods(r.note) ? `<span style="margin-left:6px;font-size:12px;color:var(--text2)">${formatPeriods(r.note)}</span>` : ''}
+        <tr class="att-modal-row">
+          <td class="att-modal-cell-sm att-modal-cell-sm-center">${number}</td>
+          <td class="att-modal-cell-sm att-modal-cell-sm-strong">${escapeHtml(name)}</td>
+          <td class="att-modal-cell-sm">
+            <span class="att-pill-sm" style="--att-color:${color}">${r.category} · ${statusLabels(r.status)}</span>
+            ${formatPeriods(r.note) ? `<span class="att-period-note">${formatPeriods(r.note)}</span>` : ''}
           </td>
-          <td style="padding:8px 10px;color:var(--text2);word-break:break-all">${escapeHtml(r.reason || '—')}</td>
+          <td class="att-modal-cell-sm att-modal-cell-sm-muted">${escapeHtml(r.reason || '—')}</td>
         </tr>
       `);
     });
@@ -593,25 +589,25 @@ function showAllRecords(stats, recordMap, year, month) {
 
   const body = sections.length
     ? sections.join('')
-    : `<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:28px">해당 월 비출석 내역이 없습니다.</td></tr>`;
+    : `<tr><td colspan="4" class="att-modal-empty">해당 월 비출석 내역이 없습니다.</td></tr>`;
 
   showModal(`
     <div class="modal-header">
       <h3 class="modal-title">${year}년 ${month}월 전체 출결 내역 (일별)</h3>
       <button class="btn btn-secondary btn-sm" data-close>닫기</button>
     </div>
-    <div style="max-height:60vh;overflow:auto;margin-top:16px">
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+    <div class="att-modal-scroll att-mt-16">
+      <table class="att-modal-table">
         <colgroup><col style="width:50px"><col style="width:100px"><col style="width:160px"><col></colgroup>
         <thead>
-          <tr style="background:var(--bg2,#f8f9fa);border-bottom:2px solid var(--border);position:sticky;top:0">
-            <th style="padding:9px 10px;text-align:center;font-size:12px;color:var(--text2);font-weight:600">번호</th>
-            <th style="padding:9px 10px;text-align:left;font-size:12px;color:var(--text2);font-weight:600">이름</th>
-            <th style="padding:9px 10px;text-align:left;font-size:12px;color:var(--text2);font-weight:600">유형</th>
-            <th style="padding:9px 10px;text-align:left;font-size:12px;color:var(--text2);font-weight:600">사유</th>
+          <tr class="att-modal-thead-row-sticky">
+            <th class="att-modal-th-sm att-modal-th-sm-center">번호</th>
+            <th class="att-modal-th-sm">이름</th>
+            <th class="att-modal-th-sm">유형</th>
+            <th class="att-modal-th-sm">사유</th>
           </tr>
         </thead>
-        <tbody style="font-size:13px">${body}</tbody>
+        <tbody class="att-modal-tbody">${body}</tbody>
       </table>
     </div>
   `);

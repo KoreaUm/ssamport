@@ -25,18 +25,18 @@ async function runAi(question,context){
 async function render(c){
   c.innerHTML=`<div class="page-wrap">
   <div class="page-header"><h1 class="page-header-title">🤖 AI 분석</h1></div>
-  <div id="ai-engine-badge" style="margin-bottom:12px;font-size:12px;color:var(--text2)"></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div id="ai-engine-badge" class="mb-3" style="font-size:12px;color:var(--text2)"></div>
+  <div class="grid gap-4" style="grid-template-columns:1fr 1fr">
     <div class="card" style="padding:20px">
-      <div class="card-title" style="margin-bottom:12px">📝 학생 종합 분석</div>
+      <div class="card-title mb-3">📝 학생 종합 분석</div>
       <div class="form-row"><label>학생 선택</label><select class="input" id="ai-stu"></select></div>
-      <button class="btn btn-primary" id="ai-ab" style="width:100%;margin-bottom:12px">🔒 전송 항목 선택 후 분석</button>
+      <button class="btn btn-primary mb-3" id="ai-ab" style="width:100%">🔒 전송 항목 선택 후 분석</button>
       <div id="ai-ar" style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px;min-height:120px"></div>
     </div>
-    <div class="card" style="padding:20px;display:flex;flex-direction:column">
-      <div class="card-title" style="margin-bottom:12px">💬 AI 대화</div>
+    <div class="card flex flex-col" style="padding:20px">
+      <div class="card-title mb-3">💬 AI 대화</div>
       <div id="ai-log" style="flex:1;overflow-y:auto;background:var(--bg);border-radius:8px;padding:12px;margin-bottom:8px;font-size:13px;min-height:200px"></div>
-      <div style="display:flex;gap:8px">
+      <div class="flex gap-2">
         <input class="input" id="ai-ci" placeholder="질문을 입력하세요...">
         <button class="btn btn-primary" id="ai-cs">전송</button>
       </div>

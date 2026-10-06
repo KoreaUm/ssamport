@@ -2,7 +2,7 @@
 async function render(c){
   c.innerHTML=`<div class="page-wrap">
   <div class="page-header"><h1 class="page-header-title">🍱 급식 메뉴</h1></div>
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+  <div class="flex items-center gap-3" style="margin-bottom:20px">
     <input type="date" class="input" id="meal-dt" value="${today()}" style="width:180px">
     <button class="btn btn-primary" id="meal-ld">조회</button>
   </div>

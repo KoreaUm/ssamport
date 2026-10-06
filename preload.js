@@ -318,6 +318,7 @@ contextBridge.exposeInMainWorld('nativeApi', {
   neisGetMeal: (edu, sch, date) => ipcRenderer.invoke('neis-get-meal', edu, sch, date),
   neisGetCalendar: (edu, sch, ym) => ipcRenderer.invoke('neis-get-calendar', edu, sch, ym),
   neisGetWeather: (region) => ipcRenderer.invoke('neis-get-weather', region),
+  neisSearchSchools: (keyword) => ipcRenderer.invoke('neis-search-schools', keyword),
 
   // AI
   aiExtractTodos: (key, model, provider, text) =>

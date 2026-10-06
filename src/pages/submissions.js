@@ -3,7 +3,7 @@ async function render(c){
   c.innerHTML=`<div class="page-wrap">
   <div class="page-header"><h1 class="page-header-title">📋 제출물 관리</h1>
     <button class="btn btn-primary" id="sb-add">+ 제출물 추가</button></div>
-  <div id="sb-list" style="display:flex;flex-direction:column;gap:12px"></div>
+  <div id="sb-list" class="flex flex-col gap-3"></div>
   </div>`;
 }
 async function init(){await refresh();document.getElementById('sb-add').onclick=()=>showM(null);}
@@ -12,12 +12,12 @@ async function refresh(){
   const items=await api.getSubmissions({});
   if(!items.length){list.innerHTML='<div class="empty-state"><div class="icon">📋</div><p>제출물이 없습니다.</p></div>';return;}
   list.innerHTML=items.map(s=>`<div class="card" style="padding:16px">
-    <div style="display:flex;align-items:center;justify-content:space-between">
+    <div class="flex items-center justify-between">
       <div><span style="font-size:15px;font-weight:700">${s.name}</span>
         <span class="badge badge-accent" style="margin-left:8px">${s.subject||'-'}</span>
         ${s.due_date?`<span class="badge badge-gray" style="margin-left:4px">마감: ${s.due_date}</span>`:''}
       </div>
-      <div style="display:flex;gap:6px">
+      <div class="flex" style="gap:6px">
         <button class="btn btn-secondary btn-sm" onclick="window.__sbSt(${s.id})">제출 현황</button>
         <button class="btn btn-secondary btn-sm" onclick="window.__sbE(${s.id})">수정</button>
       </div>

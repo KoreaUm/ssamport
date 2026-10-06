@@ -64,11 +64,11 @@
       '        <label>붙임 파일 목록 <small>선택, 파일을 가져오면 제목이 자동 입력됩니다</small>',
       '          <div class="official-doc-attach-upload">',
       '            <button type="button" id="od-attach-pick-btn" class="btn btn-secondary btn-sm">📎 파일 가져오기</button>',
-      '            <input type="file" id="od-attachments-input" multiple accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx,.hwp,.hwpx" style="display:none">',
+      '            <input type="file" id="od-attachments-input" multiple accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx,.hwp,.hwpx" class="od-hidden-init">',
       '          </div>',
       '          <textarea id="od-attachments" rows="3" placeholder="예: 운영 계획서&#10;예: 참가 신청서"></textarea>',
       '        </label>',
-      '        <div id="od-missing" class="official-doc-alert" style="display:none"></div>',
+      '        <div id="od-missing" class="official-doc-alert od-hidden-init"></div>',
       '        <div class="official-doc-btn-row">',
       '          <button id="od-generate-btn" class="btn btn-secondary official-doc-main-btn">규칙 기반 생성</button>',
       '          <button id="od-ai-generate-btn" class="btn btn-primary official-doc-main-btn">✨ AI로 생성</button>',
@@ -79,8 +79,8 @@
       '          <h3>제목</h3>',
       '          <button id="od-copy-title-btn" class="btn btn-secondary btn-sm">제목 복사</button>',
       '        </div>',
-      '        <pre id="od-title-output" class="official-doc-output" style="min-height:auto">왼쪽 항목을 입력한 뒤 [공문 초안 생성]을 누르세요.</pre>',
-      '        <div class="official-doc-output-head" style="margin-top:12px">',
+      '        <pre id="od-title-output" class="official-doc-output od-output-auto">왼쪽 항목을 입력한 뒤 [공문 초안 생성]을 누르세요.</pre>',
+      '        <div class="official-doc-output-head mt-3">',
       '          <h3>본문</h3>',
       '          <button id="od-copy-body-btn" class="btn btn-secondary btn-sm">본문 복사</button>',
       '        </div>',
@@ -145,7 +145,7 @@
       '        </label>',
       '        <div id="sv-doc-desc" class="official-doc-sv-desc"></div>',
       '        <div id="sv-doc-fields"></div>',
-      '        <div class="official-doc-btn-row" style="margin-top:12px">',
+      '        <div class="official-doc-btn-row mt-3">',
       '          <button id="sv-generate-btn" class="btn btn-primary official-doc-main-btn">공문 생성</button>',
       '          <button id="sv-clear-btn" class="btn btn-secondary official-doc-main-btn">초기화</button>',
       '        </div>',
@@ -155,8 +155,8 @@
       '          <h3>제목</h3>',
       '          <button id="sv-copy-title-btn" class="btn btn-secondary btn-sm">제목 복사</button>',
       '        </div>',
-      '        <pre id="sv-doc-title-output" class="official-doc-output" style="min-height:auto">왼쪽에서 공문을 선택하고 항목을 입력한 뒤 [공문 생성]을 누르세요.</pre>',
-      '        <div class="official-doc-output-head" style="margin-top:12px">',
+      '        <pre id="sv-doc-title-output" class="official-doc-output od-output-auto">왼쪽에서 공문을 선택하고 항목을 입력한 뒤 [공문 생성]을 누르세요.</pre>',
+      '        <div class="official-doc-output-head mt-3">',
       '          <h3>본문</h3>',
       '          <button id="sv-copy-body-btn" class="btn btn-secondary btn-sm">본문 복사</button>',
       '        </div>',
@@ -173,77 +173,77 @@
       '          <span>항목을 입력하면 제목·개요·품목내역을 에듀파인에 붙여넣을 형식으로 작성합니다.</span>',
       '        </div>',
       '        <label>품의 유형<select id="poom-type"><option value="물품">물품 구입</option><option value="지출">지출</option><option value="수당">수당 지급</option><option value="업무추진비">업무추진비</option></select></label>',
-      '        <div style="display:grid;grid-template-columns:100px 1fr;gap:8px">',
+      '        <div class="od-field-grid-2">',
       '          <label>회계연도<input id="poom-year" type="number" value="2026" min="2020" max="2040"></label>',
       '          <label>제목<input id="poom-title"></label>',
       '        </div>',
-      '        <div class="toggle-row" style="padding:8px 0;margin-bottom:4px">',
-      '          <span class="toggle-label" style="font-size:12px;font-weight:500">학교교육과정운영계획</span>',
+      '        <div class="toggle-row od-toggle-row">',
+      '          <span class="toggle-label od-toggle-label">학교교육과정운영계획</span>',
       '          <label class="toggle-switch"><input type="checkbox" id="poom-plan-edu"><span class="toggle-track"></span></label>',
       '        </div>',
-      '        <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">',
+      '        <div class="od-field-grid-plan">',
       '          <label>관련 계획명 <small>선택</small><input id="poom-plan"></label>',
       '          <label>계획 날짜 <small>선택</small><input id="poom-plan-date" type="date"></label>',
       '        </div>',
       '        <div>',
-      '          <div style="font-size:12px;font-weight:600;color:var(--fg-2);margin-bottom:5px">개요 항목 <small style="font-weight:400;color:var(--fg-3)">체크로 포함/제외 · 드래그로 순서 변경</small></div>',
+      '          <div class="od-section-label">개요 항목 <small>체크로 포함/제외 · 드래그로 순서 변경</small></div>',
       '          <div id="poom-gaeyo-list"></div>',
       '        </div>',
       '        <div style="margin-top:4px">',
-      '          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">',
-      '            <div style="font-size:12px;font-weight:600;color:var(--fg-2)">품목 내역</div>',
+      '          <div class="od-section-row">',
+      '            <div class="od-section-label">품목 내역</div>',
       '            <button id="poom-add-row" class="btn btn-secondary btn-sm" type="button">+ 직접 추가</button>',
       '          </div>',
-      '          <div id="poom-upload-area" style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;margin-bottom:8px;transition:border-color 0.15s">',
-      '            <input id="poom-file-input" type="file" accept="image/*,.pdf,.xlsx,.xls,.csv" style="display:none">',
-      '            <div style="font-size:13px;color:var(--fg-2);margin-bottom:4px">📎 견적서 파일을 여기에 드래그하거나 클릭하세요</div>',
-      '            <div style="font-size:11px;color:var(--fg-3)">이미지(JPG·PNG), PDF, 엑셀(xlsx·xls), CSV 지원</div>',
-      '            <div id="poom-upload-status" style="margin-top:8px;font-size:12px;color:var(--accent);display:none"></div>',
+      '          <div id="poom-upload-area" class="od-upload-area">',
+      '            <input id="poom-file-input" type="file" accept="image/*,.pdf,.xlsx,.xls,.csv" class="od-hidden-init">',
+      '            <div class="od-upload-area-text">📎 견적서 파일을 여기에 드래그하거나 클릭하세요</div>',
+      '            <div class="od-upload-area-sub">이미지(JPG·PNG), PDF, 엑셀(xlsx·xls), CSV 지원</div>',
+      '            <div id="poom-upload-status" class="od-upload-status"></div>',
       '          </div>',
-      '          <div style="display:grid;grid-template-columns:2fr 1fr 52px 1fr 90px 30px;gap:4px;margin-bottom:4px;padding:0 2px;font-size:11px;color:var(--fg-3)">',
+      '          <div class="od-poom-cols od-poom-header-row">',
       '            <span>품목명</span><span>규격</span><span>수량</span><span>단가(원)</span><span>금액</span><span></span>',
       '          </div>',
       '          <div id="poom-rows"></div>',
-      '          <div style="text-align:right;margin-top:6px;font-size:13px;color:var(--fg-2)">합계: <strong id="poom-total-display" style="color:var(--accent)">0</strong>원</div>',
+      '          <div class="od-total-row">합계: <strong id="poom-total-display">0</strong>원</div>',
       '        </div>',
       '        <div style="margin-top:8px">',
-      '          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">',
-      '            <div style="font-size:12px;font-weight:600;color:var(--fg-2)">붙임 <small style="font-weight:400;color:var(--fg-3)">칸마다 하나씩</small></div>',
+      '          <div class="od-section-row">',
+      '            <div class="od-section-label">붙임 <small>칸마다 하나씩</small></div>',
       '            <button id="poom-attach-add" class="btn btn-secondary btn-sm" type="button">+ 붙임 추가</button>',
       '          </div>',
       '          <div id="poom-attach-rows"></div>',
       '        </div>',
-      '        <div class="official-doc-btn-row" style="margin-top:12px">',
+      '        <div class="official-doc-btn-row mt-3">',
       '          <button id="poom-gen-btn" class="btn btn-primary official-doc-main-btn" type="button">개요 생성</button>',
       '          <button id="poom-clear-btn" class="btn btn-secondary official-doc-main-btn" type="button">초기화</button>',
       '        </div>',
-      '        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">',
-      '          <div style="font-size:12px;font-weight:600;color:var(--fg-2);margin-bottom:4px">🤖 에듀파인 자동입력</div>',
-      '          <div id="macro-cdp-status" style="font-size:11px;color:var(--fg-3);margin-bottom:8px;min-height:16px">에듀파인 연결 상태를 확인하세요.</div>',
-      '          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">',
+      '        <div class="od-macro-box">',
+      '          <div class="od-macro-title">🤖 에듀파인 자동입력</div>',
+      '          <div id="macro-cdp-status" class="od-macro-status">에듀파인 연결 상태를 확인하세요.</div>',
+      '          <div class="od-macro-btn-row">',
       '            <button id="macro-shortcut-btn" class="btn btn-secondary btn-sm" type="button">🔗 바로가기 만들기</button>',
       '            <button id="macro-launch-btn"   class="btn btn-secondary btn-sm" type="button">🌐 바로가기로 열기</button>',
       '            <button id="macro-check-btn"    class="btn btn-secondary btn-sm" type="button">🔍 연결 확인</button>',
       '            <button id="macro-diag-btn"     class="btn btn-secondary btn-sm" type="button">🔬 페이지 진단</button>',
       '          </div>',
-      '          <div style="display:flex;gap:6px;flex-wrap:wrap">',
+      '          <div class="od-macro-btn-row">',
       '            <button id="macro-start-btn"  class="btn btn-primary btn-sm"   type="button" disabled>▶ 자동입력 시작</button>',
-      '            <button id="macro-stop-btn"   class="btn btn-secondary btn-sm" type="button" style="display:none">⏹ 중지</button>',
+      '            <button id="macro-stop-btn"   class="btn btn-secondary btn-sm od-hidden-init" type="button">⏹ 중지</button>',
       '          </div>',
       '        </div>',
       '      </div>',
-      '      <div class="card official-doc-output-card" style="display:flex;flex-direction:column;gap:10px">',
+      '      <div class="card official-doc-output-card od-output-card-col">',
       '        <div>',
       '          <div class="official-doc-output-head"><h3>제목</h3><button id="poom-copy-title" class="btn btn-secondary btn-sm" type="button">복사</button></div>',
-      '          <pre id="poom-out-title" class="official-doc-output" style="min-height:42px;white-space:pre-wrap"></pre>',
+      '          <pre id="poom-out-title" class="official-doc-output od-output-pre-sm"></pre>',
       '        </div>',
       '        <div>',
       '          <div class="official-doc-output-head"><h3>개요</h3><button id="poom-copy-gaeyo" class="btn btn-secondary btn-sm" type="button">복사</button></div>',
-      '          <pre id="poom-out-gaeyo" class="official-doc-output" style="min-height:80px;white-space:pre-wrap"></pre>',
+      '          <pre id="poom-out-gaeyo" class="official-doc-output od-output-pre-md"></pre>',
       '        </div>',
       '        <div id="poom-out-items-wrap">',
       '          <div class="official-doc-output-head"><h3>품목내역</h3><button id="poom-copy-items" class="btn btn-secondary btn-sm" type="button">복사</button></div>',
-      '          <pre id="poom-out-items" class="official-doc-output" style="min-height:60px;white-space:pre;font-size:12px"></pre>',
+      '          <pre id="poom-out-items" class="official-doc-output od-output-pre-items"></pre>',
       '        </div>',
       '      </div>',
       '    </div>',
@@ -1014,15 +1014,14 @@
       var container = document.getElementById("poom-rows");
       if (!container) return;
       var row = document.createElement("div");
-      row.className = "poom-item-row";
-      row.style.cssText = "display:grid;grid-template-columns:2fr 1fr 52px 1fr 90px 30px;gap:4px;margin-bottom:4px;align-items:center";
+      row.className = "poom-item-row od-poom-cols od-poom-item-row";
       row.innerHTML = [
-        '<input class="input pi-name"  style="height:32px;font-size:12px">',
-        '<input class="input pi-spec"  style="height:32px;font-size:12px">',
-        '<input class="input pi-qty"   type="number" min="0" style="height:32px;font-size:12px">',
-        '<input class="input pi-price" type="number" min="0" style="height:32px;font-size:12px">',
-        '<input class="input pi-amt"   readonly style="height:32px;font-size:12px;background:var(--bg-2);color:var(--fg-2)">',
-        '<button class="btn btn-secondary pi-del" type="button" style="height:30px;width:30px;padding:0;font-size:16px;line-height:1">×</button>'
+        '<input class="input pi-name od-input-sm">',
+        '<input class="input pi-spec od-input-sm">',
+        '<input class="input pi-qty od-input-sm"   type="number" min="0">',
+        '<input class="input pi-price od-input-sm" type="number" min="0">',
+        '<input class="input pi-amt od-input-sm od-input-readonly" readonly>',
+        '<button class="btn btn-secondary btn-icon pi-del od-btn-del-sm" type="button">×</button>'
       ].join("");
 
       var qtyEl   = row.querySelector(".pi-qty");
@@ -1067,9 +1066,8 @@
       // 기타 추가 버튼
       var addBtn = document.createElement("button");
       addBtn.type = "button";
-      addBtn.className = "btn btn-secondary btn-sm";
+      addBtn.className = "btn btn-secondary btn-sm od-gaeyo-add-btn";
       addBtn.textContent = "+ 기타 항목 추가";
-      addBtn.style.cssText = "margin-top:4px;font-size:11px";
       addBtn.onclick = function () {
         appendGaeyoRow(container, "기타_" + Date.now(), "", "custom", true);
         container.insertBefore(addBtn, null); // keep at end
@@ -1081,56 +1079,50 @@
 
     function appendGaeyoRow(container, id, label, type, checked) {
       var row = document.createElement("div");
-      row.className = "poom-gaeyo-row";
+      row.className = "poom-gaeyo-row od-gaeyo-row";
       row.draggable = true;
       row.dataset.itemId = id;
       row.dataset.itemType = type;
-      row.style.cssText = "display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;margin-bottom:3px;background:var(--bg-1);user-select:none";
 
       var handle = document.createElement("span");
       handle.textContent = "⠿";
-      handle.style.cssText = "cursor:grab;color:var(--fg-3);font-size:15px;flex-shrink:0";
+      handle.className = "od-gaeyo-handle";
 
       var chk = document.createElement("input");
       chk.type = "checkbox";
-      chk.className = "poom-gaeyo-check";
+      chk.className = "poom-gaeyo-check od-gaeyo-checkbox";
       chk.checked = checked;
-      chk.style.cssText = "width:15px;height:15px;cursor:pointer;flex-shrink:0";
 
       var labelEl;
       if (type === "custom") {
         labelEl = document.createElement("input");
-        labelEl.className = "input poom-gaeyo-label-input";
+        labelEl.className = "input poom-gaeyo-label-input od-gaeyo-label-input";
         labelEl.placeholder = "항목 이름";
         labelEl.value = label;
-        labelEl.style.cssText = "width:70px;height:26px;font-size:12px;font-weight:600;flex-shrink:0";
       } else {
         labelEl = document.createElement("span");
         labelEl.textContent = label;
-        labelEl.style.cssText = "font-size:12px;font-weight:600;min-width:52px;color:var(--fg-2);flex-shrink:0";
+        labelEl.className = "od-gaeyo-label";
       }
 
       var inputEl;
       if (type === "auto-items") {
         inputEl = document.createElement("span");
-        inputEl.className = "poom-gaeyo-auto-items";
-        inputEl.style.cssText = "flex:1;font-size:12px;color:var(--fg-3)";
+        inputEl.className = "poom-gaeyo-auto-items od-gaeyo-auto";
         inputEl.textContent = "품목 목록에서 자동 생성";
       } else if (type === "auto-amount") {
         inputEl = document.createElement("span");
-        inputEl.className = "poom-gaeyo-auto-amount";
-        inputEl.style.cssText = "flex:1;font-size:12px;color:var(--fg-3)";
+        inputEl.className = "poom-gaeyo-auto-amount od-gaeyo-auto";
         inputEl.textContent = "품목 합계에서 자동 계산";
       } else {
         inputEl = document.createElement("input");
-        inputEl.className = "input poom-gaeyo-input";
-        inputEl.style.cssText = "flex:1;height:26px;font-size:12px";
+        inputEl.className = "input poom-gaeyo-input od-gaeyo-input";
       }
 
       var delBtn = document.createElement("button");
       delBtn.type = "button";
       delBtn.textContent = "×";
-      delBtn.style.cssText = "background:none;border:none;cursor:pointer;color:var(--fg-3);font-size:16px;padding:0 2px;flex-shrink:0";
+      delBtn.className = "od-gaeyo-del";
       delBtn.onclick = function () { row.remove(); };
 
       row.appendChild(handle);
@@ -1178,21 +1170,21 @@
         if (items.length > 0) {
           var str = items[0].name + (items.length > 1 ? " 외 " + (items.length - 1) + "종" : "");
           el.textContent = str;
-          el.style.color = "var(--fg-1)";
+          el.style.color = "var(--text)";
         } else {
           el.textContent = "품목 목록에서 자동 생성";
-          el.style.color = "var(--fg-3)";
+          el.style.color = "var(--text3)";
         }
       });
 
       document.querySelectorAll(".poom-gaeyo-auto-amount").forEach(function (el) {
         if (total > 0) {
           el.textContent = "금" + numComma(total) + "원(금" + numberToKorean(total) + "원정)";
-          el.style.color = "var(--fg-1)";
+          el.style.color = "var(--text)";
           el.style.fontWeight = "600";
         } else {
           el.textContent = "품목 합계에서 자동 계산";
-          el.style.color = "var(--fg-3)";
+          el.style.color = "var(--text3)";
           el.style.fontWeight = "400";
         }
       });
@@ -1478,11 +1470,10 @@
       var container = document.getElementById("poom-attach-rows");
       if (!container) return;
       var row = document.createElement("div");
-      row.className = "poom-attach-row";
-      row.style.cssText = "display:flex;gap:4px;margin-bottom:4px;align-items:center";
+      row.className = "poom-attach-row od-attach-row";
       row.innerHTML = [
-        '<input class="input poom-attach-input" style="height:32px;font-size:12px;flex:1" placeholder="예: 견적서">',
-        '<button class="btn btn-secondary poom-attach-del" type="button" style="height:30px;width:30px;padding:0;font-size:16px;line-height:1">×</button>'
+        '<input class="input poom-attach-input od-input-sm od-flex-1" placeholder="예: 견적서">',
+        '<button class="btn btn-secondary btn-icon poom-attach-del od-btn-del-sm" type="button">×</button>'
       ].join("");
       var inputEl = row.querySelector(".poom-attach-input");
       if (value) inputEl.value = value;
@@ -1556,14 +1547,14 @@
 
     function setMacroStatus(msg, color) {
       var el = document.getElementById("macro-cdp-status");
-      if (el) { el.innerHTML = msg; el.style.color = color || "var(--fg-3)"; }
+      if (el) { el.innerHTML = msg; el.style.color = color || "var(--text3)"; }
     }
 
     var macroStartBtn = document.getElementById("macro-start-btn");
     var macroStopBtn  = document.getElementById("macro-stop-btn");
 
     async function checkCdp() {
-      setMacroStatus("연결 확인 중...", "var(--fg-2)");
+      setMacroStatus("연결 확인 중...", "var(--text2)");
       var res = await api.macroCdpCheck();
       if (!res.connected) {
         setMacroStatus(
@@ -1593,7 +1584,7 @@
     var diagBtn = document.getElementById("macro-diag-btn");
     if (diagBtn) diagBtn.addEventListener("click", async function () {
       if (!macroEduTab) { await checkCdp(); if (!macroEduTab) return; }
-      setMacroStatus("페이지 구조 분석 중...", "var(--fg-2)");
+      setMacroStatus("페이지 구조 분석 중...", "var(--text2)");
       var res = await api.macroDiagnose(macroEduTab.webSocketDebuggerUrl);
       if (res.error) { setMacroStatus("❌ " + res.error, "#ef4444"); return; }
 
@@ -1614,7 +1605,7 @@
       }
 
       var lines = summarizeDiag(res, 0);
-      setMacroStatus("🔬 " + lines.join(" | "), "var(--fg-2)");
+      setMacroStatus("🔬 " + lines.join(" | "), "var(--text2)");
       // 클립보드에도 복사 (개발자용)
       try { navigator.clipboard.writeText("에듀파인 진단:\n" + lines.join("\n")); } catch(_) {}
       console.log("에듀파인 진단:", JSON.stringify(res, null, 2));
@@ -1622,7 +1613,7 @@
 
     var shortcutBtn = document.getElementById("macro-shortcut-btn");
     if (shortcutBtn) shortcutBtn.addEventListener("click", async function () {
-      setMacroStatus("바로가기 생성 중...", "var(--fg-2)");
+      setMacroStatus("바로가기 생성 중...", "var(--text2)");
       var res = await api.macroCreateShortcut();
       if (res.error) {
         setMacroStatus("❌ " + res.error, "#ef4444");
@@ -1636,7 +1627,7 @@
 
     var launchBtn = document.getElementById("macro-launch-btn");
     if (launchBtn) launchBtn.addEventListener("click", async function () {
-      setMacroStatus("브라우저 실행 중...", "var(--fg-2)");
+      setMacroStatus("브라우저 실행 중...", "var(--text2)");
       var res = await api.macroLaunchDebugBrowser();
       if (res.error) {
         setMacroStatus("❌ " + res.error + " — 먼저 [바로가기 만들기]를 누르세요.", "#ef4444");

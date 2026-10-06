@@ -24,13 +24,13 @@ function render(container) {
         <h1 class="page-header-title">할일 관리</h1>
       </div>
 
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <div class="flex items-center gap-2 flex-wrap mb-3">
         <button class="btn btn-primary btn-sm" id="todos-add-btn">+ 할일 추가</button>
         <button class="btn btn-secondary btn-sm" id="todos-reset-order-btn">정렬 초기화</button>
         <button class="btn btn-secondary btn-sm" id="todos-sync-btn" title="Google Tasks와 동기화">🔄 동기화</button>
         <span id="todos-sync-status" style="font-size:11px;color:var(--text3)"></span>
-        <div style="display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;align-items:center">
-          <div style="display:flex;gap:2px">
+        <div class="flex items-center flex-wrap" style="gap:4px;margin-left:auto">
+          <div class="flex" style="gap:2px">
             <button class="btn btn-sm todos-filter-btn active" data-filter="all">전체</button>
             <button class="btn btn-sm todos-filter-btn" data-filter="active">진행중</button>
             <button class="btn btn-sm todos-filter-btn" data-filter="done">완료</button>
@@ -47,7 +47,7 @@ function render(container) {
         </div>
       </div>
 
-      <div id="todos-stats" style="display:flex;gap:16px;margin-bottom:14px;font-size:13px;color:var(--text2)"></div>
+      <div id="todos-stats" class="flex gap-4" style="margin-bottom:14px;font-size:13px;color:var(--text2)"></div>
       <div id="todos-sort-hint" style="font-size:12px;color:var(--text3);margin-bottom:10px"></div>
       <div id="todos-list"></div>
     </div>
@@ -233,18 +233,18 @@ function renderTodoRow(todo) {
   const sourceBadge = todo.source_text ? '<span class="todo-source-badge">원문</span>' : '';
 
   return `
-    <div class="todo-row card" data-id="${todo.id}" style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer;${done ? 'opacity:0.58;' : ''}">
+    <div class="todo-row card flex items-center gap-2" data-id="${todo.id}" style="padding:8px 12px;margin-bottom:6px;cursor:pointer;${done ? 'opacity:0.58;' : ''}">
       <input type="checkbox" class="todo-check" data-id="${todo.id}" ${done ? 'checked' : ''} style="cursor:pointer;flex-shrink:0" onclick="event.stopPropagation()">
-      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0">
+      <div class="flex flex-col" style="gap:4px;flex:1;min-width:0">
         <div style="font-size:13px;${done ? 'text-decoration:line-through;color:var(--text3)' : ''}">${esc(todo.title)}</div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--text2)">
+        <div class="flex items-center flex-wrap" style="gap:6px;font-size:11px;color:var(--text2)">
           ${deadlineLabel ? `<span class="todo-deadline">${deadlineLabel}</span>` : '<span>마감일 없음</span>'}
           <span style="font-weight:600;color:${priorityColor}">${esc(priorityLabel)}</span>
           ${todo.category ? `<span style="background:var(--bg2,#f3f4f6);padding:1px 6px;border-radius:10px">${esc(todo.category)}</span>` : ''}
           ${sourceBadge}
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
+      <div class="flex items-center" style="gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm todo-move-btn" data-id="${todo.id}" data-dir="-1" style="font-size:11px;padding:2px 6px">↑</button>
         <button class="btn btn-secondary btn-sm todo-move-btn" data-id="${todo.id}" data-dir="1" style="font-size:11px;padding:2px 6px">↓</button>
         <button class="btn btn-secondary btn-sm todo-edit-btn" data-id="${todo.id}" style="font-size:11px;padding:2px 7px">수정</button>
