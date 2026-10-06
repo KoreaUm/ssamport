@@ -8,8 +8,8 @@ const path = require('path');
 
 async function main() {
   const pkg = require('../package.json');
-  const version = String(pkg.version || '').trim();
-  if (!version) throw new Error('package.json version을 확인할 수 없습니다.');
+  const version = String(process.env.NOTICE_VERSION || pkg.version || '').trim();
+  if (!version) throw new Error('버전을 확인할 수 없습니다. package.json version 또는 NOTICE_VERSION을 확인하세요.');
 
   const notePath = path.join(__dirname, '..', 'release-notes', `v${version}.md`);
   if (!fs.existsSync(notePath)) {
