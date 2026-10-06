@@ -50,6 +50,24 @@ printf "Next version: %s\n" "$next_version"
 step "package.json / package-lock.json 버전 올리기"
 npm version "$next_version" --no-git-tag-version
 
+step "릴리즈 노트 준비"
+notes_file="release-notes/v$next_version.md"
+if [ -f "$notes_file" ]; then
+  printf "기존 릴리즈 노트를 사용합니다: %s\n" "$notes_file"
+else
+  printf "릴리즈 노트가 없어 커밋 내역으로 초안을 생성합니다: %s\n" "$notes_file"
+  mkdir -p release-notes
+  {
+    printf "쌤포트 v%s 업데이트 안내입니다.\n\n" "$next_version"
+    if [ -n "$latest_tag" ]; then
+      git log "$latest_tag"..HEAD --pretty='- %s'
+    else
+      git log --pretty='- %s'
+    fi
+  } > "$notes_file"
+  printf "초안이 생성되었습니다. 사용자에게 보여줄 문구로 다듬고 싶다면 지금 수정한 뒤 계속하세요: %s\n" "$notes_file"
+fi
+
 step "변경사항 커밋"
 # .claude/ 는 .gitignore에 있어 git add --all로는 스테이징되지 않는다.
 # 단, 과거 worktree gitlink가 tracked로 들어간 적이 있어 만일을 대비해 인덱스에서 제외한다.
