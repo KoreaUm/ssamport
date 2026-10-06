@@ -164,7 +164,7 @@ function buildManualPdfHtml() {
 <body>
   <div class="cover">
     <h1>${escapeHtml(APP_MANUAL.title)}</h1>
-    <div class="meta">버전 ${escapeHtml(APP_MANUAL.version)} · 생성일 ${escapeHtml(today)}</div>
+    <div class="meta">버전 ${escapeHtml(app.getVersion())} · 생성일 ${escapeHtml(today)}</div>
   </div>
   <div class="summary">${APP_MANUAL.summary.map((item) => `<p>${escapeHtml(item)}</p>`).join('')}</div>
   ${sectionHtml}
