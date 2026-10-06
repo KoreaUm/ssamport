@@ -206,6 +206,10 @@
   var authScreenMode = "login";
   var authPendingMessage = "";
   var authBootResolved = false;
+  var isGuestMode = false;
+  var guestHadActivity = false;
+  var authGateResolve = null;
+  var authGateReject = null;
   var cloudSyncTimer = null;
   var sharedSyncTimer = null;
   var cloudSubscriptions = [];
@@ -1244,6 +1248,7 @@
   function getAuthState() {
     return {
       loggedIn: !!authUser,
+      guest: !authUser && isGuestMode,
       uid: authUser ? authUser.uid : "",
       email: authUser ? normalizeEmail(authUser.email) : "",
       displayName: authProfile ? String(authProfile.displayName || "") : "",
@@ -1258,6 +1263,14 @@
   window.appAuthGetState = getAuthState;
 
   window.appAuthLogout = function () {
+    if (!authUser) {
+      // 게스트 모드였던 경우: 로컬에 저장된 내용만 정리하고 로그인 화면으로 돌아간다.
+      return flushActivePage().then(function (allowed) {
+        if (allowed === false) throw new Error("작성 중인 내용이 있어 종료를 취소했습니다.");
+        isGuestMode = false;
+        renderAuthOverlay("form", "", "");
+      });
+    }
     ensureFirebase();
     if (authUser && authUser.uid) setLastLocalAuthUid(authUser.uid);
     return flushActivePage().then(async function (allowed) {
@@ -1266,6 +1279,25 @@
       return releaseCurrentSession();
     }).then(function () {
       return firebaseAuth.signOut();
+    });
+  };
+
+  window.appAuthEnterGuestMode = function () {
+    return flushActivePage().then(function (allowed) {
+      if (allowed === false) return false;
+      isGuestMode = true;
+      guestHadActivity = true;
+      authUser = null;
+      authProfile = null;
+      closeAuthOverlay();
+      if (authGateResolve && !authBootResolved) {
+        authBootResolved = true;
+        var resolve = authGateResolve;
+        authGateResolve = null;
+        authGateReject = null;
+        resolve();
+      }
+      return true;
     });
   };
 
@@ -1986,6 +2018,10 @@
       '</div>' +
       '<div class="settings-actions auth-actions">' +
         '<button type="button" class="btn btn-primary" id="auth-submit-btn">' + (authScreenMode === "signup" ? '가입하고 시작하기' : '로그인') + '</button>' +
+      '</div>' +
+      '<div class="auth-guest-wrap">' +
+        '<button type="button" class="btn btn-secondary" id="auth-guest-btn">로그인 없이 시작하기</button>' +
+        '<div class="auth-guest-note">출결·공문·좌석 등 PC에 저장되는 기능은 그대로 사용할 수 있어요. 성적관리, 다른 기기와의 동기화, 공지사항은 로그인해야 사용할 수 있습니다.</div>' +
       '</div>'
     ) : "";
     var infoHtml = view === "blocked"
@@ -2063,6 +2099,13 @@
         window.appAuthLogout().catch(function (error) { toast('로그아웃 전 저장 실패: ' + error.message, 'error'); });
       });
     }
+
+    var guestButton = document.getElementById("auth-guest-btn");
+    if (guestButton) {
+      guestButton.addEventListener("click", function () {
+        window.appAuthEnterGuestMode();
+      });
+    }
   }
 
   function createOrUpdateUserProfile(user, displayName) {
@@ -2129,7 +2172,14 @@
         if (!sessionOk) return false;
         var previousLocalUid = getLastLocalAuthUid();
         var shouldMigrateLegacyDb = !previousLocalUid || previousLocalUid === user.uid;
-        return googleWorkQueue.then(function () { return api.switchUserDatabase ? api.switchUserDatabase(user.uid, { migrateLegacy: shouldMigrateLegacyDb }) : null; }).then(function () {
+        var hadGuestActivity = guestHadActivity;
+        guestHadActivity = false;
+        return googleWorkQueue.then(function () { return api.switchUserDatabase ? api.switchUserDatabase(user.uid, { migrateLegacy: shouldMigrateLegacyDb }) : null; }).then(function (dbSwitchResult) {
+          if (hadGuestActivity && dbSwitchResult && dbSwitchResult.skippedExistingAccount) {
+            toast("로그인 없이 쓰던 중 작성한 내용은 이 계정과 자동으로 합쳐지지 않았습니다. 필요하면 관리자에게 문의해 주세요.", "error", 8000);
+          } else if (hadGuestActivity && dbSwitchResult && dbSwitchResult.migrated) {
+            toast("로그인 없이 쓰던 중 작성한 내용을 이 계정으로 이어받았습니다.", "success", 5000);
+          }
           if (api.switchUserDatabase) return true;
           return clearSyncedLocalDataForAccountSwitch(user.uid).catch(function (error) {
             console.error("account switch local clear failed", error);
@@ -2163,18 +2213,32 @@
   }
 
   function initAuthGate() {
-    ensureFirebase();
     return new Promise(function (resolve, reject) {
+      authGateResolve = resolve;
+      authGateReject = reject;
+      try {
+        ensureFirebase();
+      } catch (error) {
+        // Firebase 설정을 못 불러와도(예: 네트워크 없음) 로그인 화면은 띄우고
+        // 사용자가 "로그인 없이 시작하기"로 넘어갈 수 있게 한다.
+        console.error(error);
+        renderAuthOverlay("form", "", "");
+        return;
+      }
       firebaseAuth.onAuthStateChanged(function (user) {
         evaluateAuthenticatedUser(user).then(function (ok) {
           if (ok && !authBootResolved) {
             authBootResolved = true;
+            authGateResolve = null;
+            authGateReject = null;
             resolve();
           }
         }).catch(function (error) {
           console.error(error);
           renderAuthOverlay("form", parseFirebaseError(error, "로그인 준비 중 문제가 발생했습니다."), "");
           if (!authBootResolved) {
+            authGateResolve = null;
+            authGateReject = null;
             reject(error);
           }
         });

@@ -116,14 +116,14 @@ async function render(container) {
           <div class="settings-head">
             <div>
               <div class="settings-title">Firebase 계정</div>
-              <div class="settings-note">${authState?.email ? `${escapeHtml(authState.email)} · ${authState.isAdmin ? '관리자' : '사용자'}` : '로그인 정보 없음'}</div>
+              <div class="settings-note">${authState?.email ? `${escapeHtml(authState.email)} · ${authState.isAdmin ? '관리자' : '사용자'}` : (authState?.guest ? '로그인 없이 사용 중 (게스트 모드)' : '로그인 정보 없음')}</div>
+              ${authState?.guest ? '<div class="settings-note" style="margin-top:4px">성적관리·다른 기기 동기화·공지사항은 로그인해야 사용할 수 있습니다.</div>' : ''}
             </div>
           </div>
           <div class="settings-actions">
-            <button class="btn btn-secondary btn-sm" id="cloud-pull-btn">설정/시간표 불러오기</button>
-            <button class="btn btn-secondary btn-sm" id="cloud-push-btn">설정/시간표 동기화</button>
+            ${authState?.guest ? '' : '<button class="btn btn-secondary btn-sm" id="cloud-pull-btn">설정/시간표 불러오기</button><button class="btn btn-secondary btn-sm" id="cloud-push-btn">설정/시간표 동기화</button>'}
             ${authState?.isAdmin ? '<button class="btn btn-secondary btn-sm" id="open-user-management-btn">회원 관리</button>' : ''}
-            <button class="btn btn-primary btn-sm" id="auth-logout-btn">로그아웃</button>
+            <button class="btn btn-primary btn-sm" id="auth-logout-btn">${authState?.guest ? '로그인하기' : '로그아웃'}</button>
           </div>
         </section>
 

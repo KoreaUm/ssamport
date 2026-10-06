@@ -29,12 +29,16 @@ function hasAccess() {
 
 async function render(container) {
   if (!hasAccess()) {
+    const authState = window.appAuthGetState ? window.appAuthGetState() : null;
+    const note = authState?.guest
+      ? '로그인 없이 사용 중입니다. 성적관리는 로그인 후 관리자에게 권한을 받아야 사용할 수 있습니다.'
+      : '관리자가 성적관리 권한을 부여한 교사만 사용할 수 있습니다.';
     container.innerHTML = `
       <div class="page-wrap" style="max-width:920px">
         <div class="page-header"><h1 class="page-header-title">취업 데이터 관리</h1></div>
         <section class="card settings-card">
           <div class="settings-title">접근 권한이 없습니다.</div>
-          <div class="settings-note" style="margin-top:6px">관리자가 성적관리 권한을 부여한 교사만 사용할 수 있습니다.</div>
+          <div class="settings-note" style="margin-top:6px">${note}</div>
         </section>
       </div>`;
     return;

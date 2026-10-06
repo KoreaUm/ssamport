@@ -605,24 +605,30 @@ function setupAutoUpdater() {
 
 function openDatabaseForUser(userId = '', options = {}) {
   const nextUserId = String(userId || '');
-  if (db && db.db.open && activeDbUserId === nextUserId) return db;
+  if (db && db.db.open && activeDbUserId === nextUserId) return { db, migrated: false, skippedExistingAccount: false };
 
   const nextPath = AppDatabase.getPathForUser(nextUserId);
   const legacyPath = AppDatabase.getDefaultPath();
   const migrationMarkerPath = path.join(path.dirname(nextPath), '.legacy_migrated');
-  if (options.migrateLegacy === true && nextUserId && !fs.existsSync(nextPath) && fs.existsSync(legacyPath) && !fs.existsSync(migrationMarkerPath)) {
+  const nextPathExistedAlready = fs.existsSync(nextPath);
+  let migrated = false;
+  if (options.migrateLegacy === true && nextUserId && !nextPathExistedAlready && fs.existsSync(legacyPath) && !fs.existsSync(migrationMarkerPath)) {
     fs.mkdirSync(path.dirname(nextPath), { recursive: true });
     AppDatabase.snapshotFile(legacyPath, nextPath);
     removeSqliteSidecars(nextPath);
     fs.writeFileSync(migrationMarkerPath, `${nextUserId}\n${new Date().toISOString()}`, 'utf8');
+    migrated = true;
   }
+  // 게스트(로그인 전) 상태로 적어둔 내용이 있는데, 이미 존재하는 계정으로 로그인해서
+  // 자동 이전이 건너뛰어진 경우를 호출자가 사용자에게 알릴 수 있도록 표시해 둔다.
+  const skippedExistingAccount = options.migrateLegacy === true && nextUserId && nextPathExistedAlready && fs.existsSync(legacyPath);
 
   if (db) {
     try { db.close(); } catch (_) {}
   }
   db = new AppDatabase({ userId: nextUserId });
   activeDbUserId = nextUserId;
-  return db;
+  return { db, migrated, skippedExistingAccount };
 }
 
 function clearLocalGradeDataEverywhere() {
@@ -1093,11 +1099,13 @@ ipcMain.on('widget-window-close', (e) => {
 
 ipcMain.handle('switch-user-database', (e, uid, options = {}) => {
   const safeUid = String(uid || '').trim();
-  openDatabaseForUser(safeUid, options || {});
+  const result = openDatabaseForUser(safeUid, options || {});
   return {
     success: true,
     userId: activeDbUserId,
     dbPath: db.getPath(),
+    migrated: !!result.migrated,
+    skippedExistingAccount: !!result.skippedExistingAccount,
   };
 });
 

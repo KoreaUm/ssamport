@@ -222,7 +222,9 @@ test('backup restore reopens the connection for the same account', async () => {
     },path,fs,removeSqliteSidecars:file=>{for(const suffix of ['-wal','-shm'])if(fs.existsSync(file+suffix))fs.rmSync(file+suffix);}});
     vm.runInContext(section(read('main.js'),'function openDatabaseForUser','function clearLocalGradeDataEverywhere'),ctx);
     active.close();fs.copyFileSync(backup,target);
-    const opened=ctx.openDatabaseForUser('same');
+    const result=ctx.openDatabaseForUser('same');
+    assert.equal(result.migrated,false);assert.equal(result.skippedExistingAccount,false);
+    const opened=result.db;
     assert.equal(opened.getStudents().length,1);assert.notEqual(opened,active);opened.close();
   } finally {db.close();fs.rmSync(temp,{recursive:true,force:true});}
 });
