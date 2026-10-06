@@ -321,3 +321,17 @@ test('Google sync stops on failed deletion and retries pending local changes wit
     assert.equal(remote[0].title,'수정 재시도');assert.equal(db.getTodos(true)[0].google_dirty,0);
   }finally{db.close();}
 });
+
+
+test('assessment score writes reject students in a different class even with the same number', () => {
+  const db=database();
+  try {
+    const first=db.addStudent({number:1,name:'가',class_group:'1학년 1반'});
+    const other=db.addStudent({number:1,name:'나',class_group:'1학년 2반'});
+    const assessment=db.addAssessment({name:'음악',class_group:'1학년 1반',max_score:100});
+    assert.throws(()=>db.setAssessmentScores([{assessment_id:assessment,student_id:first,score:80},{assessment_id:assessment,student_id:other,score:90}]),/대상 학급/);
+    assert.equal(db.getAssessmentScores(assessment).length,0);
+    db.setAssessmentScore({assessment_id:assessment,student_id:first,score:80});
+    assert.equal(db.getAssessmentScores(assessment)[0].student_id,first);
+  } finally { db.close(); }
+});

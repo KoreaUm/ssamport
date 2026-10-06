@@ -823,8 +823,12 @@ class AppDatabase {
   }
 
   setAssessmentScore(data) {
-    const assessment = this.db.prepare('SELECT max_score FROM assessments WHERE id=?').get(data.assessment_id);
+    const assessment = this.db.prepare('SELECT max_score, class_group FROM assessments WHERE id=?').get(data.assessment_id);
     if (!assessment) throw new Error('평가를 찾을 수 없습니다.');
+    const student = this.db.prepare('SELECT class_group FROM students WHERE id=?').get(data.student_id);
+    if (!student || (assessment.class_group && student.class_group !== assessment.class_group)) {
+      throw new Error('이 평가의 대상 학급에 속한 학생이 아닙니다.');
+    }
     if (data.score === '' || data.score === null || data.score === undefined) {
       this.db.prepare('DELETE FROM assessment_scores WHERE assessment_id=? AND student_id=?').run(data.assessment_id, data.student_id);
       return true;

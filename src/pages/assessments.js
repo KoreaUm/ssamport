@@ -23,18 +23,19 @@ async function refresh(){
   // 반 탭 렌더링
   const tabs=document.getElementById('as-class-tabs');
   if(tabs){
-    const classes=[...new Set(items.map(a=>a.class_group||'').filter(Boolean))].sort();
+    const classes=window.schoolProfile?await schoolProfile.classes(items):[...new Set(items.map(a=>a.class_group||'').filter(Boolean))].sort();
     if(classes.length){
       tabs.innerHTML=[
         `<button class="btn btn-xs ${currentClassFilter===''?'btn-primary':'btn-secondary'}" onclick="window.__asSetClass('')">전체</button>`,
-        ...classes.map(c=>`<button class="btn btn-xs ${currentClassFilter===c?'btn-primary':'btn-secondary'}" onclick="window.__asSetClass('${escHtml(c)}')">${escHtml(c)}</button>`)
+        ...classes.map(c=>`<button class="btn btn-xs ${currentClassFilter===c?'btn-primary':'btn-secondary'}" data-class-filter="${escHtml(c)}">${escHtml(c)}</button>`)
       ].join('');
+      tabs.querySelectorAll('[data-class-filter]').forEach(el=>el.onclick=()=>window.__asSetClass(el.dataset.classFilter));
     } else {
       tabs.innerHTML='';
     }
   }
 
-  const filtered=currentClassFilter?items.filter(a=>a.class_group===currentClassFilter):items;
+  const filtered=currentClassFilter?items.filter(a=>!a.class_group||a.class_group===currentClassFilter):items;
   if(!filtered.length){
     list.innerHTML='<div class="empty-state"><div class="icon">📊</div><p>수행평가가 없습니다.</p></div>';
     return;
@@ -77,8 +78,8 @@ window.__asSc=async(id)=>{
   const sm={};for(const s of scores)sm[s.student_id]=s.score;
   showModal(`<div class="modal-header"><span class="modal-title">점수 입력 - ${escHtml(a.name)}${a.class_group?` (${escHtml(a.class_group)})`:''}</span><button class="modal-close" data-close>✕</button></div>
   <div class="modal-body" style="max-height:400px;overflow-y:auto">
-    <table style="width:100%"><thead><tr><th>번호</th><th>이름</th><th>점수 (/${a.max_score})</th></tr></thead>
-    <tbody>${students.map(s=>`<tr><td>${s.number}</td><td>${escHtml(s.name)}</td>
+    <table style="width:100%"><thead><tr><th>학급</th><th>번호</th><th>이름</th><th>점수 (/${a.max_score})</th></tr></thead>
+    <tbody>${students.map(s=>`<tr><td>${escHtml(s.class_group||'미지정')}</td><td>${s.number}</td><td>${escHtml(s.name)}</td>
     <td><input class="input" type="number" id="sc-${s.id}" value="${sm[s.id]!==undefined?sm[s.id]:''}" max="${a.max_score}" min="0" style="height:30px"></td></tr>`).join('')}</tbody>
     </table>
   </div>
@@ -99,17 +100,20 @@ window.__asSc=async(id)=>{
 
 async function getClassSuggestions(){
   const students=await api.getStudents();
-  return [...new Set(students.map(s=>s.class_group||'').filter(Boolean))].sort();
+  return window.schoolProfile?schoolProfile.classes(students):[...new Set(students.map(s=>s.class_group||'').filter(Boolean))].sort();
 }
 
-function showM(a){
+async function showM(a){
+  const classes=await getClassSuggestions();
+  if(a?.class_group&&!classes.includes(a.class_group))classes.push(a.class_group);
+  const profile=window.schoolProfile?await schoolProfile.load():{};
   const isEdit=!!a;
   showModal(`<div class="modal-header"><span class="modal-title">${isEdit?'평가 수정':'평가 추가'}</span><button class="modal-close" data-close>✕</button></div>
   <div class="modal-body">
     <div class="form-row"><label>평가명 *</label><input class="input" id="as-n" value="${a?escHtml(a.name):''}"></div>
-    <div class="form-row"><label>반</label><input class="input" id="as-cls" value="${a?escHtml(a.class_group||''):''}" placeholder="예) 1학년 2반, 2-3 (비워두면 전체)" list="as-cls-list"><datalist id="as-cls-list"></datalist></div>
+    <div class="form-row"><label>대상 학급</label><select class="input" id="as-cls"><option value="">전체 학급 공통 평가</option>${classes.map(c=>`<option value="${escHtml(c)}" ${c===(a?a.class_group:currentClassFilter||profile.homeroom||classes[0])?'selected':''}>${escHtml(c)}</option>`).join('')}</select></div>
     <div class="form-row row-2">
-      <div><label>교과</label><input class="input" id="as-s" value="${a?escHtml(a.subject):''}"></div>
+      <div><label>교과</label><input class="input" id="as-s" value="${escHtml(a?a.subject:profile.subject||'')}"></div>
       <div><label>유형</label><select class="input" id="as-t">${['수행','지필','실기','기타'].map(t=>`<option ${a&&a.type===t?'selected':''}>${t}</option>`).join('')}</select></div>
     </div>
     <div class="form-row row-2">
@@ -142,7 +146,8 @@ function showM(a){
       type:document.getElementById('as-t').value,
       date:document.getElementById('as-d').value,
       max_score:parseFloat(document.getElementById('as-m').value)||100,
-      weight:1
+      weight:a?a.weight:1,
+      note:a?a.note:''
     };
     if(isEdit)await api.updateAssessment(a.id,data);else await api.addAssessment(data);
     toast('저장되었습니다','success');closeModal();refresh();

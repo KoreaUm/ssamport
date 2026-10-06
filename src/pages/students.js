@@ -3,7 +3,7 @@
 function esc(value){ return String(value??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // class_group 형식: "N학년 N반"
-function toClassGroup(grade, cls){ return (grade&&cls)?`${grade}학년 ${cls}반`:'';}
+function toClassGroup(grade, cls){ return (grade&&cls)?`${Number(grade)}학년 ${Number(cls)}반`:'';}
 function parseClassGroup(cg){
   const m=String(cg||'').match(/^(\d+)학년\s*(\d+)반$/);
   return m?{grade:m[1],cls:m[2]}:{grade:'',cls:''};
@@ -42,11 +42,12 @@ async function refresh(q=''){
   // 반 탭
   const tabs=document.getElementById('st-class-tabs');
   if(tabs){
-    const classes=[...new Set(students.map(s=>s.class_group||'').filter(Boolean))].sort();
+    const classes=window.schoolProfile?await schoolProfile.classes(students):[...new Set(students.map(s=>s.class_group||'').filter(Boolean))].sort();
     tabs.innerHTML=classes.length?[
       `<button class="btn btn-xs ${!currentClassFilter?'btn-primary':'btn-secondary'}" onclick="window.__stSetClass('')">전체</button>`,
-      ...classes.map(c=>`<button class="btn btn-xs ${currentClassFilter===c?'btn-primary':'btn-secondary'}" onclick="window.__stSetClass('${c}')">${c}</button>`)
+      ...classes.map(c=>`<button class="btn btn-xs ${currentClassFilter===c?'btn-primary':'btn-secondary'}" data-class-filter="${esc(c)}">${esc(c)}</button>`)
     ].join(''):'';
+    tabs.querySelectorAll('[data-class-filter]').forEach(el=>el.onclick=()=>window.__stSetClass(el.dataset.classFilter));
   }
 
   if(currentClassFilter) students=students.filter(s=>s.class_group===currentClassFilter);
@@ -66,16 +67,20 @@ async function refresh(q=''){
 window.__stSetClass=function(cls){currentClassFilter=cls;refresh();};
 window.__stEdit=async(id)=>{
   const students=await api.getStudents();
-  showStudentModal(students.find(x=>x.id===id));
+  await showStudentModal(students.find(x=>x.id===id));
 };
 
-function showStudentModal(s){
+async function showStudentModal(s){
+  const profile=window.schoolProfile?await schoolProfile.load():{};
+  const maxGrade=profile.type?schoolProfile.gradeCount(profile.type):6;
+  const groups=window.schoolProfile?await schoolProfile.classes(s?[s]:[]):[];
   const isEdit=!!s;
-  const {grade,cls}=parseClassGroup(s?.class_group);
+  const {grade,cls}=parseClassGroup(s?.class_group||currentClassFilter||profile.homeroom||groups[0]);
   showModal(`<div class="modal-header"><span class="modal-title">${isEdit?'학생 정보 수정':'학생 추가'}</span><button class="modal-close" data-close>✕</button></div>
   <div class="modal-body">
+    ${groups.length?`<div class="form-row"><label>담당 학급 선택</label><select class="input" id="s-group"><option value="">학년·반 직접 입력</option>${groups.map(g=>`<option value="${esc(g)}" ${g===toClassGroup(grade,cls)?'selected':''}>${esc(g)}</option>`).join('')}</select></div>`:''}
     <div class="form-row row-2">
-      <div><label>학년 *</label><input class="input" id="s-grade" type="number" min="1" max="6" value="${grade}" placeholder="예) 3"></div>
+      <div><label>학년 *</label><input class="input" id="s-grade" type="number" min="1" max="${maxGrade}" value="${grade}" placeholder="예) 3"></div>
       <div><label>반 *</label><input class="input" id="s-cls" type="number" min="1" value="${cls}" placeholder="예) 2"></div>
     </div>
     <div class="form-row row-2">
@@ -95,6 +100,8 @@ function showStudentModal(s){
     <button class="btn btn-primary" id="s-save">${isEdit?'저장':'추가'}</button>
   </div>`);
 
+  const groupSelect=document.getElementById('s-group');
+  if(groupSelect)groupSelect.onchange=()=>{const v=parseClassGroup(groupSelect.value);document.getElementById('s-grade').value=v.grade;document.getElementById('s-cls').value=v.cls;};
   if(isEdit) document.getElementById('s-del').onclick=async()=>{
     if(confirm(`${s.name} 학생을 삭제하시겠습니까?\n이 학생의 출결·수행평가 점수·제출 상태도 삭제됩니다.`)){await api.deleteStudent(s.id);closeModal();refresh();}
   };
@@ -103,7 +110,7 @@ function showStudentModal(s){
     const cls=document.getElementById('s-cls').value.trim();
     const num=Number(document.getElementById('s-num').value);
     const name=document.getElementById('s-name').value.trim();
-    if(!Number.isInteger(Number(grade))||Number(grade)<1||Number(grade)>6||!Number.isInteger(Number(cls))||Number(cls)<1||!Number.isInteger(num)||num<1||!name){toast('학년·반·번호는 올바른 양의 정수로, 이름은 필수로 입력하세요','error');return;}
+    if(!Number.isInteger(Number(grade))||Number(grade)<1||Number(grade)>maxGrade||!Number.isInteger(Number(cls))||Number(cls)<1||!Number.isInteger(num)||num<1||!name){toast('학년·반·번호는 올바른 양의 정수로, 이름은 필수로 입력하세요','error');return;}
     const data={number:num, name, class_group:toClassGroup(grade,cls), phone:document.getElementById('s-phone').value.trim(), parent_phone:document.getElementById('s-parent-phone').value.trim(), address:document.getElementById('s-address').value.trim(), note:document.getElementById('s-note').value};
     const button=document.getElementById('s-save');button.disabled=true;
     try {
@@ -116,6 +123,8 @@ function showStudentModal(s){
 
 async function importCSV(file){
   if(!file)return;
+  const profile=window.schoolProfile?await schoolProfile.load():{};
+  const maxGrade=profile.type?schoolProfile.gradeCount(profile.type):6;
   const input=document.getElementById('st-csv-input');
   const text=await file.text();
   const lines=parseCSV(text).filter(row=>row.some(cell=>String(cell||'').trim()));
@@ -124,7 +133,7 @@ async function importCSV(file){
   for(let i=1;i<lines.length;i++){
     const cols=lines[i].map(c=>String(c||'').trim());
     const grade=cols[0], cls=cols[1], num=Number(cols[2]), name=cols[3];
-    if(!/^\d+$/.test(grade)||!/^\d+$/.test(cls)||Number(grade)<1||Number(cls)<1||!Number.isInteger(num)||num<1||!name){
+    if(!/^\d+$/.test(grade)||!/^\d+$/.test(cls)||Number(grade)<1||Number(grade)>maxGrade||Number(cls)<1||!Number.isInteger(num)||num<1||!name){
       toast(`${i+1}행의 학년·반·번호·이름을 확인하세요. 가져오기를 취소했습니다.`,'error');return;
     }
     const row={number:num, name, class_group:toClassGroup(grade,cls)};

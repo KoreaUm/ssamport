@@ -127,6 +127,7 @@ async function render(container) {
           </div>
         </section>
 
+        <section class="card settings-card"><div class="settings-title">학교 · 담당 학급 초기 설정</div><p>학교급, 학급 수, 담당 반, 교과, 날씨와 급식 학교를 설정합니다.</p><button class="btn btn-primary" onclick="navigateTo('onboarding')">초기 설정 열기 / 수정</button></section>
         <section class="card settings-card" id="settings-class">
           <div class="settings-head">
             <div class="settings-title">\uD559\uAE09 \uC815\uBCF4</div>

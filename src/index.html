@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <script src="api.js"></script>
+<script src="school_profile.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>쌤포트</title>
@@ -218,6 +219,7 @@
   var remoteApplyDepth = 0;
   var originalSetSetting = api.setSetting.bind(api);
   var CLOUD_SYNC_KEYS = [
+    "school_profile", "onboarding_complete", "school_name", "period_count",
     "class_year",
     "class_num",
     "teacher_name",
@@ -2482,7 +2484,7 @@
       api.getSetting("class_num", "-"),
       api.getSetting("teacher_name", "담임")
     ]).then(function (values) {
-      text("class-info", "🏫 " + values[0] + "학년 " + values[1] + "반 · " + values[2]);
+      text("class-info", (values[0] && values[0] !== "-" && values[1] ? "🏫 " + values[0] + "학년 " + values[1] + "반 · " : "🏫 ") + values[2]);
     });
   }
   window.updateClassInfo = updateClassInfo;
@@ -3047,10 +3049,10 @@
       return updateClassInfo();
     })
     .then(function () {
-      return navigateTo("dashboard");
+      return api.getSetting("onboarding_complete", "").then(function (done) { return navigateTo(done === "1" ? "dashboard" : "onboarding"); });
     })
     .then(function () {
-      setTimeout(showReleaseNoticeIfNeeded, 600);
+      if (currentPage !== "onboarding") setTimeout(showReleaseNoticeIfNeeded, 600);
     })
     .catch(function (error) {
       document.getElementById("page-tabs").innerHTML =
