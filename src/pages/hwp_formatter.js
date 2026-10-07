@@ -128,6 +128,10 @@ async function render(container) {
           <div class="hwp-modal-desc">
             대제목 섹션의 <b>포함 여부</b>, <b>순서</b>(드래그), <b>이름</b>, <b>작성 주체</b>(🤖 AI 생성 / ✍️ 직접 작성)를 정할 수 있습니다.
           </div>
+          <label class="hwp-allow-extra-row">
+            <input type="checkbox" id="hwpf-allow-extra" checked>
+            🤖 AI가 흐름에 맞게 섹션을 추가 제안할 수 있도록 허용 (아래 목록은 그대로 포함되고, 필요 시 사이·뒤에 섹션이 더 생성됨)
+          </label>
           <div id="hwpf-sections-list" class="hwp-modal-list"></div>
           <div class="hwp-modal-footer">
             <div class="hwp-modal-actions">
@@ -183,6 +187,7 @@ async function render(container) {
   }
 
   var sections = defaultSections(savedType);
+  var allowExtraSections = true;
   var dragIdx = -1;
 
   function updateSectionsSummary() {
@@ -473,6 +478,9 @@ async function render(container) {
   });
 
   // 섹션 구성 모달
+  container.querySelector('#hwpf-allow-extra').addEventListener('change', function (e) {
+    allowExtraSections = e.target.checked;
+  });
   container.querySelector('#hwpf-sections-edit').addEventListener('click', openSectionsModal);
   container.querySelector('#hwpf-sections-close').addEventListener('click', closeSectionsModal);
   container.querySelector('#hwpf-sections-apply').addEventListener('click', function () {
@@ -528,7 +536,8 @@ async function render(container) {
       topic: topicEl.value.trim(),
       docType: typeEl.value,
       school: schoolEl.value.trim(),
-      sections: includedSections.map(function (s) { return { name: s.name, mode: s.mode, type: s.type || 'heading' }; })
+      sections: includedSections.map(function (s) { return { name: s.name, mode: s.mode, type: s.type || 'heading' }; }),
+      allowExtraSections: allowExtraSections
     });
     if (r && r.ok) {
       try {
@@ -557,7 +566,14 @@ async function render(container) {
     statusEl.style.color = 'var(--accent)';
 
     try {
-      var r = await window.api.hwpGenerateMarkdown({ topic: topic, docType: typeEl.value });
+      var includedSections = sections.filter(function (s) { return s.included && s.name.trim(); });
+      var r = await window.api.hwpGenerateMarkdown({
+        topic: topic,
+        docType: typeEl.value,
+        school: schoolEl.value.trim(),
+        sections: includedSections.map(function (s) { return { name: s.name, mode: s.mode, type: s.type || 'heading' }; }),
+        allowExtraSections: allowExtraSections
+      });
       if (r && r.ok && r.markdown) {
         ta.value = r.markdown;
         updateCount();

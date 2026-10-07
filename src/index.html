@@ -93,8 +93,8 @@
         </div>
         <button id="google-connect-btn" class="topbar-btn" title="Google 계정 연동">🔗 Google 연동</button>
         <div class="vdiv"></div>
-        <span id="local-save-status" style="font-size:11px">로컬 저장</span>
-        <span id="sync-status" role="status" style="font-size:11px"></span>
+        <span id="local-save-status" style="font-size:11px;color:var(--danger,#d33);display:none"></span>
+        <span id="sync-status" role="status" style="font-size:11px;color:var(--danger,#d33);display:none"></span>
         <button id="sync-retry" class="topbar-btn" style="display:none">동기화 재시도</button>
         <span id="header-date"></span>
       </div>
@@ -123,13 +123,16 @@
   var syncStates = {};
   function reportSync(channel, state) {
     syncStates[channel] = state;
-    document.getElementById('sync-status').textContent = Object.keys(syncStates).map(function (key) {
-      return key + ': ' + syncStates[key];
-    }).join(' · ');
-    document.getElementById('sync-retry').style.display = Object.values(syncStates).some(function (value) { return value === '실패'; }) ? '' : 'none';
+    var failed = Object.keys(syncStates).filter(function (key) { return syncStates[key] === '실패'; });
+    var syncEl = document.getElementById('sync-status');
+    syncEl.textContent = failed.map(function (key) { return key + ' 동기화 실패'; }).join(' · ');
+    syncEl.style.display = failed.length ? '' : 'none';
+    document.getElementById('sync-retry').style.display = failed.length ? '' : 'none';
   }
   window.addEventListener('local-save', function (event) {
-    document.getElementById('local-save-status').textContent = event.detail ? '이 컴퓨터에 저장됨' : '로컬 저장 실패';
+    var localEl = document.getElementById('local-save-status');
+    localEl.textContent = event.detail ? '' : '로컬 저장 실패';
+    localEl.style.display = event.detail ? 'none' : '';
   });
   document.getElementById('sync-retry').onclick = async function () {
     await Promise.allSettled([window.syncCloudNow(), syncWithGoogleTasks()]);

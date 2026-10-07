@@ -3746,6 +3746,8 @@ input.od-gaeyo-input { flex: 1; height: 26px; font-size: 12px; width: auto; padd
 .hwp-modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .hwp-modal-title { font-weight: 700; font-size: 16px; color: var(--text); }
 .hwp-modal-desc { font-size: 12px; color: var(--text2); margin-bottom: 14px; line-height: 1.5; }
+.hwp-allow-extra-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 12px; padding: 8px 10px; background: var(--bg2, rgba(0,0,0,0.03)); border-radius: 8px; cursor: pointer; }
+.hwp-allow-extra-row input { margin-top: 2px; flex-shrink: 0; }
 .hwp-modal-list { overflow-y: auto; flex: 1; padding-right: 4px; }
 .hwp-modal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .hwp-modal-actions { display: flex; gap: 6px; }

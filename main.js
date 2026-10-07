@@ -1115,6 +1115,17 @@ ipcMain.handle('switch-user-database', (e, uid, options = {}) => {
 ipcMain.handle('get-setting', (e, key, def) => db.getSetting(key, def));
 ipcMain.handle('set-setting', (e, key, val) => db.setSetting(key, val));
 ipcMain.handle('get-all-settings', () => db.getAllSettings());
+ipcMain.handle('get-auto-launch', () => {
+  if (process.platform !== 'win32' && process.platform !== 'darwin') return false;
+  try { return app.getLoginItemSettings().openAtLogin; } catch (_) { return false; }
+});
+ipcMain.handle('set-auto-launch', (e, enable) => {
+  if (process.platform !== 'win32' && process.platform !== 'darwin') return false;
+  try {
+    app.setLoginItemSettings({ openAtLogin: !!enable, openAsHidden: false });
+    return app.getLoginItemSettings().openAtLogin;
+  } catch (_) { return false; }
+});
 ipcMain.handle('get-ai-engine-status', async (e, engine) => {
   try {
     return await getAiEngineStatus(engine);
@@ -3063,7 +3074,7 @@ ipcMain.handle('hwp-build-hwpx', async (_evt, opts) => {
 });
 
 // ── 한글(HWP) 자동 서식: 로컬 AI(Ollama)로 마크다운 생성 ──────────
-ipcMain.handle('hwp-generate-markdown', async (_evt, { topic, docType }) => {
+ipcMain.handle('hwp-generate-markdown', async (_evt, { topic, docType, school, sections, allowExtraSections }) => {
   if (!topic || !String(topic).trim()) {
     return { ok: false, error: '주제를 입력해주세요.' };
   }
@@ -3075,7 +3086,7 @@ ipcMain.handle('hwp-generate-markdown', async (_evt, { topic, docType }) => {
     return { ok: false, error: 'AI 엔진이 설정되어 있지 않습니다. (설정 → AI 엔진)' };
   }
 
-  const prompt = buildHwpMarkdownPrompt(topic, docType);
+  const prompt = buildHwpMarkdownPrompt(topic, docType, school || '', sections || null, allowExtraSections !== false);
   const result = await requestOllamaJson('/api/generate', {
     model,
     stream: false,
@@ -3095,11 +3106,11 @@ ipcMain.handle('hwp-generate-markdown', async (_evt, { topic, docType }) => {
 });
 
 // ── 한글(HWP) 자동 서식: GPT/Claude용 프롬프트 생성 (복사용) ────
-ipcMain.handle('hwp-build-prompt', async (_evt, { topic, docType, school, sections }) => {
-  return { ok: true, prompt: buildHwpMarkdownPrompt(topic || '', docType || '', school || '', sections || null) };
+ipcMain.handle('hwp-build-prompt', async (_evt, { topic, docType, school, sections, allowExtraSections }) => {
+  return { ok: true, prompt: buildHwpMarkdownPrompt(topic || '', docType || '', school || '', sections || null, allowExtraSections !== false) };
 });
 
-function buildHwpMarkdownPrompt(topic, docType, school, sections) {
+function buildHwpMarkdownPrompt(topic, docType, school, sections, allowExtraSections) {
   const typeLabel = docType || '공문서';
   const schoolLine = school ? `부서: ${school}` : `부서: 부서명 팀명 (예: 중등교육과 중등교육팀)`;
 
@@ -3121,7 +3132,13 @@ function buildHwpMarkdownPrompt(topic, docType, school, sections) {
     lines.push('- 🤖 AI 작성 [대제목]: 아래에 ◦ 항목 3~5개로 충실히 작성');
     lines.push('- 🤖 AI 작성 [붙임]: 아래에 ◦ 항목 또는 내용 2~4개로 작성');
     lines.push('- ✍️ 직접 작성 섹션: 해당 태그 줄 + 빈 줄 한 줄만 출력하고 본문은 작성하지 말 것 (사용자가 직접 채울 영역)');
-    lines.push('- 위에 명시되지 않은 추가 섹션은 임의로 만들지 말 것');
+    if (allowExtraSections) {
+      lines.push('- 위 섹션은 모두 지정된 순서·이름으로 반드시 포함할 것');
+      lines.push('- 다만 공문의 논리적 흐름상 필요하다면, 위 목록 사이나 뒤에 "대제목:" 섹션을 추가로 더 작성해도 됨 (예: 세부 추진 계획과 기대 효과 사이에 "소요 예산" 섹션 등)');
+      lines.push('- 추가 섹션도 동일한 태그 형식(대제목:/소제목:/◦ 항목 등)을 따르고, 내용과 자연스럽게 이어지는 위치에 배치할 것');
+    } else {
+      lines.push('- 위에 명시되지 않은 추가 섹션은 임의로 만들지 말 것');
+    }
     sectionInstr = lines.join('\n');
   } else {
     sectionInstr = [

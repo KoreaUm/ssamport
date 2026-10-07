@@ -124,6 +124,18 @@ async function render(container) {
               <div class="settings-note" id="app-version-label">${escapeHtml(versionLabel)}</div>
             </div>
           </div>
+          ${window.nativeApi?.platform === 'win32' || window.nativeApi?.platform === 'darwin' ? `
+          <div class="settings-head" style="margin-top:12px">
+            <div>
+              <div class="settings-title">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input type="checkbox" id="auto-launch-toggle" />
+                  컴퓨터 시작 시 자동으로 실행
+                </label>
+              </div>
+              <div class="settings-note">로그인할 때마다 쌤포트가 자동으로 켜집니다.</div>
+            </div>
+          </div>` : ''}
         </section>
 
         <section class="card settings-card" id="settings-account">
@@ -686,6 +698,17 @@ async function init() {
   document.getElementById('open-user-management-btn')?.addEventListener('click', () => {
     if (window.navigateTo) window.navigateTo('user_management');
   });
+
+  const autoLaunchToggle = document.getElementById('auto-launch-toggle');
+  if (autoLaunchToggle && window.nativeApi?.getAutoLaunch) {
+    window.nativeApi.getAutoLaunch().then((enabled) => { autoLaunchToggle.checked = !!enabled; });
+    autoLaunchToggle.addEventListener('change', async () => {
+      const wanted = autoLaunchToggle.checked;
+      const result = await window.nativeApi.setAutoLaunch(wanted);
+      autoLaunchToggle.checked = !!result;
+      toast(result === wanted ? (wanted ? '시작 시 자동 실행을 켰습니다.' : '시작 시 자동 실행을 껐습니다.') : '설정을 변경할 수 없습니다.', result === wanted ? 'success' : 'warning');
+    });
+  }
 
   document.getElementById('open-feedback-admin-btn')?.addEventListener('click', () => {
     if (window.navigateTo) window.navigateTo('feedback_admin');
