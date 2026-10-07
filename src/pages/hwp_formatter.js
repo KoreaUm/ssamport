@@ -16,7 +16,7 @@ async function render(container) {
   var savedMd = '';
   var savedTopic = (await api.getSetting('hwp_topic', '')) || '';
   var savedType = (await api.getSetting('hwp_doctype', DOC_TYPES[0])) || DOC_TYPES[0];
-  var savedSchool = (await api.getSetting('hwp_school', '')) || (await api.getSetting('school_name', '')) || '';
+  var savedSchool = await window.schoolProfile.name();
   var savedLogo   = (await api.getSetting('hwp_logo_path', '')) || '';
 
   container.innerHTML = `
@@ -439,7 +439,7 @@ async function render(container) {
   });
   topicEl.addEventListener('input', function () { api.setSetting('hwp_topic', topicEl.value); });
   typeEl.addEventListener('change', function () { api.setSetting('hwp_doctype', typeEl.value); });
-  schoolEl.addEventListener('input', function () { api.setSetting('hwp_school', schoolEl.value); });
+  // 기관명 수정은 현재 문서에만 적용하고, 새로 열 때는 전체 학교 설정을 사용한다.
 
   // 로고 파일 선택
   container.querySelector('#hwpf-logo-pick').addEventListener('click', async function () {

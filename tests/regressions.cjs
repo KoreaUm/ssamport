@@ -354,3 +354,58 @@ test('password reset validates email, prevents duplicate requests and allows ret
   ctx.firebaseAuth.sendPasswordResetEmail=async()=>{throw {code:'auth/too-many-requests'};};await ctx.sendAuthPasswordReset();assert.match(status.textContent,/잠시 후/);
   ctx.firebaseAuth.sendPasswordResetEmail=async()=>{throw {code:'auth/user-not-found'};};await ctx.sendAuthPasswordReset();assert.match(status.textContent,/가입된 이메일이면/);
 });
+
+test('school documents use the shared school and preserve external agency references', async () => {
+  let school='충주상업고등학교';
+  const ctx=context({window:{},api:{getSetting:async key=>key==='school_name'?school:'한국고'},localStorage:{getItem:()=> '한국고'}});
+  vm.runInContext(read('src/school_profile.js'),ctx);
+  assert.equal(await ctx.window.schoolProfile.name(),'충주상업고등학교');
+  school='다른고등학교';
+  assert.equal(await ctx.window.schoolProfile.name(),'다른고등학교');
+  const elements={};
+  for(const id of ['school','docno','date']) elements['sv-f-refDoc-'+id]={value:id==='docno'?'1234':id==='date'?'2026-10-06':'',addEventListener(){}};
+  elements['sv-f-refDoc']={value:''};
+  ctx.document={getElementById:id=>elements[id]};
+  ctx.getSchoolName=()=> '충주상업고등학교';ctx.refDocComposers=[];
+  const source=read('src/pages/official_document.js');
+  vm.runInContext(section(source,'    function isOwnSchoolDocField','    function wireSessionNoField'),ctx);
+  vm.runInContext(read('src/sv_document_templates.js'),ctx);
+  let checked=0;
+  for(const tpl of ctx.window.SVDocumentTemplates) {
+    for(const field of tpl.fields) {
+      if(field.ph?.includes('학교지원센터-')) assert.equal(ctx.isOwnSchoolDocField(field),false);
+      if(field.id==='refDoc' && ctx.isOwnSchoolDocField(field)) {
+        ctx.wireRefDocField(field);
+        assert.match(elements['sv-f-refDoc'].value,/^충주상업고등학교-1234\(2026\.10\.6\.\)/);
+        assert(tpl.generate({refDoc:elements['sv-f-refDoc'].value}).includes('충주상업고등학교-1234'));
+        checked++;
+      }
+    }
+  }
+  assert(checked>10);
+});
+
+test('shared profile follows updated homeroom and period settings without hiding saved classes or periods', async () => {
+  const settings={school_profile:JSON.stringify({type:'초등학교',homeroom:'1학년 1반',classes:['1학년 1반'],subject:'음악'}),class_year:'6',class_num:'12',period_count:'6'};
+  const ctx=context({window:{},api:{getAllSettings:async()=>settings,getSetting:async(k,d)=>settings[k]??d}});
+  vm.runInContext(read('src/school_profile.js'),ctx);
+  const profile=ctx.window.schoolProfile;
+  assert.equal((await profile.load()).homeroom,'6학년 12반');
+  assert.deepEqual(Array.from(await profile.classes([{class_group:'2학년 3반'}])),['1학년 1반','2학년 3반','6학년 12반']);
+  assert.equal(await profile.periods(),6);
+  assert.equal(await profile.periods([{period:9}]),9);
+  settings.period_count='12';assert.equal(await profile.periods(),12);
+  settings.class_year='';settings.class_num='';
+  assert.equal((await profile.load()).homeroom,'');
+  assert.equal((await profile.load()).subject,'음악');
+});
+
+test('lesson material defaults use school profile while keeping user selections', async () => {
+  const state={school:[],subject:[],grade:[]};
+  const ctx=context({state,schoolProfile:{load:async()=>({type:'초등학교',subject:'음악',homeroom:'6학년 12반'})}});
+  vm.runInContext(section(read('src/pages/lesson_materials.js'),'  async function applyProfileDefaults','  async function init'),ctx);
+  await ctx.applyProfileDefaults();
+  assert.equal(state.school[0],'초등학교');assert.equal(state.subject[0],'음악');assert.equal(state.grade[0],'6학년');
+  state.subject=['미술'];state.grade=['2학년'];await ctx.applyProfileDefaults();
+  assert.equal(state.subject[0],'미술');assert.equal(state.grade[0],'2학년');
+});

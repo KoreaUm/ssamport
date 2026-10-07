@@ -2,7 +2,7 @@
 'use strict';
 
 const DAYS = ['월', '화', '수', '목', '금'];
-const MAX_PERIOD = 7;
+let MAX_PERIOD = 7;
 
 let timetableData = {};
 let selectedImage = null;
@@ -67,6 +67,7 @@ async function init() {
   selectedImage = null;
 
   const timetable = await api.getTimetable();
+  MAX_PERIOD = await schoolProfile.periods(timetable);
   for (const entry of timetable) {
     timetableData[`${entry.day_of_week}_${entry.period}`] = entry;
   }
@@ -302,7 +303,7 @@ async function runTimetableOCR() {
 
 각 항목 형식: {"day_of_week":요일번호, "period":교시번호, "subject":"과목명"}
 - 요일번호: 월=0, 화=1, 수=2, 목=3, 금=4
-- 교시번호: 1~7 정수
+- 교시번호: 1~${MAX_PERIOD} 정수
 - 코드블록 없이 JSON 배열만 출력
 
 OCR 텍스트:

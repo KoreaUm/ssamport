@@ -1205,7 +1205,8 @@ async function refreshTimetable(){
   for(const e of tt) map[`${e.day_of_week}_${e.period}`]=e;
   let html='<div class="tt-grid"><div></div>';
   for(let d=0;d<5;d++) html+=`<div class="tt-head${d===todayIdx?' today':''}">${DAYS[d]}</div>`;
-  for(let p=1;p<=7;p++){
+  const periodCount = await schoolProfile.periods(tt);
+  for(let p=1;p<=periodCount;p++){
     html+=`<div class="tt-period">${p}</div>`;
     for(let d=0;d<5;d++){
       const cell=map[`${d}_${p}`],subj=cell?cell.subject:'',room=cell?cell.room:'';
@@ -1378,7 +1379,8 @@ async function renderSchoolTT(){
     html+=`<th${d===todayIdx?' class="neis-today-col"':''}>${DAYS[d]}<br><span style="font-size:9px;font-weight:400">(${dt.getMonth()+1}/${dt.getDate()})</span></th>`;
   }
   html+='</tr></thead><tbody>';
-  for(let p=1;p<=7;p++){
+  const periodCount = await schoolProfile.periods(tt);
+  for(let p=1;p<=periodCount;p++){
     html+=`<tr><td class="neis-period">${p}</td>`;
     for(let d=0;d<5;d++){
       const cell=map[`${d}_${p}`],subj=cell?cell.subject:'';
@@ -1959,7 +1961,7 @@ renderSchoolTT=async function(){
   const map={};
   const subjectKeys=[];
   const subjectCounts={};
-  let maxPeriod=7;
+  let maxPeriod=await schoolProfile.periods(items);
   items.forEach((entry)=>{
     if(entry&&Number.isInteger(entry.day_of_week)&&Number.isInteger(entry.period)){
       map[`${entry.day_of_week}_${entry.period}`]=entry;

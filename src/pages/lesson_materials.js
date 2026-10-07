@@ -179,9 +179,9 @@
         `<textarea class="lm-topic" id="lm-topic" placeholder="예) 금융상품의 이자 계산과 실생활 적용"></textarea>`,
         `<p class="lm-help">팁: 과목명, 단원명, 실제 수업에서 다룰 핵심 개념을 함께 적어주세요.</p>`
       ].join(""), "lm-topic-block"),
-      block("lm-school-block", "02", "학교급 선택", `<div class="lm-tags">${tag("school", "고등학교", "고등학교")}${tag("school", "중학교", "중학교")}</div>`),
+      block("lm-school-block", "02", "학교급 선택", `<div class="lm-tags">${tag("school", "초등학교", "초등학교")}${tag("school", "고등학교", "고등학교")}${tag("school", "중학교", "중학교")}</div>`),
       block("lm-target-block", "03", "대상 학년 및 난이도", [
-        `<div class="lm-subtitle">학년</div><div class="lm-tags">${["1학년", "2학년", "3학년"].map((v) => tag("grade", v, v)).join("")}</div>`,
+        `<div class="lm-subtitle">학년</div><div class="lm-tags">${["1학년", "2학년", "3학년", "4학년", "5학년", "6학년"].map((v) => tag("grade", v, v)).join("")}</div>`,
         `<div class="lm-subtitle">수준</div><div class="lm-tags">${["기초보충", "보통", "심화"].map((v) => tag("level", v, v)).join("")}</div>`
       ].join("")),
       block("lm-subject-block", "04", "과목 선택", subjectHtml()),
@@ -263,9 +263,22 @@
     return `<div class="lm-preview-box"><div class="lm-preview-label">${label}</div><pre id="${id}"></pre></div>`;
   }
 
-  function init() {
+  async function applyProfileDefaults() {
+    const profile = await schoolProfile.load();
+    if (!state.school.length && profile.type) state.school = [profile.type];
+    if (!state.subject.length && profile.subject) state.subject = [profile.subject];
+    const grade = (profile.homeroom || '').match(/^(\d+)학년/);
+    if (!state.grade.length && grade) state.grade = [grade[1] + '학년'];
+  }
+
+  async function init() {
+    await applyProfileDefaults();
     const root = document.querySelector(".lm-page");
     if (!root) return;
+    const subject = state.subject[0];
+    if (subject && !subjectGroups.some(([, items]) => items.some(([key]) => key === subject))) {
+      document.querySelector('#lm-subject-block .lm-tags').insertAdjacentHTML('beforeend', tag('subject', subject, subject));
+    }
 
     root.querySelectorAll(".lm-tag").forEach((button) => {
       button.addEventListener("click", () => toggleTag(button));
@@ -310,6 +323,7 @@
   function syncTagState() {
     document.querySelectorAll(".lm-tag").forEach((button) => {
       const group = button.dataset.group;
+      if (group === 'grade') button.hidden = parseInt(button.dataset.key, 10) > schoolProfile.gradeCount(state.school[0]);
       button.classList.toggle("on", Array.isArray(state[group]) && state[group].includes(button.dataset.key));
     });
   }
@@ -331,6 +345,10 @@
       state[group] = isOn ? [] : [key];
       if (!isOn) button.classList.add("on");
       if (group === "output") normalizeOutputState();
+      if (group === 'school') {
+        if (parseInt(state.grade[0], 10) > schoolProfile.gradeCount(key)) state.grade = [];
+        syncTagState();
+      }
     } else if (current.includes(key)) {
       state[group] = current.filter((value) => value !== key);
       button.classList.remove("on");
@@ -379,7 +397,7 @@
   function updatePreview() {
     const topic = (document.getElementById("lm-topic") || {}).value || "";
     const cfg = getOutputCfg();
-    const schoolMap = { "고등학교": "고등학생", "중학교": "중학생" };
+    const schoolMap = { "초등학교": "초등학생", "고등학교": "고등학생", "중학교": "중학생" };
     setPreview("lm-pv-topic", topic || "(주제 입력 대기 중)");
     setPreview("lm-pv-logic", `${schoolMap[state.school[0]] || "학생"} / ${state.subject[0] || "(과목 미선택)"} / ${state.curriculum[0] || "2022 개정"} / ${state.grade[0] || "(학년 미선택)"} / ${state.level[0] || "(수준 미선택)"}`);
     setPreview("lm-pv-structure", state.period[0] ? `${state.period[0]}\n도입방식: ${state.intro[0] || "주제에 맞게 자동 구성"}\n흐름: 도입 → 전개 → 정리` : (cfg.needsPeriod ? "(차시 선택 대기 중)" : `${cfg.label}\n문서형 결과물`));
@@ -521,7 +539,7 @@
     const outputKey = state.output[0];
     const cfg = getOutputCfg();
     const count = state.slidecnt[0] || cfg.defaultCount;
-    const schoolMap = { "고등학교": "고등학생", "중학교": "중학생" };
+    const schoolMap = { "초등학교": "초등학생", "고등학교": "고등학생", "중학교": "중학생" };
     const introGuide = {
       "질문": "개방형 질문으로 학생들의 사고를 깨우는 도입",
       "예시": "생활 속 예시나 구체적 상황을 활용한 도입",
@@ -638,7 +656,7 @@ PDF 분석 기준:
     return prompt;
   }
 
-  function resetState() {
+  async function resetState() {
     state.school = [];
     state.grade = [];
     state.level = [];
@@ -656,6 +674,7 @@ PDF 분석 기준:
     state.youtubeOptions = {};
     state.pdfMaterials = [];
     state.pdfUseMode = ["core_source"];
+    await applyProfileDefaults();
     const topic = document.getElementById("lm-topic");
     if (topic) topic.value = "";
     const pdfInput = document.getElementById("lm-pdf-input");

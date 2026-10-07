@@ -33,7 +33,7 @@ function drawClasses(){
  drawHomeroom();
 }
 function activeClasses(){const max=schoolProfile.gradeCount(document.getElementById('ob-type').value);return [...selected].filter(c=>{const m=c.match(/^(\d+)학년 (\d+)반$/);return m&&+m[1]<=max&&+m[2]<=(counts[m[1]]||0);}).sort((a,b)=>a.localeCompare(b,'ko',{numeric:true}));}
-function drawHomeroom(){const el=document.getElementById('ob-homeroom');const old=el.value||profile.homeroom|| (settings.class_year&&settings.class_num?`${settings.class_year}학년 ${settings.class_num}반`:'');el.innerHTML='<option value="">담임 학급 없음</option>'+activeClasses().map(c=>`<option ${c===old?'selected':''}>${c}</option>`).join('');}
+function drawHomeroom(){const el=document.getElementById('ob-homeroom');const old=el.options.length?el.value:(profile.homeroom||'');el.innerHTML='<option value="">담임 학급 없음</option>'+activeClasses().map(c=>`<option ${c===old?'selected':''}>${c}</option>`).join('');}
 async function init(){
  // Existing class assignments remain available; never rewrite students or scores.
  const records=await api.getStudents();

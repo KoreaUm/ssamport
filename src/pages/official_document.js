@@ -115,9 +115,9 @@
       '          <span>공문 번호를 선택하면 해당 양식이 자동으로 채워집니다.</span>',
       '        </div>',
       '        <details class="sv-settings-box">',
-      '          <summary>학교 기본 정보 설정 (한 번만 입력하면 계속 재사용됩니다)</summary>',
-      '          <label>학교명',
-      '            <input id="sv-school-name-input" placeholder="예: 한국고등학교">',
+      '          <summary>학교 정보 · 전담기구 위원 설정</summary>',
+      '          <label>학교명 <small>전체 학교 설정과 자동 연동</small>',
+      '            <input id="sv-school-name-input" readonly placeholder="설정에서 학교를 선택해 주세요">',
       '          </label>',
       '          <label>전담기구 위원 명단',
       '            <div class="sv-committee-add-row">',
@@ -251,6 +251,7 @@
       '',
       '</div>'
     ].join("");
+    document.getElementById("sv-school-name-input").value = await window.schoolProfile.name();
   }
 
   function collectDraftInput() {
@@ -596,13 +597,13 @@
     var svTemplates = window.SVDocumentTemplates || [];
     var svSelect = document.getElementById("sv-doc-select");
 
-    var SV_SCHOOL_NAME_KEY = "sv_school_name";
+    var currentSchoolName = getValue("sv-school-name-input");
     var SV_COMMITTEE_KEY = "sv_committee_members";
     var SV_WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
     var refDocComposers = [];
 
     function getSchoolName() {
-      try { return (localStorage.getItem(SV_SCHOOL_NAME_KEY) || "").trim(); } catch (e) { return ""; }
+      return currentSchoolName;
     }
 
     function getCommitteeList() {
@@ -615,26 +616,6 @@
     var schoolNameInput = document.getElementById("sv-school-name-input");
     if (schoolNameInput) {
       schoolNameInput.value = getSchoolName();
-      schoolNameInput.addEventListener("input", function () {
-        try { localStorage.setItem(SV_SCHOOL_NAME_KEY, schoolNameInput.value); } catch (e) {}
-        if (window.api && typeof window.api.setSetting === "function") {
-          window.api.setSetting("school_name", schoolNameInput.value.trim());
-        }
-        refDocComposers.forEach(function (fn) { fn(); });
-      });
-    }
-
-    // 설정(설정 > NEIS 설정)에 저장된 전역 학교 이름. 이 페이지에 아직 학교명이
-    // 입력되지 않았을 때만 자동으로 채워 넣는다 (사용자가 이 페이지에서 따로
-    // 입력한 값이 있으면 그 값을 우선한다).
-    if (!getSchoolName() && window.api && typeof window.api.getSetting === "function") {
-      window.api.getSetting("school_name", "").then(function (globalSchoolName) {
-        if (globalSchoolName && !getSchoolName()) {
-          try { localStorage.setItem(SV_SCHOOL_NAME_KEY, globalSchoolName); } catch (e) {}
-          if (schoolNameInput) schoolNameInput.value = globalSchoolName;
-          refDocComposers.forEach(function (fn) { fn(); });
-        }
-      });
     }
 
     function saveCommitteeList(list) {
