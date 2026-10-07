@@ -15,6 +15,43 @@
     return el ? el.value : "";
   }
 
+  // 학폭 공문용 개인 설정(전담기구 위원 명단, 마지막 사건번호)은 계정별 DB(settings)에 저장한다.
+  // 예전에는 localStorage에 두었는데, localStorage는 같은 PC의 모든 계정이 공유하므로
+  // 다른 계정으로 로그인해도 이전 계정의 명단이 보이는 문제가 있었다.
+  var SV_COMMITTEE_SETTING = "sv_committee_members";
+  var SV_CASE_NO_SETTING = "sv_last_case_no";
+  var svCommitteeCache = "";
+  var svLastCaseNoCache = "";
+
+  async function loadSvPersonalSettings() {
+    svCommitteeCache = String((await api.getSetting(SV_COMMITTEE_SETTING, "")) || "");
+    svLastCaseNoCache = String((await api.getSetting(SV_CASE_NO_SETTING, "")) || "");
+    // 업데이트 전 localStorage에 남아 있던 값은 지금 로그인한 계정으로 한 번만 옮기고 지운다.
+    try {
+      var legacyCommittee = localStorage.getItem(SV_COMMITTEE_SETTING);
+      if (legacyCommittee !== null) {
+        if (!svCommitteeCache && legacyCommittee) {
+          svCommitteeCache = legacyCommittee;
+          await api.setSetting(SV_COMMITTEE_SETTING, legacyCommittee);
+        }
+        localStorage.removeItem(SV_COMMITTEE_SETTING);
+      }
+      var legacyCaseNo = localStorage.getItem(SV_CASE_NO_SETTING);
+      if (legacyCaseNo !== null) {
+        if (!svLastCaseNoCache && legacyCaseNo) {
+          svLastCaseNoCache = legacyCaseNo;
+          await api.setSetting(SV_CASE_NO_SETTING, legacyCaseNo);
+        }
+        localStorage.removeItem(SV_CASE_NO_SETTING);
+      }
+    } catch (e) {}
+  }
+
+  function saveSvLastCaseNo(value) {
+    svLastCaseNoCache = String(value || "");
+    api.setSetting(SV_CASE_NO_SETTING, svLastCaseNoCache).catch(function () {});
+  }
+
   function setText(id, value) {
     var el = document.getElementById(id);
     if (el) el.textContent = value || "";
@@ -252,6 +289,7 @@
       '</div>'
     ].join("");
     document.getElementById("sv-school-name-input").value = await window.schoolProfile.name();
+    await loadSvPersonalSettings();
   }
 
   function collectDraftInput() {
@@ -598,7 +636,6 @@
     var svSelect = document.getElementById("sv-doc-select");
 
     var currentSchoolName = getValue("sv-school-name-input");
-    var SV_COMMITTEE_KEY = "sv_committee_members";
     var SV_WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
     var refDocComposers = [];
 
@@ -607,10 +644,8 @@
     }
 
     function getCommitteeList() {
-      try {
-        return (localStorage.getItem(SV_COMMITTEE_KEY) || "")
-          .split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
-      } catch (e) { return []; }
+      return (svCommitteeCache || "")
+        .split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
     }
 
     var schoolNameInput = document.getElementById("sv-school-name-input");
@@ -619,7 +654,8 @@
     }
 
     function saveCommitteeList(list) {
-      try { localStorage.setItem(SV_COMMITTEE_KEY, list.join("\n")); } catch (e) {}
+      svCommitteeCache = list.join("\n");
+      api.setSetting(SV_COMMITTEE_SETTING, svCommitteeCache).catch(function () {});
     }
 
     function renderCommitteeList() {
@@ -793,8 +829,6 @@
         svSelect.appendChild(optgroup);
       });
 
-      var SV_CASE_NO_KEY = "sv_last_case_no";
-
       function incrementCaseNo(str) {
         var m = str.match(/(\d+)(\D*)$/);
         if (!m) return str;
@@ -861,17 +895,15 @@
 
         var caseNoInput = document.getElementById("sv-f-caseNo");
         if (caseNoInput) {
-          var lastCaseNo = "";
-          try { lastCaseNo = localStorage.getItem(SV_CASE_NO_KEY) || ""; } catch (e) {}
-          if (lastCaseNo) caseNoInput.value = lastCaseNo;
+          if (svLastCaseNoCache) caseNoInput.value = svLastCaseNoCache;
           caseNoInput.addEventListener("input", function () {
-            try { localStorage.setItem(SV_CASE_NO_KEY, caseNoInput.value); } catch (e) {}
+            saveSvLastCaseNo(caseNoInput.value);
           });
           var incBtn = document.getElementById("sv-caseno-inc-btn");
           if (incBtn) {
             incBtn.addEventListener("click", function () {
               caseNoInput.value = incrementCaseNo(caseNoInput.value || "");
-              try { localStorage.setItem(SV_CASE_NO_KEY, caseNoInput.value); } catch (e) {}
+              saveSvLastCaseNo(caseNoInput.value);
             });
           }
         }
@@ -904,9 +936,7 @@
           var el = document.getElementById("sv-f-" + fld.id);
           vals[fld.id] = el ? el.value : "";
         });
-        if (vals.caseNo) {
-          try { localStorage.setItem("sv_last_case_no", vals.caseNo); } catch (e) {}
-        }
+        if (vals.caseNo) saveSvLastCaseNo(vals.caseNo);
         var parts = splitSvDoc(tpl.generate(vals));
         var table = tpl.table ? tpl.table(vals) : null;
         var rendered = renderSvBody(parts.rest, table);
