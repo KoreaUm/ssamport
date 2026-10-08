@@ -2152,7 +2152,12 @@ function httpsPostJson(hostnameOrUrl, pathOrUndefined, headers, body) {
   const url = pathOrUndefined === undefined ? hostnameOrUrl : `https://${hostnameOrUrl}${pathOrUndefined}`;
   return new Promise((resolve) => {
     const req = electronNet.request({ method: 'POST', url });
-    Object.entries(headers || {}).forEach(([key, value]) => req.setHeader(key, String(value)));
+    Object.entries(headers || {}).forEach(([key, value]) => {
+      // Content-Length는 Electron net 모듈이 write()한 데이터로 직접 계산한다.
+      // 직접 설정하면 net::ERR_INVALID_ARGUMENT로 요청 자체가 실패한다.
+      if (key.toLowerCase() === 'content-length') return;
+      req.setHeader(key, String(value));
+    });
     req.on('response', (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
