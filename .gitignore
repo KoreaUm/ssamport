@@ -8,6 +8,8 @@ dist/
 # Local temp / editor files
 tmp_*.js
 temp_*.xlsx
+/tmp/
+/output/
 *.db-shm
 *.db-wal
 Thumbs.db
