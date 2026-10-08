@@ -1402,7 +1402,7 @@ async function runAI(){
   const engine=await api.getSetting('ai_engine','local_lite');
   const model=await api.getSetting('ai_model','claude-opus-5');
   const provider=await api.getSetting('ai_provider','claude');
-  const useLocal=engine==='local_lite';
+  const useLocal=engine==='local_lite'||engine==='local_basic'||engine==='local_pro';
   const apiKey=useLocal?'':await api.getSetting('ai_api_key','');
   if(!useLocal&&!apiKey){toast('설정에서 AI API 키를 입력하세요','error');return;}
   const btn=document.getElementById('ai-run-btn'),res=document.getElementById('ai-result');

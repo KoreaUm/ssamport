@@ -678,9 +678,13 @@ function createTray() {
   if (tray) return tray;
 
   try {
-    const iconPath = fs.existsSync(path.join(__dirname, 'assets/icon.ico'))
-      ? path.join(__dirname, 'assets/icon.ico')
-      : path.join(__dirname, 'assets/app-icon.png');
+    // macOS Tray()는 .ico를 로드하지 못해 매번 예외가 났다(tray === null 유지 →
+    // 창을 닫으면 트레이 아이콘 없이 최소화만 되어 "실행이 안 된다"처럼 보일 수 있음).
+    const pngPath = path.join(__dirname, 'assets/app-icon.png');
+    const icoPath = path.join(__dirname, 'assets/icon.ico');
+    const iconPath = process.platform === 'darwin'
+      ? pngPath
+      : (fs.existsSync(icoPath) ? icoPath : pngPath);
     tray = new Tray(iconPath);
     tray.setToolTip('쌤포트');
     tray.setContextMenu(Menu.buildFromTemplate([
