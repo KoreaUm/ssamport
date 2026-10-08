@@ -1,4 +1,4 @@
-﻿const { app, BrowserWindow, ipcMain, shell, screen, dialog, Tray, Menu, clipboard } = require('electron');
+﻿const { app, BrowserWindow, ipcMain, shell, screen, dialog, Tray, Menu, clipboard, net: electronNet } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn, spawnSync, execSync } = require('child_process');
@@ -2145,6 +2145,26 @@ ipcMain.handle('import-class-timetable-excel', async (e, payload) => {
   }
 });
 
+// 학교 네트워크의 보안 필터링/백신 프로그램이 HTTPS 통신에 자체 인증서를 끼워넣는 경우가 있다.
+// Node의 https 모듈은 OS가 신뢰하는 인증서 저장소를 쓰지 않아 그런 환경에서 TLS 오류가 나므로,
+// 외부 AI 호출은 OS 인증서 저장소를 따르는 Electron의 net 모듈로 보낸다.
+function httpsPostJson(hostnameOrUrl, pathOrUndefined, headers, body) {
+  const url = pathOrUndefined === undefined ? hostnameOrUrl : `https://${hostnameOrUrl}${pathOrUndefined}`;
+  return new Promise((resolve) => {
+    const req = electronNet.request({ method: 'POST', url });
+    Object.entries(headers || {}).forEach(([key, value]) => req.setHeader(key, String(value)));
+    req.on('response', (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => resolve({ data, statusCode: res.statusCode }));
+      res.on('error', (err) => resolve({ error: `네트워크 오류: ${err.message}` }));
+    });
+    req.on('error', (err) => resolve({ error: `네트워크 오류: ${err.message}` }));
+    req.write(body);
+    req.end();
+  });
+}
+
 async function runClaude(apiKey, model, text, options = {}) {
   const content = [];
   if (options.userPrompt || text) {
@@ -2177,37 +2197,19 @@ async function runClaude(apiKey, model, text, options = {}) {
     messages: [{ role: 'user', content }],
   });
 
-  return new Promise((resolve) => {
-    const req = https.request({
-      hostname: 'api.anthropic.com',
-      path: '/v1/messages',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'Content-Length': Buffer.byteLength(body),
-      },
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          resolve({ result: json.content?.[0]?.text || '' });
-        } catch (err) {
-          resolve({ error: err.message });
-        }
-      });
-    });
-
-    req.setTimeout(20000, () => req.destroy(new Error('Google 요청 시간 초과')));
-    req.on('error', (err) => resolve({ error: err.message }));
-    req.write(body);
-    req.end();
-  });
+  const res = await httpsPostJson('api.anthropic.com', '/v1/messages', {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey,
+    'anthropic-version': '2023-06-01',
+    'Content-Length': Buffer.byteLength(body),
+  }, body);
+  if (res.error) return res;
+  try {
+    const json = JSON.parse(res.data);
+    return { result: json.content?.[0]?.text || '' };
+  } catch (err) {
+    return { error: err.message };
+  }
 }
 
 async function runGemini(apiKey, model, text, options = {}) {
@@ -2244,43 +2246,35 @@ async function runGemini(apiKey, model, text, options = {}) {
   // API 키는 URL 쿼리(로그/히스토리에 남을 수 있음) 대신 헤더로 전달
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${useModel}:generateContent`;
 
-  return new Promise((resolve) => {
-    const req = https.request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), 'x-goog-api-key': apiKey },
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          // API 오류 응답 처리
-          if (json.error) {
-            const msg = json.error.message || '';
-            if (msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
-              return resolve({ error: `Gemini 무료 한도 초과입니다. 설정에서 모델을 "gemini-2.0-flash"로 바꿔보세요.` });
-            }
-            return resolve({ error: `Gemini 오류: ${msg || JSON.stringify(json.error)}` });
-          }
-          // 안전 필터 차단
-          const blockReason = json.promptFeedback?.blockReason;
-          if (blockReason) {
-            return resolve({ error: `Gemini 안전 필터 차단: ${blockReason}` });
-          }
-          const resultText = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          if (!resultText && json.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
-            return resolve({ error: 'Gemini 응답이 너무 깁니다. 더 간단한 이미지로 시도해 주세요.' });
-          }
-          resolve({ result: resultText });
-        } catch (err) {
-          resolve({ error: `응답 파싱 오류: ${err.message}` });
-        }
-      });
-    });
-    req.on('error', (err) => resolve({ error: `네트워크 오류: ${err.message}` }));
-    req.write(body);
-    req.end();
-  });
+  const res = await httpsPostJson(url, undefined, {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(body),
+    'x-goog-api-key': apiKey,
+  }, body);
+  if (res.error) return res;
+  try {
+    const json = JSON.parse(res.data);
+    // API 오류 응답 처리
+    if (json.error) {
+      const msg = json.error.message || '';
+      if (msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+        return { error: `Gemini 무료 한도 초과입니다. 설정에서 모델을 "gemini-2.0-flash"로 바꿔보세요.` };
+      }
+      return { error: `Gemini 오류: ${msg || JSON.stringify(json.error)}` };
+    }
+    // 안전 필터 차단
+    const blockReason = json.promptFeedback?.blockReason;
+    if (blockReason) {
+      return { error: `Gemini 안전 필터 차단: ${blockReason}` };
+    }
+    const resultText = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!resultText && json.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
+      return { error: 'Gemini 응답이 너무 깁니다. 더 간단한 이미지로 시도해 주세요.' };
+    }
+    return { result: resultText };
+  } catch (err) {
+    return { error: `응답 파싱 오류: ${err.message}` };
+  }
 }
 
 // Groq, OpenRouter는 OpenAI 호환 /chat/completions 포맷을 사용
@@ -2305,37 +2299,22 @@ async function runOpenAiCompatible(hostname, path, extraHeaders, apiKey, model, 
     messages,
   });
 
-  return new Promise((resolve) => {
-    const req = https.request({
-      hostname,
-      path,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Length': Buffer.byteLength(body),
-        ...extraHeaders,
-      },
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.error) {
-            return resolve({ error: `${hostname} 오류: ${json.error.message || JSON.stringify(json.error)}` });
-          }
-          resolve({ result: json.choices?.[0]?.message?.content || '' });
-        } catch (err) {
-          resolve({ error: `응답 파싱 오류: ${err.message}` });
-        }
-      });
-    });
-    req.setTimeout(20000, () => req.destroy(new Error(`${hostname} 요청 시간 초과`)));
-    req.on('error', (err) => resolve({ error: `네트워크 오류: ${err.message}` }));
-    req.write(body);
-    req.end();
-  });
+  const res = await httpsPostJson(hostname, path, {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Length': Buffer.byteLength(body),
+    ...extraHeaders,
+  }, body);
+  if (res.error) return res;
+  try {
+    const json = JSON.parse(res.data);
+    if (json.error) {
+      return { error: `${hostname} 오류: ${json.error.message || JSON.stringify(json.error)}` };
+    }
+    return { result: json.choices?.[0]?.message?.content || '' };
+  } catch (err) {
+    return { error: `응답 파싱 오류: ${err.message}` };
+  }
 }
 
 async function runGroq(apiKey, model, text, options = {}) {
