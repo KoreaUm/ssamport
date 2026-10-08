@@ -6,7 +6,8 @@ function resolveAiEngine(s){
   s=s||{};
   var eng=s.ai_engine||'local_lite';
   var localEngine=(eng==='local_lite'||eng==='local_basic'||eng==='local_pro')?eng:'';
-  var externalProvider=eng==='gemini'?'gemini':((eng==='claude'||eng==='cloud')?'claude':'');
+  // Groq·OpenRouter가 빠져 있어, 이 둘을 쓰는 선생님은 키가 있어도 로컬 AI로 떨어지던 문제를 수정.
+  var externalProvider=['claude','gemini','groq','openrouter'].indexOf(eng)>=0?eng:(eng==='cloud'?(s.ai_provider||'claude'):'');
   var apiKey=s.ai_api_key||'';
   var canCloud=!!(externalProvider&&apiKey);
   return {localEngine:localEngine,externalProvider:externalProvider,apiKey:apiKey,model:s.ai_model||'',canCloud:canCloud};
