@@ -925,6 +925,99 @@ tbody tr:hover { background: var(--hover); }
 }
 .feedback-fab:hover { transform: scale(1.08); }
 .auth-locked .feedback-fab { display: none; }
+
+/* ── 모든 화면에 떠 있는 AI 채팅 (오류 제보 버튼 위에 배치) ── */
+.ai-chat-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 82px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent-d);
+  color: #fff;
+  font-size: 20px;
+  line-height: 48px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.25);
+  cursor: pointer;
+  z-index: 7000;
+  transition: transform .15s ease;
+}
+.ai-chat-fab:hover { transform: scale(1.08); }
+.auth-locked .ai-chat-fab { display: none; }
+
+.ai-chat-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 140px;
+  width: 380px;
+  max-width: calc(100vw - 48px);
+  height: 520px;
+  max-height: calc(100vh - 200px);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.22);
+  z-index: 7001;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ai-chat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.ai-chat-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.ai-chat-engine { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.ai-chat-head-actions { display: flex; gap: 4px; }
+.ai-chat-head button {
+  border: 0;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.ai-chat-head button:hover { background: var(--hover); }
+.ai-chat-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+}
+.ai-chat-msg { max-width: 85%; padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.ai-chat-msg.me { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+.ai-chat-msg.ai { align-self: flex-start; background: var(--card); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
+.ai-chat-msg.err { align-self: flex-start; background: var(--card); border: 1px solid var(--danger); color: var(--danger); }
+.ai-chat-empty { margin: auto; text-align: center; color: var(--text2); font-size: 13px; line-height: 1.7; padding: 0 12px; }
+.ai-chat-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); align-items: flex-end; }
+.ai-chat-input {
+  flex: 1;
+  resize: none;
+  min-height: 38px;
+  max-height: 120px;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+}
+.ai-chat-send { white-space: nowrap; }
+@media (max-width: 520px) {
+  .ai-chat-panel { right: 12px; left: 12px; width: auto; bottom: 140px; }
+}
 #auth-overlay {
   position: fixed;
   inset: 0;
@@ -3801,6 +3894,47 @@ textarea.textarea-lg { height: 120px; }
 .tt-period-cell { text-align: center; font-weight: 600; color: var(--text2); }
 input.tt-cell-input { height: 32px; font-size: 12px; margin-bottom: 4px; }
 .tt-my-class-label { font-size: 11px; color: var(--primary); font-weight: 600; }
+/* 모든 페이지 상단에 자동으로 붙는 사용 방법 안내 (app_manual.js 내용 기반) */
+.page-guide {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--accent-l);
+  border: 1px solid var(--accent);
+  margin-bottom: 16px;
+}
+.page-guide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+.page-guide-title { font-size: 14px; font-weight: 700; color: var(--accent-d); }
+.page-guide-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--accent-d);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.page-guide-body { margin-top: 10px; }
+.page-guide-lead { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 8px; }
+.page-guide-body ol { margin: 0; padding-left: 20px; }
+.page-guide-body li { font-size: 13px; color: var(--text); line-height: 1.7; }
+.page-guide-tip { font-size: 12px; color: var(--text2); line-height: 1.6; margin-top: 8px; }
+.tt-drop {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 22px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.tt-drop:hover { border-color: var(--accent); }
+.tt-drop.active { border-color: var(--accent); background: var(--accent-l); }
+.tt-drop-icon { font-size: 28px; line-height: 1; margin-bottom: 8px; }
+.tt-drop-text { font-size: 14px; color: var(--text2); line-height: 1.6; }
 
 /* ── 학사 일정 페이지 리디자인용 보조 클래스 (기존 규칙은 그대로 두고 아래에만 추가) ── */
 .sc-field { display: grid; gap: 6px; }

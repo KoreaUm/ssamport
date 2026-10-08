@@ -2031,6 +2031,16 @@ ipcMain.handle('ai-generate-official-doc', async (e, apiKey, model, provider, in
   }
 });
 
+// 채팅에서 넘어온 이전 대화를 프롬프트에 넣을 수 있게 정리한다.
+// 토큰이 끝없이 늘어나지 않도록 최근 10번의 주고받음, 각 1500자까지만 쓴다.
+function formatChatHistory(history) {
+  if (!Array.isArray(history) || !history.length) return '';
+  return history
+    .slice(-10)
+    .map((turn) => `${turn && turn.role === 'assistant' ? 'AI' : '선생님'}: ${String((turn && turn.text) || '').slice(0, 1500)}`)
+    .join('\n');
+}
+
 ipcMain.handle('ai-assistant-chat', async (e, payload = {}) => {
   try {
     const apiKey = String(payload.apiKey || '');
@@ -2043,8 +2053,10 @@ ipcMain.handle('ai-assistant-chat', async (e, payload = {}) => {
     const rawQuestion = String(payload.question || '');
     const question = sensitive ? pseudonymizeForCloud(rawQuestion, pseudoMap) : rawQuestion;
     const context = sensitive ? pseudonymizeForCloud(payload.context || '', pseudoMap) : String(payload.context || '');
+    const rawHistory = formatChatHistory(payload.history);
+    const history = sensitive ? pseudonymizeForCloud(rawHistory, pseudoMap) : rawHistory;
     if (!apiKey || !question) return { error: 'AI 설정 또는 질문이 비어 있습니다.' };
-    if (/^(안녕|안녕하세요|하이|hello|hi)$/i.test(String(payload.question || '').trim())) {
+    if (!history && /^(안녕|안녕하세요|하이|hello|hi)$/i.test(String(payload.question || '').trim())) {
       return { result: '선생님, 안녕하세요. 오늘 쌤포트에서 어떤 업무를 도와드릴까요?' };
     }
     const options = {
@@ -2059,7 +2071,7 @@ ipcMain.handle('ai-assistant-chat', async (e, payload = {}) => {
         '가능하면 바로 쓸 수 있는 문장, 확인할 항목, 다음 행동을 포함하세요.',
         '한국어로 실무적으로 답하세요. 내용이 복잡하면 3~5개의 구체 항목으로 정리하세요.'
       ].filter(Boolean).join('\n'),
-      userPrompt: `현재 페이지: ${page}\n\n${context ? `앱에 저장된 관련 맥락:\n${context}\n\n` : ''}사용자 질문:\n${question}`,
+      userPrompt: `현재 페이지: ${page}\n\n${context ? `앱에 저장된 관련 맥락:\n${context}\n\n` : ''}${history ? `지금까지 나눈 대화:\n${history}\n\n` : ''}사용자 질문:\n${question}`,
       maxTokens: 1200
     };
     const defaultModel = provider === 'gemini' ? 'gemini-2.5-flash'
@@ -2085,8 +2097,9 @@ ipcMain.handle('ai-local-chat', async (e, payload = {}) => {
     const question = String(payload.question || '').trim();
     const context = String(payload.context || '').trim();
     const page = String(payload.page || '현재 페이지');
+    const history = formatChatHistory(payload.history);
     if (!question) return { error: '질문이 비어 있습니다.' };
-    if (/^(안녕|안녕하세요|하이|hello|hi)$/i.test(question)) {
+    if (!history && /^(안녕|안녕하세요|하이|hello|hi)$/i.test(question)) {
       return { result: '선생님, 안녕하세요. 오늘 쌤포트에서 어떤 업무를 도와드릴까요?' };
     }
     const status = await getOllamaStatus(engine);
@@ -2106,6 +2119,7 @@ ipcMain.handle('ai-local-chat', async (e, payload = {}) => {
         `현재 페이지: ${page}`,
         '',
         context ? `앱에 저장된 관련 맥락:\n${context}\n` : '',
+        history ? `지금까지 나눈 대화:\n${history}\n` : '',
         retryText ? `이전 답변에 한국어가 아닌 문자가 섞였습니다. 아래 질문에 대해 다시 한국어로만 답하세요.\n${retryText}` : `사용자 질문: ${question}`
       ].join('\n');
     const runLocal = (prompt) => requestOllamaJson('/api/generate', {
@@ -2284,19 +2298,20 @@ async function runGemini(apiKey, model, text, options = {}) {
 
 // Groq, OpenRouter는 OpenAI 호환 /chat/completions 포맷을 사용
 async function runOpenAiCompatible(hostname, path, extraHeaders, apiKey, model, text, options = {}) {
-  const content = [];
-  if (options.userPrompt || text) {
-    content.push({ type: 'text', text: options.userPrompt || text });
-  }
-  if (options.image?.data && options.image?.mimeType) {
-    content.push({
-      type: 'image_url',
-      image_url: { url: `data:${options.image.mimeType};base64,${options.image.data}` },
-    });
-  }
+  const promptText = options.userPrompt || text || '';
+  const hasImage = !!(options.image?.data && options.image?.mimeType);
+  // 이미지가 없을 때 배열 형식을 쓰면 Groq의 텍스트 전용 모델이
+  // "content must be a string"으로 거부하므로, 그냥 문자열로 보낸다.
+  const userContent = hasImage
+    ? [
+      { type: 'text', text: promptText },
+      { type: 'image_url', image_url: { url: `data:${options.image.mimeType};base64,${options.image.data}` } },
+    ]
+    : promptText;
+
   const messages = [];
   if (options.system) messages.push({ role: 'system', content: options.system });
-  messages.push({ role: 'user', content: content.length ? content : (options.userPrompt || text || '') });
+  messages.push({ role: 'user', content: userContent });
 
   const body = JSON.stringify({
     model,
@@ -2322,8 +2337,14 @@ async function runOpenAiCompatible(hostname, path, extraHeaders, apiKey, model, 
   }
 }
 
+// Groq에서 이미지를 볼 수 있는 모델은 이것뿐이다. gpt-oss 계열은 텍스트 전용이므로
+// 시간표/공문 사진 분석을 쓸 수 있도록 이미지가 있으면 비전 모델로 바꿔 보낸다.
+const GROQ_VISION_MODEL = 'qwen/qwen3.8-27b';
+
 async function runGroq(apiKey, model, text, options = {}) {
-  return runOpenAiCompatible('api.groq.com', '/openai/v1/chat/completions', {}, apiKey, model || 'openai/gpt-oss-20b', text, options);
+  let useModel = model || 'openai/gpt-oss-20b';
+  if (options.image?.data && useModel !== GROQ_VISION_MODEL) useModel = GROQ_VISION_MODEL;
+  return runOpenAiCompatible('api.groq.com', '/openai/v1/chat/completions', {}, apiKey, useModel, text, options);
 }
 
 async function runOpenRouter(apiKey, model, text, options = {}) {

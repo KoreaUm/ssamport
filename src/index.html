@@ -73,15 +73,6 @@
             <div id="ai-quick-engine-list" style="display:grid;gap:6px;margin-bottom:14px"></div>
             <div id="ai-quick-external" style="display:none;gap:8px;flex-direction:column;margin-bottom:8px">
               <div>
-                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">외부 AI 제공업체</div>
-                <select id="ai-quick-provider" class="input" style="width:100%;font-size:13px">
-                  <option value="claude">Claude (Anthropic)</option>
-                  <option value="gemini">Gemini (Google)</option>
-                  <option value="groq">Groq (무료)</option>
-                  <option value="openrouter">OpenRouter (무료 모델)</option>
-                </select>
-              </div>
-              <div>
                 <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">API 키</div>
                 <input id="ai-quick-key" class="input" type="password" placeholder="API 키 입력" style="width:100%;font-size:13px;box-sizing:border-box">
               </div>
@@ -145,6 +136,14 @@
   document.getElementById('sync-retry').onclick = async function () {
     await Promise.allSettled([window.syncCloudNow(), syncWithGoogleTasks()]);
   };
+  // 파일을 창 아무 곳에나 떨어뜨리면 그 파일로 화면이 넘어가 앱이 멈춘 것처럼 보인다.
+  // 드롭을 직접 처리하는 영역([data-file-drop]) 밖에서는 기본 동작을 막는다.
+  ['dragover', 'drop'].forEach(function (eventName) {
+    window.addEventListener(eventName, function (event) {
+      if (event.target && event.target.closest && event.target.closest('[data-file-drop]')) return;
+      event.preventDefault();
+    });
+  });
   function notifyRemoteChange() {
     if (activePage) document.getElementById('remote-change-notice').style.display = '';
   }
@@ -2642,6 +2641,54 @@
       '<div class="page-wrap"><div class="empty-state"><div class="icon">!</div><p>' + message + "</p></div></div>";
   }
 
+  // 각 페이지 상단에 '사용 방법'을 자동으로 붙인다.
+  // 내용은 설명서(app_manual.js)에서 가져오므로 설명서와 화면 안내가 항상 같다.
+  function renderPageGuide(key, content) {
+    var manual = window.APP_MANUAL;
+    var section = manual && manual.sections && manual.sections.find(function (item) { return item.key === key; });
+    if (!section || !section.features || !section.features.length) return;
+
+    var collapsed = false;
+    try { collapsed = localStorage.getItem('page_guide_collapsed_' + key) === '1'; } catch (_) {}
+
+    var el = function (tag, className, text) {
+      var node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text) node.textContent = text;
+      return node;
+    };
+
+    var box = el('div', 'page-guide');
+    var head = el('div', 'page-guide-head');
+    head.appendChild(el('div', 'page-guide-title', '사용 방법 · ' + (section.title || '')));
+    var toggle = el('button', 'page-guide-toggle', collapsed ? '펼치기 ▾' : '접기 ▴');
+    toggle.type = 'button';
+    head.appendChild(toggle);
+
+    var body = el('div', 'page-guide-body');
+    if (collapsed) body.style.display = 'none';
+    if (section.description) body.appendChild(el('div', 'page-guide-lead', section.description));
+    var list = document.createElement('ol');
+    section.features.forEach(function (line) { list.appendChild(el('li', '', line)); });
+    body.appendChild(list);
+    (section.tips || []).forEach(function (tip) { body.appendChild(el('div', 'page-guide-tip', '💡 ' + tip)); });
+
+    box.appendChild(head);
+    box.appendChild(body);
+
+    head.addEventListener('click', function () {
+      var nowCollapsed = body.style.display !== 'none';
+      body.style.display = nowCollapsed ? 'none' : '';
+      toggle.textContent = nowCollapsed ? '펼치기 ▾' : '접기 ▴';
+      try { localStorage.setItem('page_guide_collapsed_' + key, nowCollapsed ? '1' : '0'); } catch (_) {}
+    });
+
+    // 페이지 제목 바로 아래에 넣고, 제목이 없으면 화면 맨 위에 넣는다.
+    var header = content.querySelector('.page-header');
+    if (header && header.parentNode) header.parentNode.insertBefore(box, header.nextSibling);
+    else (content.querySelector('.page-wrap') || content).prepend(box);
+  }
+
   function navigateTo(key) {
     var version = ++navigationVersion;
     // Serialize render/init: page modules still use shared document IDs after awaits.
@@ -2674,6 +2721,7 @@
       activePage = key;
       document.getElementById('remote-change-notice').style.display = 'none';
       await mod.render(content);
+      renderPageGuide(key, content);
       if (mod.init) await mod.init();
       if (window.refreshGoogleConnectButton) window.refreshGoogleConnectButton();
     }).catch(function (error) {
@@ -3014,7 +3062,6 @@
     var btn = document.getElementById('ai-settings-btn');
     var panel = document.getElementById('ai-settings-panel');
     var externalSection = document.getElementById('ai-quick-external');
-    var providerSelect = document.getElementById('ai-quick-provider');
     var modelSelect = document.getElementById('ai-quick-model');
     var modelSelectWrap = document.getElementById('ai-quick-model-select-wrap');
     var modelTextWrap = document.getElementById('ai-quick-model-text-wrap');
@@ -3059,7 +3106,8 @@
         radio.addEventListener('change', function () {
           var isExt = AI_ENGINE_OPTIONS.find(function (o) { return o.value === radio.value; })?.external;
           externalSection.style.display = isExt ? 'flex' : 'none';
-          if (isExt) updateModelOptions(providerSelect.value);
+          // 외부 AI는 엔진 선택이 곧 제공업체이므로 모델 목록도 함께 바뀐다.
+          if (isExt) updateModelOptions(radio.value);
           renderEngineList(radio.value);
         });
       });
@@ -3072,11 +3120,10 @@
         var engine = savedEngine === 'cloud' ? (s.ai_provider || 'claude') : (savedEngine === 'rule' ? 'local_lite' : savedEngine);
         var isExt = engine === 'claude' || engine === 'gemini' || engine === 'groq' || engine === 'openrouter';
         renderEngineList(engine);
-        providerSelect.value = isExt ? engine : (s.ai_provider || 'claude');
         keyInput.value = s.ai_api_key || '';
-        updateModelOptions(providerSelect.value);
+        updateModelOptions(engine);
         if (s.ai_model) {
-          if (usesFreeTextModel(providerSelect.value)) modelTextInput.value = s.ai_model;
+          if (usesFreeTextModel(engine)) modelTextInput.value = s.ai_model;
           else modelSelect.value = s.ai_model;
         }
         externalSection.style.display = isExt ? 'flex' : 'none';
@@ -3093,8 +3140,6 @@
     document.addEventListener('click', function () { panel.style.display = 'none'; });
     panel.addEventListener('click', function (e) { e.stopPropagation(); });
 
-    providerSelect.addEventListener('change', function () { updateModelOptions(providerSelect.value); });
-
     gotoSettingsBtn.addEventListener('click', function () {
       panel.style.display = 'none';
       navigateTo('settings');
@@ -3109,10 +3154,10 @@
           api.setSetting('ai_engine', engine)
         ];
         if (isExt) {
-          saves.push(api.setSetting('ai_provider', providerSelect.value));
+          saves.push(api.setSetting('ai_provider', engine));
           saves.push(api.setSetting('ai_api_key', keyInput.value.trim()));
-          saves.push(api.setSetting('ai_model', getSelectedModel(providerSelect.value)));
-          saves.push(api.setSetting('ai_external_consent_provider', providerSelect.value));
+          saves.push(api.setSetting('ai_model', getSelectedModel(engine)));
+          saves.push(api.setSetting('ai_external_consent_provider', engine));
           saves.push(api.setSetting('ai_external_consent_at', new Date().toISOString()));
         }
         Promise.all(saves).then(function () {
@@ -3125,9 +3170,9 @@
         }).catch(function (err) { alert('저장 실패: ' + (err && err.message || err)); });
       };
 
-      var alreadyConsented = lastLoadedSettings.ai_external_consent_provider === providerSelect.value;
+      var alreadyConsented = lastLoadedSettings.ai_external_consent_provider === engine;
       if (isExt && !alreadyConsented) {
-        confirmExternalAiConsentSimple(providerSelect.value).then(function (agreed) {
+        confirmExternalAiConsentSimple(engine).then(function (agreed) {
           if (agreed) doSave();
         });
       } else {
@@ -3201,6 +3246,190 @@
     });
     return { close: close, el: overlay };
   };
+
+  // ── 모든 화면에서 쓰는 AI 채팅 (오류 제보 버튼과 같은 방식의 떠 있는 버튼) ──
+  var AI_CHAT_STORAGE_KEY = 'ai_chat_messages_v1';
+  var aiChatMessages = [];
+  var aiChatLoaded = false;
+  var aiChatBusy = false;
+
+  function aiChatResolveEngine(settings) {
+    var s = settings || {};
+    var engine = s.ai_engine || 'local_lite';
+    var external = ['claude', 'gemini', 'groq', 'openrouter'].indexOf(engine) >= 0
+      ? engine
+      : (engine === 'cloud' ? (s.ai_provider || 'claude') : '');
+    var apiKey = s.ai_api_key || '';
+    return {
+      external: external,
+      apiKey: apiKey,
+      model: s.ai_model || '',
+      useCloud: !!(external && apiKey),
+      localEngine: ['local_lite', 'local_basic', 'local_pro'].indexOf(engine) >= 0 ? engine : 'local_lite'
+    };
+  }
+
+  function aiChatEngineLabel(info) {
+    if (info.useCloud) {
+      var names = { claude: 'Claude', gemini: 'Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
+      return '☁️ ' + (names[info.external] || info.external) + ' · 입력한 내용이 외부로 전송됩니다';
+    }
+    if (info.external && !info.apiKey) return '⚠️ API 키가 없어 Local AI로 답합니다';
+    return '💻 Local AI · 내 컴퓨터에서만 처리됩니다';
+  }
+
+  function aiChatSave() {
+    try { api.setSetting(AI_CHAT_STORAGE_KEY, JSON.stringify(aiChatMessages.slice(-100))); } catch (_) {}
+  }
+
+  function aiChatRenderLog() {
+    var log = document.getElementById('ai-chat-log');
+    if (!log) return;
+    log.innerHTML = '';
+    if (!aiChatMessages.length) {
+      var empty = document.createElement('div');
+      empty.className = 'ai-chat-empty';
+      empty.textContent = '무엇이든 물어보세요. 공문 문구, 상담 기록 정리, 학부모 안내문처럼 업무에 필요한 글을 도와드립니다. 앞서 나눈 대화를 기억하므로 이어서 물어보셔도 됩니다.';
+      log.appendChild(empty);
+      return;
+    }
+    aiChatMessages.forEach(function (msg) {
+      var node = document.createElement('div');
+      node.className = 'ai-chat-msg ' + (msg.role === 'user' ? 'me' : (msg.error ? 'err' : 'ai'));
+      node.textContent = msg.text;
+      log.appendChild(node);
+    });
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function aiChatSend() {
+    var input = document.getElementById('ai-chat-input');
+    var sendBtn = document.getElementById('ai-chat-send');
+    if (!input || aiChatBusy) return;
+    var text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    aiChatMessages.push({ role: 'user', text: text });
+    aiChatRenderLog();
+
+    aiChatBusy = true;
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '…'; }
+
+    var log = document.getElementById('ai-chat-log');
+    var pending = document.createElement('div');
+    pending.className = 'ai-chat-msg ai';
+    pending.textContent = '생각하는 중…';
+    if (log) { log.appendChild(pending); log.scrollTop = log.scrollHeight; }
+
+    // 직전 대화만 보내고, 방금 보낸 질문은 question으로 따로 전달한다.
+    var history = aiChatMessages.slice(0, -1).map(function (msg) {
+      return { role: msg.role === 'user' ? 'user' : 'assistant', text: msg.text };
+    });
+
+    try {
+      var settings = await api.getAllSettings();
+      var info = aiChatResolveEngine(settings);
+      var result = info.useCloud
+        ? await api.aiAssistantChat({
+            provider: info.external, model: info.model, apiKey: info.apiKey,
+            page: 'AI 채팅', question: text, context: '', history: history
+          })
+        : await api.aiLocalChat({ engine: info.localEngine, page: 'AI 채팅', question: text, context: '', history: history });
+
+      if (result && result.error) aiChatMessages.push({ role: 'assistant', text: '오류: ' + result.error, error: true });
+      else aiChatMessages.push({ role: 'assistant', text: (result && result.result) || '답변을 받지 못했습니다.' });
+    } catch (error) {
+      aiChatMessages.push({ role: 'assistant', text: '오류: ' + ((error && error.message) || error), error: true });
+    }
+
+    aiChatBusy = false;
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '보내기'; }
+    aiChatRenderLog();
+    aiChatSave();
+  }
+
+  async function aiChatRefreshEngineLabel() {
+    var el = document.getElementById('ai-chat-engine');
+    if (!el) return;
+    try { el.textContent = aiChatEngineLabel(aiChatResolveEngine(await api.getAllSettings())); } catch (_) {}
+  }
+
+  async function openAiChatPanel() {
+    var panel = document.getElementById('ai-chat-panel');
+    if (panel) { panel.remove(); return; }
+
+    if (!aiChatLoaded) {
+      try {
+        var raw = await api.getSetting(AI_CHAT_STORAGE_KEY, '[]');
+        var parsed = JSON.parse(raw || '[]');
+        if (Array.isArray(parsed)) aiChatMessages = parsed;
+      } catch (_) { aiChatMessages = []; }
+      aiChatLoaded = true;
+    }
+
+    panel = document.createElement('div');
+    panel.id = 'ai-chat-panel';
+    panel.className = 'ai-chat-panel';
+    panel.innerHTML =
+      '<div class="ai-chat-head">' +
+        '<div><div class="ai-chat-title">🤖 AI 채팅</div><div class="ai-chat-engine" id="ai-chat-engine"></div></div>' +
+        '<div class="ai-chat-head-actions">' +
+          '<button type="button" id="ai-chat-reset">새 대화</button>' +
+          '<button type="button" id="ai-chat-close">✕</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="ai-chat-log" id="ai-chat-log"></div>' +
+      '<div class="ai-chat-input-row">' +
+        '<textarea class="ai-chat-input" id="ai-chat-input" rows="1" placeholder="질문을 입력하세요 (Enter 전송, Shift+Enter 줄바꿈)"></textarea>' +
+        '<button class="btn btn-primary btn-sm ai-chat-send" id="ai-chat-send">보내기</button>' +
+      '</div>';
+    document.body.appendChild(panel);
+
+    aiChatRenderLog();
+    aiChatRefreshEngineLabel();
+
+    document.getElementById('ai-chat-close').onclick = function () { panel.remove(); };
+    document.getElementById('ai-chat-reset').onclick = function () {
+      if (aiChatMessages.length && !confirm('지금까지의 대화를 모두 지우고 새로 시작할까요?')) return;
+      aiChatMessages = [];
+      aiChatRenderLog();
+      aiChatSave();
+    };
+    document.getElementById('ai-chat-send').onclick = aiChatSend;
+
+    var input = document.getElementById('ai-chat-input');
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        aiChatSend();
+      }
+    });
+    // 입력한 줄 수에 맞춰 입력칸 높이를 늘린다.
+    input.addEventListener('input', function () {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    });
+    input.focus();
+  }
+
+  (function setupAiChatFab() {
+    var fab = document.createElement('button');
+    fab.id = 'ai-chat-fab';
+    fab.className = 'ai-chat-fab';
+    fab.type = 'button';
+    fab.title = 'AI와 대화하기';
+    fab.textContent = '🤖';
+    fab.addEventListener('click', function () {
+      if (!getAuthState().loggedIn) {
+        toast('로그인 후 이용할 수 있습니다.', 'error');
+        return;
+      }
+      openAiChatPanel();
+    });
+    document.body.appendChild(fab);
+  })();
 
   (function setupFeedbackFab() {
     var fab = document.createElement("button");

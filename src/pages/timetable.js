@@ -2,6 +2,7 @@
 'use strict';
 
 const DAYS = ['월', '화', '수', '목', '금'];
+const IMAGE_HINT = '시간표 사진을 여기로 끌어다 놓거나, 이 칸을 눌러 사진을 선택하세요. 사진 없이 아래에 메모를 붙여 넣어도 됩니다.';
 let MAX_PERIOD = 7;
 
 let timetableData = {};
@@ -39,7 +40,11 @@ async function render(container) {
             </div>
           </div>
           <input type="file" id="tt-image-input" accept="image/*" class="hidden">
-          <div id="tt-image-name" class="text-sm text-muted">시간표 사진을 선택하거나 아래에 메모를 붙여 넣어 주세요.</div>
+          <div id="tt-image-drop" class="tt-drop" data-file-drop>
+            <div class="tt-drop-icon">🖼️</div>
+            <div id="tt-image-name" class="tt-drop-text">${IMAGE_HINT}</div>
+          </div>
+          <div id="tt-ai-capability" class="text-sm" style="display:none;line-height:1.5"></div>
           <textarea id="tt-ai-input" class="input" style="min-height:96px;resize:vertical" placeholder="사진이 없으면 텍스트로도 가능합니다. 예: 월 1 107음악 / 수 3 105음악"></textarea>
           <div id="tt-ai-status" class="text-sm text-muted"></div>
         </div>
@@ -74,6 +79,27 @@ async function init() {
 
   renderTable();
   bindEvents();
+  renderAiCapabilityNotice();
+}
+
+// 선택한 AI가 'AI 분석 후 채우기'로 시간표를 읽을 수 있는지 미리 알려 준다.
+// 사진을 고르고 실패한 뒤에야 알게 되면 번거롭기 때문이다.
+async function renderAiCapabilityNotice() {
+  const box = document.getElementById('tt-ai-capability');
+  if (!box) return;
+  const engine = await api.getSetting('ai_engine', 'local_lite');
+
+  let message = '';
+  if (engine === 'local_lite' || engine === 'local_basic' || engine === 'local_pro') {
+    message = '지금 선택한 AI는 Local AI(내 컴퓨터)입니다. ‘☁️ AI 분석 후 채우기’는 외부 AI 전용이라 쓸 수 없습니다. ‘📷 로컬 OCR 채우기’를 누르거나, 시간표를 아래 표에 직접 입력해 주세요.';
+  } else if (engine === 'openrouter') {
+    const model = await api.getSetting('ai_model', '');
+    message = `지금 선택한 모델(${model || '미지정'})이 사진을 읽지 못하는 모델이면 사진 분석이 실패합니다. 그럴 때는 시간표를 텍스트로 붙여 넣거나 표에 직접 입력해 주세요.`;
+  }
+
+  box.textContent = message;
+  box.style.color = 'var(--warning)';
+  box.style.display = message ? '' : 'none';
 }
 
 function bindEvents() {
@@ -83,6 +109,7 @@ function bindEvents() {
   document.getElementById('tt-ocr-run').onclick = runTimetableOCR;
   document.getElementById('tt-image-pick').onclick = () => document.getElementById('tt-image-input').click();
   document.getElementById('tt-image-input').onchange = onImageSelected;
+  bindImageDrop();
   document.getElementById('tt-body')?.addEventListener('input', scheduleAutosave);
 }
 
@@ -195,9 +222,44 @@ async function onImageSelected(event) {
     updateImageLabel();
     return;
   }
+  await acceptImageFile(file);
+}
+
+async function acceptImageFile(file) {
+  if (!file.type || !file.type.startsWith('image/')) {
+    setStatus('사진 파일만 넣을 수 있습니다. (jpg, png 등)', 'error');
+    return;
+  }
   selectedImage = await fileToPayload(file);
   updateImageLabel();
   setStatus(`선택한 사진: ${file.name}`, 'default');
+}
+
+function setDropActive(drop, active) {
+  drop.classList.toggle('active', active);
+}
+
+function bindImageDrop() {
+  const drop = document.getElementById('tt-image-drop');
+  if (!drop) return;
+
+  drop.onclick = () => document.getElementById('tt-image-input').click();
+
+  drop.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    setDropActive(drop, true);
+  });
+  // 안쪽 글자 위로 지나갈 때도 dragleave가 떠서, 진짜로 영역을 벗어났을 때만 해제한다.
+  drop.addEventListener('dragleave', (event) => {
+    if (drop.contains(event.relatedTarget)) return;
+    setDropActive(drop, false);
+  });
+  drop.addEventListener('drop', async (event) => {
+    event.preventDefault();
+    setDropActive(drop, false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file) await acceptImageFile(file);
+  });
 }
 
 function updateImageLabel() {
@@ -205,10 +267,16 @@ function updateImageLabel() {
   if (!label) return;
   label.textContent = selectedImage
     ? `${selectedImage.name} 선택됨`
-    : '시간표 사진을 선택하거나 아래에 메모를 붙여 넣어 주세요.';
+    : IMAGE_HINT;
 }
 
 async function runTimetableAI() {
+  const engine = await api.getSetting('ai_engine', 'local_lite');
+  if (engine === 'local_lite' || engine === 'local_basic' || engine === 'local_pro') {
+    setStatus('Local AI는 이 기능을 쓸 수 없습니다. ‘📷 로컬 OCR 채우기’를 누르거나 표에 직접 입력해 주세요.', 'error');
+    return;
+  }
+
   const apiKey = await api.getSetting('ai_api_key', '');
   if (!apiKey) {
     setStatus('설정에서 AI API 키를 먼저 입력해 주세요.', 'error');
