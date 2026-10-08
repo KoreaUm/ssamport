@@ -11,14 +11,13 @@ const MODEL_OPTIONS = {
     { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
   ],
   groq: [
-    { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B (무료)' },
-    { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant (무료)' },
-    { value: 'gemma2-9b-it', label: 'Gemma2 9B (무료)' },
+    { value: 'openai/gpt-oss-20b', label: 'GPT-OSS 20B (무료)' },
+    { value: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B (무료)' },
   ],
   openrouter: [
-    { value: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B (무료)' },
-    { value: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash Exp (무료)' },
-    { value: 'deepseek/deepseek-chat-v3-0324:free', label: 'DeepSeek V3 (무료)' },
+    { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (무료)' },
+    { value: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B (무료)' },
+    { value: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'Nemotron 3 Super 120B (무료)' },
   ],
 };
 
@@ -332,14 +331,19 @@ async function render(container) {
               <b>OpenRouter API 키 발급 방법 (":free" 모델은 무료)</b><br>
               1. 아래 버튼으로 OpenRouter 키 발급 페이지를 열어 로그인(또는 회원가입)합니다.<br>
               2. Create Key 버튼을 눌러 키를 생성합니다.<br>
-              3. 생성된 키(sk-or-v1-로 시작)를 복사해 아래 입력칸에 붙여넣습니다. 모델은 이름에 ":free"가 붙은 것을 선택하면 과금되지 않습니다.<br>
+              3. 생성된 키(sk-or-v1-로 시작)를 복사해 아래 입력칸에 붙여넣습니다.<br>
+              4. 모델 목록(openrouter.ai/models)에서 "free"로 검색해 마음에 드는 모델을 고른 뒤, 이름이 ":free"로 끝나는 모델 이름을 그대로 복사해 아래 "모델" 칸에 붙여넣으세요. 과금되지 않습니다.<br>
               <button type="button" class="btn btn-secondary btn-sm" id="ai-key-link-openrouter" style="margin-top:6px">OpenRouter API 키 발급 페이지 열기</button>
             </div>
           </div>
           <div class="form-row"><label>외부 AI API \uD0A4</label><input class="input" type="password" id="sk" value="${escapeHtml(settings.ai_api_key || '')}" placeholder="Claude/Gemini를 사용할 때만 입력"></div>
-          <div class="form-row">
+          <div class="form-row" id="sm-select-wrap">
             <label>\uBAA8\uB378</label>
             <select class="input" id="sm"></select>
+          </div>
+          <div class="form-row" id="sm-text-wrap" style="display:none">
+            <label>모델 이름 (직접 입력)</label>
+            <input class="input" type="text" id="sm-text" placeholder="예: google/gemma-4-31b-it:free" value="${escapeHtml(provider === 'openrouter' ? (settings.ai_model || '') : '')}">
           </div>
           <div class="settings-actions">
             <button class="btn btn-primary btn-sm" id="sv-ai">\uC800\uC7A5</button>
@@ -452,9 +456,9 @@ async function init() {
   const confirmExternalAiConsent = (engine) => {
     const label = externalAiLabel(engine);
     const bodyLines = [
-      `${label} 외부 AI를 사용하면 질문, 상담 문장, 성적/학생 관련 내용 등 사용자가 입력한 정보가 외부 AI 서버로 전송될 수 있습니다.`,
-      '학생 상담, 성적, 개인정보, 민감정보를 입력할 경우 그에 따른 개인정보 보호 책임은 사용자에게 있습니다.',
-      '민감정보는 가능하면 Local AI를 사용하세요. Local AI는 모델과 실행 엔진이 내 PC에서만 동작하므로 외부 전송이 없습니다.',
+      `${label}를 사용하면, 입력한 질문이나 내용이 인터넷을 통해 외부 AI 서버로 전송됩니다.`,
+      '학생 이름, 성적, 상담 내용처럼 민감한 정보는 입력하지 않는 것을 권장합니다.',
+      '외부로 내용을 보내지 않으려면 "Local AI"를 선택하세요. 내 컴퓨터 안에서만 실행됩니다.',
       '계속하려면 아래 입력창에 정확히 "동의합니다"를 입력하세요.',
     ];
     return new Promise((resolve) => {
@@ -816,7 +820,7 @@ async function init() {
       await api.setSetting('ai_external_consent_at', new Date().toISOString());
     }
     await api.setSetting('ai_api_key', document.getElementById('sk').value.trim());
-    await api.setSetting('ai_model', document.getElementById('sm').value);
+    await api.setSetting('ai_model', getModelSelectValue(document.getElementById('sp').value));
     toast('\uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4', 'success');
   };
 
@@ -1328,9 +1332,23 @@ function applySelectedSchool() {
   toast(`${item.schoolName} \uCF54\uB4DC\uAC00 \uC785\uB825\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`, 'success', 1800);
 }
 
+function usesFreeTextModel(provider) {
+  return provider === 'openrouter';
+}
+
 function renderModelSelect(provider, selectedModel) {
   const select = document.getElementById('sm');
+  const selectWrap = document.getElementById('sm-select-wrap');
+  const textWrap = document.getElementById('sm-text-wrap');
+  const textInput = document.getElementById('sm-text');
   if (!select) return;
+  const freeText = usesFreeTextModel(provider);
+  if (selectWrap) selectWrap.style.display = freeText ? 'none' : '';
+  if (textWrap) textWrap.style.display = freeText ? '' : 'none';
+  if (freeText) {
+    if (textInput) textInput.value = selectedModel || '';
+    return;
+  }
   const models = MODEL_OPTIONS[provider] || MODEL_OPTIONS.claude;
   const nextModel = selectedModel && models.some((model) => model.value === selectedModel)
     ? selectedModel
@@ -1338,6 +1356,11 @@ function renderModelSelect(provider, selectedModel) {
   select.innerHTML = models.map((model) =>
     `<option value="${model.value}" ${model.value === nextModel ? 'selected' : ''}>${model.label}</option>`
   ).join('');
+}
+
+function getModelSelectValue(provider) {
+  if (usesFreeTextModel(provider)) return (document.getElementById('sm-text')?.value || '').trim();
+  return document.getElementById('sm')?.value || '';
 }
 
 function parseClassTimetableSubjects(raw) {

@@ -2063,8 +2063,8 @@ ipcMain.handle('ai-assistant-chat', async (e, payload = {}) => {
       maxTokens: 1200
     };
     const defaultModel = provider === 'gemini' ? 'gemini-2.5-flash'
-      : provider === 'groq' ? 'llama-3.3-70b-versatile'
-      : provider === 'openrouter' ? 'meta-llama/llama-3.3-70b-instruct:free'
+      : provider === 'groq' ? 'openai/gpt-oss-20b'
+      : provider === 'openrouter' ? 'google/gemma-4-31b-it:free'
       : 'claude-haiku-4-5-20251001';
     const result = await runAiProvider(provider, apiKey, model || defaultModel, '', options);
     if (result?.result) {
@@ -2339,16 +2339,16 @@ async function runOpenAiCompatible(hostname, path, extraHeaders, apiKey, model, 
 }
 
 async function runGroq(apiKey, model, text, options = {}) {
-  return runOpenAiCompatible('api.groq.com', '/openai/v1/chat/completions', {}, apiKey, model || 'llama-3.3-70b-versatile', text, options);
+  return runOpenAiCompatible('api.groq.com', '/openai/v1/chat/completions', {}, apiKey, model || 'openai/gpt-oss-20b', text, options);
 }
 
 async function runOpenRouter(apiKey, model, text, options = {}) {
   return runOpenAiCompatible(
     'openrouter.ai',
     '/api/v1/chat/completions',
-    { 'HTTP-Referer': 'https://saemport.app', 'X-Title': '쌤포트' },
+    { 'HTTP-Referer': 'https://saemport.app', 'X-Title': 'SaemPort' },
     apiKey,
-    model || 'meta-llama/llama-3.3-70b-instruct:free',
+    model || 'google/gemma-4-31b-it:free',
     text,
     options
   );
@@ -2356,7 +2356,10 @@ async function runOpenRouter(apiKey, model, text, options = {}) {
 
 // provider 문자열에 맞는 외부 AI 호출로 분기
 async function runAiProvider(provider, apiKey, model, text, options = {}) {
-  apiKey = String(apiKey || '').trim();
+  apiKey = String(apiKey || '').replace(/[\r\n\t\s]+/g, '').trim();
+  if (!apiKey || !/^[\x21-\x7e]+$/.test(apiKey)) {
+    return { error: 'AI 설정에 저장된 API 키가 올바르지 않습니다. AI 설정 패널을 열어 키 입력칸을 지우고, 발급받은 사이트에서 키를 다시 복사해 붙여넣어 주세요.' };
+  }
   if (provider === 'gemini') return runGemini(apiKey, model, text, options);
   if (provider === 'groq') return runGroq(apiKey, model, text, options);
   if (provider === 'openrouter') return runOpenRouter(apiKey, model, text, options);

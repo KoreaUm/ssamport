@@ -85,11 +85,17 @@
                 <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">API 키</div>
                 <input id="ai-quick-key" class="input" type="password" placeholder="API 키 입력" style="width:100%;font-size:13px;box-sizing:border-box">
               </div>
-              <div>
+              <div id="ai-quick-model-select-wrap">
                 <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">모델</div>
                 <select id="ai-quick-model" class="input" style="width:100%;font-size:13px"></select>
               </div>
+              <div id="ai-quick-model-text-wrap" style="display:none">
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">모델 이름 (직접 입력)</div>
+                <input id="ai-quick-model-text" class="input" type="text" placeholder="예: google/gemma-4-31b-it:free" style="width:100%;font-size:13px;box-sizing:border-box">
+                <div style="font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5">OpenRouter 사이트(openrouter.ai)에서 "free"로 검색해 마음에 드는 모델을 고른 뒤, 이름 끝이 <b>:free</b>로 끝나는 모델 이름을 그대로 복사해서 붙여넣으세요.</div>
+              </div>
             </div>
+            <button id="ai-quick-goto-settings" class="btn btn-secondary btn-sm" style="width:100%;margin-bottom:8px">자세한 설정은 설정 페이지에서 →</button>
             <button id="ai-quick-save" class="btn btn-primary btn-sm" style="width:100%">저장</button>
           </div>
         </div>
@@ -2950,11 +2956,13 @@
       { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }
     ],
     groq: [
-      { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B (무료)' },
-      { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant (무료)' }
+      { value: 'openai/gpt-oss-20b', label: 'GPT-OSS 20B (무료)' },
+      { value: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B (무료)' }
     ],
     openrouter: [
-      { value: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B (무료)' }
+      { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (무료)' },
+      { value: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B (무료)' },
+      { value: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'Nemotron 3 Super 120B (무료)' }
     ]
   };
 
@@ -2968,21 +2976,72 @@
     { value: 'openrouter',  label: 'OpenRouter 외부 AI (무료)', desc: '":free" 모델은 무료', external: true }
   ];
 
+  function aiQuickEngineLabel(engine) {
+    var opt = AI_ENGINE_OPTIONS.find(function (o) { return o.value === engine; });
+    return (opt && opt.label) || engine;
+  }
+
+  function confirmExternalAiConsentSimple(engine) {
+    var label = aiQuickEngineLabel(engine);
+    return new Promise(function (resolve) {
+      var settled = false;
+      var settle = function (value) { if (!settled) { settled = true; resolve(value); } };
+      var modal = window.showModal(
+        '<div class="modal-header">' +
+        '<span class="modal-title">' + label + ' 사용 동의</span>' +
+        '<button class="modal-close" data-close>×</button>' +
+        '</div>' +
+        '<div class="modal-body" style="display:grid;gap:10px;font-size:14px;line-height:1.6">' +
+        '<div>' + label + '를 사용하면, 입력한 질문이나 내용이 인터넷을 통해 외부 AI 서버로 전송됩니다.</div>' +
+        '<div>학생 이름, 성적, 상담 내용처럼 민감한 정보는 입력하지 않는 것을 권장합니다.</div>' +
+        '<div>외부로 내용을 보내지 않으려면 "Local AI"를 선택하세요.</div>' +
+        '<div style="font-weight:600">계속하시려면 아래 버튼을 눌러 동의해 주세요.</div>' +
+        '</div>' +
+        '<div class="modal-footer">' +
+        '<button class="btn btn-secondary" data-close>취소</button>' +
+        '<button class="btn btn-primary" id="ai-quick-consent-confirm-btn">동의하고 계속</button>' +
+        '</div>',
+        function () { settle(false); }
+      );
+      modal.el.querySelector('#ai-quick-consent-confirm-btn').addEventListener('click', function () {
+        settle(true);
+        modal.close();
+      });
+    });
+  }
+
   function initAiSettingsPanel() {
     var btn = document.getElementById('ai-settings-btn');
     var panel = document.getElementById('ai-settings-panel');
     var externalSection = document.getElementById('ai-quick-external');
     var providerSelect = document.getElementById('ai-quick-provider');
     var modelSelect = document.getElementById('ai-quick-model');
+    var modelSelectWrap = document.getElementById('ai-quick-model-select-wrap');
+    var modelTextWrap = document.getElementById('ai-quick-model-text-wrap');
+    var modelTextInput = document.getElementById('ai-quick-model-text');
     var keyInput = document.getElementById('ai-quick-key');
     var saveBtn = document.getElementById('ai-quick-save');
+    var gotoSettingsBtn = document.getElementById('ai-quick-goto-settings');
     var engineList = document.getElementById('ai-quick-engine-list');
+    var lastLoadedSettings = {};
+
+    function usesFreeTextModel(provider) {
+      return provider === 'openrouter';
+    }
 
     function updateModelOptions(provider) {
+      var freeText = usesFreeTextModel(provider);
+      modelSelectWrap.style.display = freeText ? 'none' : '';
+      modelTextWrap.style.display = freeText ? '' : 'none';
+      if (freeText) return;
       var models = AI_QUICK_MODELS[provider] || [];
       modelSelect.innerHTML = models.map(function (m) {
         return '<option value="' + m.value + '">' + m.label + '</option>';
       }).join('');
+    }
+
+    function getSelectedModel(provider) {
+      return usesFreeTextModel(provider) ? modelTextInput.value.trim() : modelSelect.value;
     }
 
     function renderEngineList(currentEngine) {
@@ -3008,6 +3067,7 @@
 
     function openPanel() {
       api.getAllSettings().then(function (s) {
+        lastLoadedSettings = s || {};
         var savedEngine = s.ai_engine || 'local_lite';
         var engine = savedEngine === 'cloud' ? (s.ai_provider || 'claude') : (savedEngine === 'rule' ? 'local_lite' : savedEngine);
         var isExt = engine === 'claude' || engine === 'gemini' || engine === 'groq' || engine === 'openrouter';
@@ -3015,7 +3075,10 @@
         providerSelect.value = isExt ? engine : (s.ai_provider || 'claude');
         keyInput.value = s.ai_api_key || '';
         updateModelOptions(providerSelect.value);
-        if (s.ai_model) modelSelect.value = s.ai_model;
+        if (s.ai_model) {
+          if (usesFreeTextModel(providerSelect.value)) modelTextInput.value = s.ai_model;
+          else modelSelect.value = s.ai_model;
+        }
         externalSection.style.display = isExt ? 'flex' : 'none';
       }).catch(function () {});
     }
@@ -3032,27 +3095,44 @@
 
     providerSelect.addEventListener('change', function () { updateModelOptions(providerSelect.value); });
 
+    gotoSettingsBtn.addEventListener('click', function () {
+      panel.style.display = 'none';
+      navigateTo('settings');
+    });
+
     saveBtn.addEventListener('click', function () {
       var engine = (panel.querySelector('input[name="ai-quick-engine"]:checked') || {}).value || 'local_lite';
       var isExt = engine === 'claude' || engine === 'gemini' || engine === 'groq' || engine === 'openrouter';
-      var saves = [
-        api.setSetting('ai_engine', engine)
-      ];
-      if (isExt) {
-        saves.push(api.setSetting('ai_provider', providerSelect.value));
-        saves.push(api.setSetting('ai_api_key', keyInput.value.trim()));
-        saves.push(api.setSetting('ai_model', modelSelect.value));
-        saves.push(api.setSetting('ai_external_consent_provider', providerSelect.value));
-        saves.push(api.setSetting('ai_external_consent_at', new Date().toISOString()));
+
+      var doSave = function () {
+        var saves = [
+          api.setSetting('ai_engine', engine)
+        ];
+        if (isExt) {
+          saves.push(api.setSetting('ai_provider', providerSelect.value));
+          saves.push(api.setSetting('ai_api_key', keyInput.value.trim()));
+          saves.push(api.setSetting('ai_model', getSelectedModel(providerSelect.value)));
+          saves.push(api.setSetting('ai_external_consent_provider', providerSelect.value));
+          saves.push(api.setSetting('ai_external_consent_at', new Date().toISOString()));
+        }
+        Promise.all(saves).then(function () {
+          panel.style.display = 'none';
+          var toast = document.createElement('div');
+          toast.textContent = 'AI 설정을 저장했습니다.';
+          toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:99999;pointer-events:none';
+          document.body.appendChild(toast);
+          setTimeout(function () { toast.remove(); }, 2000);
+        }).catch(function (err) { alert('저장 실패: ' + (err && err.message || err)); });
+      };
+
+      var alreadyConsented = lastLoadedSettings.ai_external_consent_provider === providerSelect.value;
+      if (isExt && !alreadyConsented) {
+        confirmExternalAiConsentSimple(providerSelect.value).then(function (agreed) {
+          if (agreed) doSave();
+        });
+      } else {
+        doSave();
       }
-      Promise.all(saves).then(function () {
-        panel.style.display = 'none';
-        var toast = document.createElement('div');
-        toast.textContent = 'AI 설정을 저장했습니다.';
-        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:99999;pointer-events:none';
-        document.body.appendChild(toast);
-        setTimeout(function () { toast.remove(); }, 2000);
-      }).catch(function (err) { alert('저장 실패: ' + (err && err.message || err)); });
     });
   }
 
