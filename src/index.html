@@ -2721,7 +2721,8 @@
       activePage = key;
       document.getElementById('remote-change-notice').style.display = 'none';
       await mod.render(content);
-      renderPageGuide(key, content);
+      // 안내문은 부가 요소이므로, 여기서 문제가 생겨도 화면 이동은 계속되어야 한다.
+      try { renderPageGuide(key, content); } catch (_) {}
       if (mod.init) await mod.init();
       if (window.refreshGoogleConnectButton) window.refreshGoogleConnectButton();
     }).catch(function (error) {
