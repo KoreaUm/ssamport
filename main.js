@@ -1840,9 +1840,11 @@ async function runLocalTodoExtraction(text) {
 
   const today = new Date().toISOString().slice(0, 10);
   const prompt = [
+    '/no_think',
     '당신은 교사용 업무 문장에서 할일만 추출하는 로컬 AI입니다.',
     '입력 내용은 이 PC 안에서만 처리됩니다.',
     '반드시 한국어로 답하세요.',
+    '생각 과정이나 설명을 출력하지 말고, 추출한 할일 목록만 바로 출력하세요.',
     '출력은 설명 없이 한 줄에 하나씩만 작성하세요.',
     "형식: - [ ] 할일내용 (기한: YYYY-MM-DD)",
     '기한이 명확하지 않으면 (기한: ...) 부분을 쓰지 마세요.',
@@ -1865,8 +1867,19 @@ async function runLocalTodoExtraction(text) {
     }
   }, 90000);
   if (!result.ok) return { error: result.error || result.raw || 'Ollama 호출에 실패했습니다.' };
-  const output = String(result.data?.response || '').trim();
+  const output = stripOllamaThinking(result.data?.response);
+  if (!output) return { error: 'AI가 아직 생각 중인 내용만 반환했습니다. 다시 시도해 주세요.' };
   return { result: normalizeTodoExtractionOutput(output) };
+}
+
+// qwen3 등 reasoning 모델이 think:false를 무시하고 <think>...</think> 추론 과정을
+// 그대로 response에 섞어 보내는 경우가 있어, 최종 답변만 남기고 걷어낸다.
+// 닫히지 않은 <think> (예산 부족으로 추론 중간에 잘린 경우)는 answer가 없는 것으로 간주한다.
+function stripOllamaThinking(text) {
+  let value = String(text || '');
+  if (/<think>/i.test(value) && !/<\/think>/i.test(value)) return '';
+  value = value.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  return value.trim();
 }
 
 function normalizeTodoExtractionOutput(output) {
@@ -1874,6 +1887,7 @@ function normalizeTodoExtractionOutput(output) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
+    .filter((line) => !/^(wait|but|so|hmm|actually|hold on)\b/i.test(line) && !/원문의|지침은|문제는|다시 보면|생각해보면/.test(line))
     .map((line) => {
       let value = line
         .replace(/^```(?:[a-z]+)?/i, '')
