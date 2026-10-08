@@ -1843,8 +1843,10 @@ async function runLocalTodoExtraction(text) {
   if (!status.ready) return { error: status.message || '로컬 AI가 아직 준비되지 않았습니다.' };
 
   const today = new Date().toISOString().slice(0, 10);
-  const prompt = [
-    '/no_think',
+  // /api/generate는 원문 프롬프트를 채팅 템플릿 없이 그대로 이어쓰기 때문에
+  // think:false가 적용되지 않고 qwen3가 추론 과정을 평문으로 그대로 출력해버린다.
+  // 채팅 템플릿이 적용되는 /api/chat을 써야 think:false가 실제로 추론을 끈다.
+  const systemPrompt = [
     '당신은 교사용 업무 문장에서 할일만 추출하는 로컬 AI입니다.',
     '입력 내용은 이 PC 안에서만 처리됩니다.',
     '반드시 한국어로 답하세요.',
@@ -1854,24 +1856,24 @@ async function runLocalTodoExtraction(text) {
     '기한이 명확하지 않으면 (기한: ...) 부분을 쓰지 마세요.',
     '해야 할 행동이 아닌 단순 인사, 잡담, 배경 설명은 제외하세요.',
     '원문에 없는 학생 정보나 업무를 만들지 마세요.',
-    `오늘 날짜: ${today}`,
-    '',
-    '추출할 원문:',
-    input
+    `오늘 날짜: ${today}`
   ].join('\n');
 
-  const result = await requestOllamaJson('/api/generate', {
+  const result = await requestOllamaJson('/api/chat', {
     model,
     stream: false,
-    prompt,
     think: false,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `다음 텍스트에서 할일을 추출해 주세요:\n\n${input}` }
+    ],
     options: {
       temperature: 0.1,
-      num_predict: 520
+      num_predict: 2200
     }
-  }, 90000);
+  }, 150000);
   if (!result.ok) return { error: result.error || result.raw || 'Ollama 호출에 실패했습니다.' };
-  const output = stripOllamaThinking(result.data?.response);
+  const output = stripOllamaThinking(result.data?.message?.content);
   if (!output) return { error: 'AI가 아직 생각 중인 내용만 반환했습니다. 다시 시도해 주세요.' };
   return { result: normalizeTodoExtractionOutput(output) };
 }
@@ -1880,9 +1882,15 @@ async function runLocalTodoExtraction(text) {
 // 그대로 response에 섞어 보내는 경우가 있어, 최종 답변만 남기고 걷어낸다.
 // 닫히지 않은 <think> (예산 부족으로 추론 중간에 잘린 경우)는 answer가 없는 것으로 간주한다.
 function stripOllamaThinking(text) {
-  let value = String(text || '');
-  if (/<think>/i.test(value) && !/<\/think>/i.test(value)) return '';
-  value = value.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  const value = String(text || '');
+  const hasOpen = /<think>/i.test(value);
+  const closeIdx = value.search(/<\/think>/i);
+  if (closeIdx !== -1) {
+    // qwen3 채팅 템플릿은 어시스턴트 턴을 이미 <think>로 열어두고 생성을 시작하므로
+    // 응답에는 여는 태그 없이 닫는 </think>만 나타난다. 그 뒤가 실제 답변이다.
+    return value.slice(closeIdx).replace(/<\/think>/i, '').trim();
+  }
+  if (hasOpen) return ''; // 추론 중 토큰 예산이 끝나 답변에 도달하지 못한 경우
   return value.trim();
 }
 
@@ -2348,6 +2356,7 @@ async function runOpenRouter(apiKey, model, text, options = {}) {
 
 // provider 문자열에 맞는 외부 AI 호출로 분기
 async function runAiProvider(provider, apiKey, model, text, options = {}) {
+  apiKey = String(apiKey || '').trim();
   if (provider === 'gemini') return runGemini(apiKey, model, text, options);
   if (provider === 'groq') return runGroq(apiKey, model, text, options);
   if (provider === 'openrouter') return runOpenRouter(apiKey, model, text, options);
