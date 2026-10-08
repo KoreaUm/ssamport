@@ -39,7 +39,7 @@ async function render(container) {
         <div class="card hwp-step">
           <div class="hwp-step-title">1️⃣ 주제 입력 + 양식 선택</div>
           <div class="hwp-row">
-            <input id="hwpf-school" class="input hwp-field-grow" type="text" placeholder="부서/기관명 — 표지·본문 헤더에 자동 삽입 (예: 충청북도교육청 중등교육과)" value="${escapeHtml(savedSchool)}">
+            <input id="hwpf-school" class="input hwp-field-grow" type="text" placeholder="부서/기관명 — 표지·본문 헤더에 자동 삽입 (예: 한국고등학교)" value="${escapeHtml(savedSchool)}">
           </div>
           <div class="hwp-row">
             <button class="btn btn-secondary btn-sm hwp-no-shrink" id="hwpf-logo-pick">🖼 학교 로고 선택</button>
@@ -102,7 +102,7 @@ async function render(container) {
 
         <!-- 표준 안내 -->
         <details class="card hwp-details">
-          <summary>📐 적용되는 서식 (충청북도교육청 현장지원단 운영 계획 스타일)</summary>
+          <summary>📐 적용되는 서식 (교육청 운영 계획 문서 스타일)</summary>
           <div class="hwp-details-body">
             • <b>대제목</b>: 남색(#18304B) 박스 + 흰색 로마자(Ⅰ,Ⅱ,Ⅲ…) + 파란 구분선 + 제목 텍스트<br>
             • <b>소제목</b>: □ 스타일, 굵은 본문<br>
@@ -403,10 +403,10 @@ async function render(container) {
     if (!school) return md;
     // 사용자가 짧게 입력했는데 GPT가 흔한 접미사를 덧붙여 확장한 경우 원상복구.
     // 단, 사용자가 이미 풀네임을 적었으면 이 regex는 매치되지 않음.
-    // 긴 접미사부터 (정규식 alternation은 좌→우 우선). "충주상업고" → "충주상업고등학교" 같은 확장만 잡고,
-    // "충주" → "충주청소년…" 같은 우연한 매칭은 피하기 위해 보수적으로.
+    // 긴 접미사부터 (정규식 alternation은 좌→우 우선). "한국고" → "한국고등학교" 같은 확장만 잡고,
+    // "한국" → "한국청소년…" 같은 우연한 매칭은 피하기 위해 보수적으로.
     var suffixes = ['등학교', '교육지원청', '교육청'];
-    // school 자체가 이미 그 접미사로 끝나면 패턴 적용 안 함 (예: "충주상업고등학교"는 굳이 건드릴 필요 없음)
+    // school 자체가 이미 그 접미사로 끝나면 패턴 적용 안 함 (예: "한국고등학교"는 굳이 건드릴 필요 없음)
     var safeSuffixes = suffixes.filter(function (s) { return school.slice(-s.length) !== s; });
     if (!safeSuffixes.length) return md;
     var pattern = new RegExp(escapeRegex(school) + '(' + safeSuffixes.join('|') + ')', 'g');
