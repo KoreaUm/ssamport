@@ -77,6 +77,8 @@
                 <select id="ai-quick-provider" class="input" style="width:100%;font-size:13px">
                   <option value="claude">Claude (Anthropic)</option>
                   <option value="gemini">Gemini (Google)</option>
+                  <option value="groq">Groq (무료)</option>
+                  <option value="openrouter">OpenRouter (무료 모델)</option>
                 </select>
               </div>
               <div>
@@ -2946,6 +2948,13 @@
       { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
       { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
       { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }
+    ],
+    groq: [
+      { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B (무료)' },
+      { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant (무료)' }
+    ],
+    openrouter: [
+      { value: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B (무료)' }
     ]
   };
 
@@ -2954,7 +2963,9 @@
     { value: 'local_basic', label: 'Local AI Basic', desc: 'Qwen3 8B · 8GB RAM 이상 권장', external: false },
     { value: 'local_pro',   label: 'Local AI Pro',   desc: 'Qwen3 14B · 16GB RAM 이상 권장', external: false },
     { value: 'claude',      label: 'Claude 외부 AI', desc: 'Anthropic · API 키 필요', external: true },
-    { value: 'gemini',      label: 'Gemini 외부 AI', desc: 'Google · API 키 필요', external: true }
+    { value: 'gemini',      label: 'Gemini 외부 AI', desc: 'Google · API 키 필요', external: true },
+    { value: 'groq',        label: 'Groq 외부 AI (무료)', desc: 'API 키 발급만 하면 바로 사용', external: true },
+    { value: 'openrouter',  label: 'OpenRouter 외부 AI (무료)', desc: '":free" 모델은 무료', external: true }
   ];
 
   function initAiSettingsPanel() {
@@ -2999,7 +3010,7 @@
       api.getAllSettings().then(function (s) {
         var savedEngine = s.ai_engine || 'local_lite';
         var engine = savedEngine === 'cloud' ? (s.ai_provider || 'claude') : (savedEngine === 'rule' ? 'local_lite' : savedEngine);
-        var isExt = engine === 'claude' || engine === 'gemini';
+        var isExt = engine === 'claude' || engine === 'gemini' || engine === 'groq' || engine === 'openrouter';
         renderEngineList(engine);
         providerSelect.value = isExt ? engine : (s.ai_provider || 'claude');
         keyInput.value = s.ai_api_key || '';
@@ -3023,7 +3034,7 @@
 
     saveBtn.addEventListener('click', function () {
       var engine = (panel.querySelector('input[name="ai-quick-engine"]:checked') || {}).value || 'local_lite';
-      var isExt = engine === 'claude' || engine === 'gemini';
+      var isExt = engine === 'claude' || engine === 'gemini' || engine === 'groq' || engine === 'openrouter';
       var saves = [
         api.setSetting('ai_engine', engine)
       ];
