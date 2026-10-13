@@ -157,12 +157,9 @@ test('Google OAuth configuration loads local credentials and rejects mismatched 
 
 test('Google token refresh includes resolved secret and reports configuration read failures', async () => {
   const handlers={};let config={clientId:'test-client',clientSecret:'test-only-value'},payload,requests=0;
-  const ctx=context({ipcMain:{handle:(name,fn)=>handlers[name]=fn},getGoogleCalendarOAuthConfig:()=>config,URLSearchParams,Buffer,https:{request:(_,onResponse)=>{
-    requests++;const events={};
-    onResponse({on:(name,fn)=>events[name]=fn});
-    return {on:()=>{},write:body=>{payload=new URLSearchParams(body);},end:()=>{events.data('{"access_token":"test-token"}');events.end();}};
-  }}});
-  vm.runInContext(section(read('main.js'),"ipcMain.handle('gcal-refresh-token'",'function googleCalendarRequest'),ctx);
+  const ctx=context({ipcMain:{handle:(name,fn)=>handlers[name]=fn},getGoogleCalendarOAuthConfig:()=>config,URLSearchParams,Buffer,
+    httpsRequestJson:async(_url,_method,_headers,body)=>{requests++;payload=new URLSearchParams(body);return {data:'{"access_token":"test-token"}',statusCode:200};}});
+  vm.runInContext(section(read('main.js'),"ipcMain.handle('gcal-refresh-token'",'async function googleCalendarRequest'),ctx);
   const result=await handlers['gcal-refresh-token']({},'test-refresh-token');
   assert.equal(result.access_token,'test-token');assert.equal(payload.get('client_secret'),'test-only-value');
   config={error:'configuration read failed'};
@@ -191,10 +188,7 @@ test('Google reconnect uses saved credentials without requesting a JSON file', a
     GOOGLE_OAUTH_SCOPES:['test-scope'],http:{createServer:()=>server},shell:{openExternal:url=>{authUrl=new URL(url);}},
     createPkcePair:()=>({verifier:'test-verifier',challenge:'test-challenge'}),URL,URLSearchParams,Buffer,
     setTimeout:()=>1,clearTimeout:()=>{},dialog:{showMessageBox:()=>assert.fail('must not require a new JSON file')},
-    https:{request:(_,onResponse)=>{const events={};onResponse({on:(name,fn)=>events[name]=fn});return {
-      setTimeout:()=>{},on:()=>{},write:body=>{tokenBody=new URLSearchParams(body);},
-      end:()=>{events.data('{"refresh_token":"test-refresh"}');events.end();}
-    };}}
+    httpsRequestJson:async(_url,_method,_headers,body)=>{tokenBody=new URLSearchParams(body);return {data:'{"refresh_token":"test-refresh"}',statusCode:200};}
   });
   const main=read('main.js');
   vm.runInContext(section(main,'function getGoogleCalendarOAuthConfig','function buildManualPdfHtml'),ctx);
