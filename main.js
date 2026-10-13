@@ -1508,12 +1508,10 @@ ipcMain.handle('gcal-oauth-start', async (e, legacyClientId = '', legacyClientSe
         // 최초 인증과 갱신 모두 동일한 클라이언트 설정을 사용한다.
         if (clientSecret) tokenPayload.client_secret = clientSecret;
         const body = new URLSearchParams(tokenPayload).toString();
-        const tokenRes = await new Promise((r2) => {
-          const req2 = https.request({ hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) } }, (res2) => {
-            let d = ''; res2.on('data', c => d += c); res2.on('end', () => { try { r2(JSON.parse(d)); } catch { r2({}); } });
-          }); req2.setTimeout(20000, () => req2.destroy(new Error('토큰 교환 시간 초과')));
-          req2.on('error', () => r2({ error_description: 'Google 토큰 교환에 실패했습니다. 네트워크를 확인하고 다시 연결해 주세요.' })); req2.write(body); req2.end();
-        });
+        const tokenHttpRes = await httpsRequestJson('https://oauth2.googleapis.com/token', 'POST', { 'Content-Type': 'application/x-www-form-urlencoded' }, body);
+        let tokenRes = {};
+        if (tokenHttpRes.error) tokenRes = { error_description: tokenHttpRes.error };
+        else { try { tokenRes = JSON.parse(tokenHttpRes.data); } catch { tokenRes = {}; } }
         finishBrowser(!!tokenRes.refresh_token);
         if (tokenRes.refresh_token) resolve({ refresh_token: tokenRes.refresh_token });
         else resolve({ error: tokenRes.error_description || '토큰 교환 실패' });
@@ -1532,44 +1530,28 @@ ipcMain.handle('gcal-refresh-token', async (e, arg1 = '', arg2 = '', arg3 = '') 
   const tokenPayload = { client_id: clientId, refresh_token: refreshToken, grant_type: 'refresh_token' };
   if (clientSecret) tokenPayload.client_secret = clientSecret;
   const body = new URLSearchParams(tokenPayload).toString();
-  return new Promise((resolve) => {
-    const req = https.request({ hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) } }, (r) => {
-      let d = ''; r.on('data', c => d += c); r.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({ error: '파싱 오류' }); } });
-    }); req.on('error', err => resolve({ error: err.message })); req.write(body); req.end();
-  });
+  const httpRes = await httpsRequestJson('https://oauth2.googleapis.com/token', 'POST', { 'Content-Type': 'application/x-www-form-urlencoded' }, body);
+  if (httpRes.error) return { error: httpRes.error };
+  try { return JSON.parse(httpRes.data); } catch { return { error: '파싱 오류' }; }
 });
 
-function googleCalendarRequest(accessToken, pathName, method = 'GET', payload = null) {
+async function googleCalendarRequest(accessToken, pathName, method = 'GET', payload = null) {
   const body = payload ? JSON.stringify(payload) : '';
-  return new Promise((resolve) => {
-    const req = https.request({
-      hostname: 'www.googleapis.com',
-      path: pathName,
-      method,
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } : {})
-      },
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        if (!data && res.statusCode >= 200 && res.statusCode < 300) return resolve({ ok: true, status: res.statusCode });
-        try {
-          const parsed = JSON.parse(data || '{}');
-          parsed.status = res.statusCode;
-          if (res.statusCode >= 400 && !parsed.error) parsed.error = { message: `Google Calendar 오류 ${res.statusCode}` };
-          resolve(parsed);
-        } catch {
-          resolve({ error: 'Google Calendar 응답을 읽지 못했습니다.', status: res.statusCode });
-        }
-      });
-    });
-    req.setTimeout(20000, () => req.destroy(new Error('Google 요청 시간 초과')));
-    req.on('error', (err) => resolve({ error: err.message }));
-    if (body) req.write(body);
-    req.end();
-  });
+  const httpRes = await httpsRequestJson(`https://www.googleapis.com${pathName}`, method, {
+    'Authorization': `Bearer ${accessToken}`,
+    ...(payload ? { 'Content-Type': 'application/json' } : {})
+  }, body || null);
+  if (httpRes.error) return { error: httpRes.error };
+  const { data, statusCode } = httpRes;
+  if (!data && statusCode >= 200 && statusCode < 300) return { ok: true, status: statusCode };
+  try {
+    const parsed = JSON.parse(data || '{}');
+    parsed.status = statusCode;
+    if (statusCode >= 400 && !parsed.error) parsed.error = { message: `Google Calendar 오류 ${statusCode}` };
+    return parsed;
+  } catch {
+    return { error: 'Google Calendar 응답을 읽지 못했습니다.', status: statusCode };
+  }
 }
 
 ipcMain.handle('gcal-add-event', async (e, accessToken, event) => {
@@ -2180,6 +2162,27 @@ function httpsPostJson(hostnameOrUrl, pathOrUndefined, headers, body) {
     });
     req.on('error', (err) => resolve({ error: `네트워크 오류: ${err.message}` }));
     req.write(body);
+    req.end();
+  });
+}
+
+// httpsPostJson과 동일한 이유로, Google 캘린더/태스크 연동도 OS 인증서 저장소를 따르는
+// Electron net 모듈을 쓴다. GET 등 본문이 없는 요청도 지원한다.
+function httpsRequestJson(url, method, headers, body) {
+  return new Promise((resolve) => {
+    const req = electronNet.request({ method, url });
+    Object.entries(headers || {}).forEach(([key, value]) => {
+      if (key.toLowerCase() === 'content-length') return;
+      req.setHeader(key, String(value));
+    });
+    req.on('response', (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => resolve({ data, statusCode: res.statusCode }));
+      res.on('error', (err) => resolve({ error: `네트워크 오류: ${err.message}` }));
+    });
+    req.on('error', (err) => resolve({ error: `네트워크 오류: ${err.message}` }));
+    if (body) req.write(body);
     req.end();
   });
 }
