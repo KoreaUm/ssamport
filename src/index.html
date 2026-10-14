@@ -107,6 +107,29 @@
 
 <script>
 (function () {
+  // 크로미움 기본 alert/confirm은 프레임 없는 창에서 닫힌 뒤 키보드 포커스를 잃어
+  // 입력칸(예: AI 채팅)을 클릭해도 글자가 써지지 않는다. 네이티브 대화상자로 바꾼다.
+  var nativeDlg = window.nativeApi;
+  if (nativeDlg && nativeDlg.alertSync && nativeDlg.confirmSync) {
+    // 대화상자가 열리기 전 포커스였던 요소를 기억해 두고, 닫힌 뒤 되돌려준다.
+    // (창 포커스뿐 아니라 입력칸 자체의 DOM 포커스도 사라지는 경우가 있어서다.)
+    function withFocusRestore(dialogFn, message) {
+      var prevFocus = document.activeElement;
+      var result = dialogFn(message);
+      if (nativeDlg.refocus) nativeDlg.refocus();
+      setTimeout(function () {
+        try {
+          if (nativeDlg.refocus) nativeDlg.refocus();
+          if (prevFocus && typeof prevFocus.focus === 'function' && document.contains(prevFocus)) prevFocus.focus();
+        } catch (_) {}
+      }, 0);
+      return result;
+    }
+    window.alert = function (message) { return withFocusRestore(nativeDlg.alertSync, message); };
+    window.confirm = function (message) { return withFocusRestore(nativeDlg.confirmSync, message); };
+  }
+})();
+(function () {
   var api = window.api;
   var pageCache = {};
   var pageLoads = {};
@@ -3283,6 +3306,63 @@
     try { api.setSetting(AI_CHAT_STORAGE_KEY, JSON.stringify(aiChatMessages.slice(-100))); } catch (_) {}
   }
 
+  function aiChatEscapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
+    });
+  }
+
+  function aiChatInlineMd(s) {
+    return aiChatEscapeHtml(s)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  }
+
+  // AI 답변에 마크다운 표(| 칸 | 칸 |)가 섞여 오면 textContent로는 그냥 기호 그대로
+  // 보여서 "표가 깨진" 것처럼 보인다. 표/목록/굵게/코드 정도만 실제 HTML로 그려준다.
+  function aiChatRenderMarkdown(text) {
+    var lines = String(text == null ? '' : text).replace(/\r\n/g, '\n').split('\n');
+    var html = '';
+    var i = 0;
+    function isTableRow(line) { return /^\s*\|.*\|\s*$/.test(line); }
+    function isTableSep(line) { return /^\s*\|?[\s:|-]+\|?\s*$/.test(line) && /-/.test(line); }
+    function splitRow(line) {
+      var cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|');
+      return cells.map(function (c) { return aiChatInlineMd(c.trim()); });
+    }
+    while (i < lines.length) {
+      var line = lines[i];
+      if (isTableRow(line) && isTableSep(lines[i + 1] || '')) {
+        var headerCells = splitRow(line);
+        var rows = [];
+        i += 2;
+        while (i < lines.length && isTableRow(lines[i])) { rows.push(splitRow(lines[i])); i++; }
+        html += '<table class="ai-chat-table"><thead><tr>' +
+          headerCells.map(function (c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead>';
+        if (rows.length) {
+          html += '<tbody>' + rows.map(function (r) {
+            return '<tr>' + r.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>';
+          }).join('') + '</tbody>';
+        }
+        html += '</table>';
+        continue;
+      }
+      if (/^\s*[-*]\s+/.test(line)) {
+        var items = [];
+        while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+          items.push(aiChatInlineMd(lines[i].replace(/^\s*[-*]\s+/, '')));
+          i++;
+        }
+        html += '<ul>' + items.map(function (it) { return '<li>' + it + '</li>'; }).join('') + '</ul>';
+        continue;
+      }
+      if (line.trim() === '') { html += '<br>'; i++; continue; }
+      html += '<div>' + aiChatInlineMd(line) + '</div>';
+      i++;
+    }
+    return html;
+  }
+
   function aiChatRenderLog() {
     var log = document.getElementById('ai-chat-log');
     if (!log) return;
@@ -3297,7 +3377,8 @@
     aiChatMessages.forEach(function (msg) {
       var node = document.createElement('div');
       node.className = 'ai-chat-msg ' + (msg.role === 'user' ? 'me' : (msg.error ? 'err' : 'ai'));
-      node.textContent = msg.text;
+      if (msg.role === 'user' || msg.error) node.textContent = msg.text;
+      else node.innerHTML = aiChatRenderMarkdown(msg.text);
       log.appendChild(node);
     });
     log.scrollTop = log.scrollHeight;
@@ -3386,7 +3467,18 @@
         '<textarea class="ai-chat-input" id="ai-chat-input" rows="1" placeholder="질문을 입력하세요 (Enter 전송, Shift+Enter 줄바꿈)"></textarea>' +
         '<button class="btn btn-primary btn-sm ai-chat-send" id="ai-chat-send">보내기</button>' +
       '</div>';
+    var resizer = document.createElement('div');
+    resizer.className = 'ai-chat-resizer';
+    resizer.title = '드래그해서 창 크기 조절';
+    panel.appendChild(resizer);
     document.body.appendChild(panel);
+
+    // 사용자가 지정한 창 크기를 복원한다.
+    try {
+      var savedSize = JSON.parse(await api.getSetting(AI_CHAT_SIZE_KEY, '') || 'null');
+      if (savedSize && savedSize.width && savedSize.height) aiChatApplySize(panel, savedSize.width, savedSize.height);
+    } catch (_) {}
+    aiChatSetupResize(panel, resizer);
 
     aiChatRenderLog();
     aiChatRefreshEngineLabel();
@@ -3402,6 +3494,10 @@
 
     var input = document.getElementById('ai-chat-input');
     input.addEventListener('keydown', function (event) {
+      // 한글 등 조합 입력(IME) 중 Enter는 글자 조합을 확정하는 키라서, 이때 바로 전송하면
+      // 아직 조합 중인 마지막 글자(예: "~해줘"의 "줘")가 전송 후 입력칸에 남는 문제가 생긴다.
+      // isComposing(및 구형 브라우저용 keyCode 229)일 때는 전송하지 않는다.
+      if (event.isComposing || event.keyCode === 229) return;
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
         aiChatSend();
@@ -3412,7 +3508,59 @@
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 120) + 'px';
     });
+    // 클릭했는데도 포커스가 입력칸에 오지 않으면(창 포커스 유실) 강제로 되찾는다.
+    input.addEventListener('mousedown', function () {
+      setTimeout(function () {
+        if (document.activeElement !== input) {
+          if (window.nativeApi && window.nativeApi.refocus) window.nativeApi.refocus();
+          input.focus();
+        }
+      }, 0);
+    });
     input.focus();
+  }
+
+  var AI_CHAT_SIZE_KEY = 'ai_chat_panel_size';
+  var AI_CHAT_MIN_W = 300, AI_CHAT_MIN_H = 320;
+
+  function aiChatApplySize(panel, width, height) {
+    var maxW = Math.max(AI_CHAT_MIN_W, window.innerWidth - 48);
+    var maxH = Math.max(AI_CHAT_MIN_H, window.innerHeight - 160);
+    var w = Math.round(Math.min(Math.max(width, AI_CHAT_MIN_W), maxW));
+    var h = Math.round(Math.min(Math.max(height, AI_CHAT_MIN_H), maxH));
+    panel.style.width = w + 'px';
+    panel.style.height = h + 'px';
+    return { width: w, height: h };
+  }
+
+  // 패널은 화면 오른쪽 아래에 고정되어 있으므로 왼쪽 위 모서리를 끌어 크기를 바꾼다.
+  function aiChatSetupResize(panel, handle) {
+    handle.addEventListener('mousedown', function (event) {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      var startX = event.clientX, startY = event.clientY;
+      var rect = panel.getBoundingClientRect();
+      var startW = rect.width, startH = rect.height;
+      var size = null;
+      panel.classList.add('resizing');
+      function onMove(e) {
+        size = aiChatApplySize(panel, startW + (startX - e.clientX), startH + (startY - e.clientY));
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        panel.classList.remove('resizing');
+        if (size) { try { api.setSetting(AI_CHAT_SIZE_KEY, JSON.stringify(size)); } catch (_) {} }
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+    // 더블클릭하면 기본 크기로 되돌린다.
+    handle.addEventListener('dblclick', function () {
+      panel.style.width = '';
+      panel.style.height = '';
+      try { api.setSetting(AI_CHAT_SIZE_KEY, ''); } catch (_) {}
+    });
   }
 
   (function setupAiChatFab() {

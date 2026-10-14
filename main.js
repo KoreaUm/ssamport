@@ -960,6 +960,32 @@ ipcMain.on('window-maximize', () => {
   mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
 });
 ipcMain.on('window-close', () => mainWindow.close());
+// 렌더러의 window.alert/confirm(크로미움 기본 대화상자)은 프레임 없는 창에서 닫힌 뒤
+// 키보드 포커스를 돌려주지 않아 입력칸을 클릭해도 글자가 써지지 않는 문제가 있다.
+// 그래서 네이티브 메시지 상자로 대체하고, 닫힌 뒤 창 포커스를 명시적으로 되돌린다.
+function refocusMainWindow() {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.focus();
+    mainWindow.webContents.focus();
+  } catch (_) {}
+}
+ipcMain.on('native-dialog-sync', (event, kind, message) => {
+  const sender = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+  const opts = {
+    type: kind === 'confirm' ? 'question' : 'info',
+    message: String(message == null ? '' : message),
+    buttons: kind === 'confirm' ? ['확인', '취소'] : ['확인'],
+    defaultId: 0,
+    cancelId: 1,
+    noLink: true,
+  };
+  let result = 0;
+  try { result = dialog.showMessageBoxSync(sender, opts); } catch (_) { result = 0; }
+  event.returnValue = kind === 'confirm' ? result === 0 : true;
+  setTimeout(refocusMainWindow, 0);
+});
+ipcMain.on('window-refocus', refocusMainWindow);
 ipcMain.on('window-always-on-top', (e, flag) => mainWindow.setAlwaysOnTop(flag));
 ipcMain.on('window-set-opacity', (e, val) => mainWindow.setOpacity(Math.max(0.1, Math.min(1, Number(val)))));
 ipcMain.handle('window-get-opacity', () => mainWindow.getOpacity());
@@ -2043,17 +2069,17 @@ ipcMain.handle('ai-assistant-chat', async (e, payload = {}) => {
     }
     const options = {
       system: [
-        '당신은 쌤포트 앱 안의 AI 도우미입니다.',
+        '당신은 쌤포트 앱 안에 있는 범용 AI 채팅 도우미입니다. ChatGPT나 Claude처럼, 업무 질문뿐 아니라 일상적인 대화, 잡담, 일반 지식 질문 등 어떤 주제든 자유롭게 답하세요.',
         '모든 답변은 반드시 "선생님,"으로 시작하세요.',
         '사용자는 학생이 아니라 교사입니다. 사용자를 "학생"이라고 부르지 말고 "선생님"이라고 부르세요.',
-        '사용자는 학생 상담/공문/시간표/할일/학사 업무를 빠르게 처리하려고 합니다.',
+        '질문이 교사 업무(학생 상담/공문/시간표/할일/학사 등)나 이 앱 사용법에 관한 것이면 그에 맞게 실무적으로 답하되, 아래 "현재 페이지"나 "앱에 저장된 관련 맥락"은 질문과 관련이 있을 때만 참고하세요. 그와 무관한 일반 대화·잡담·지식 질문에는 앱 기능이나 업무 이야기를 억지로 끌어오지 말고, 보통의 AI 챗봇처럼 질문 자체에 자연스럽게 답하세요.',
         sensitive ? '입력의 학생 식별정보는 "학생A", "학생B" 같은 가명으로 치환되어 있습니다. 답변에서도 이 가명을 그대로 사용하고, 실제 이름·번호·연락처를 추정하거나 만들어내지 마세요.' : '',
         '학생 상담과 개인정보는 매우 민감하므로 단정적 진단, 의료적 판단, 낙인 표현을 피하고 학교 절차와 교사의 최종 판단을 존중하세요.',
-        '고정 안내문처럼 답하지 말고, 사용자의 질문과 현재 페이지 맥락을 반영해 구체적으로 답하세요.',
-        '가능하면 바로 쓸 수 있는 문장, 확인할 항목, 다음 행동을 포함하세요.',
-        '한국어로 실무적으로 답하세요. 내용이 복잡하면 3~5개의 구체 항목으로 정리하세요.'
+        '고정 안내문처럼 답하지 말고, 사용자의 실제 질문 의도에 맞춰 구체적으로 답하세요.',
+        '업무 관련 질문일 때는 가능하면 바로 쓸 수 있는 문장, 확인할 항목, 다음 행동을 포함하세요.',
+        '한국어로 답하세요. 내용이 복잡하거나 목록이 자연스러운 경우에만 3~5개의 구체 항목으로 정리하고, 간단한 대화는 짧고 자연스러운 문장으로 답하세요.'
       ].filter(Boolean).join('\n'),
-      userPrompt: `현재 페이지: ${page}\n\n${context ? `앱에 저장된 관련 맥락:\n${context}\n\n` : ''}${history ? `지금까지 나눈 대화:\n${history}\n\n` : ''}사용자 질문:\n${question}`,
+      userPrompt: `(참고용 맥락 — 질문과 관련 있을 때만 사용하세요)\n현재 페이지: ${page}${context ? `\n앱에 저장된 관련 맥락:\n${context}` : ''}\n\n${history ? `지금까지 나눈 대화:\n${history}\n\n` : ''}사용자 질문:\n${question}`,
       maxTokens: 1200
     };
     const defaultModel = provider === 'gemini' ? 'gemini-2.5-flash'
@@ -2087,20 +2113,20 @@ ipcMain.handle('ai-local-chat', async (e, payload = {}) => {
     const status = await getOllamaStatus(engine);
     if (!status.ready) return { error: status.message || '로컬 AI가 아직 준비되지 않았습니다.' };
     const buildPrompt = (retryText = '') => [
-        '당신은 쌤포트 앱 안의 로컬 AI 도우미입니다.',
+        '당신은 쌤포트 앱 안에 있는 범용 로컬 AI 채팅 도우미입니다. 업무 질문뿐 아니라 일상적인 대화, 잡담, 일반 지식 질문 등 어떤 주제든 자유롭게 답하세요.',
         '모든 답변은 반드시 "선생님,"으로 시작하세요.',
         '사용자는 학생이 아니라 교사입니다. 사용자를 "학생"이라고 부르지 말고 "선생님"이라고 부르세요.',
         '반드시 한국어로만 답하세요. 중국어, 일본어, 영어 문장을 섞지 마세요.',
         '상담 대상 학생을 언급해야 할 때만 "학생" 또는 "해당 학생"이라고 쓰세요.',
         '학생 상담, 성적, 개인정보는 민감하므로 외부 전송 없이 로컬에서만 답합니다.',
-        context ? '아래 앱 저장 기록을 최우선 근거로 사용하세요. 기록에 없는 사실은 만들지 마세요.' : '',
-        '고정 안내문처럼 답하지 말고, 질문의 의도와 현재 페이지 맥락에 맞춰 구체적으로 답하세요.',
-        '가능하면 바로 쓸 수 있는 문장, 확인할 항목, 다음 행동을 포함하세요.',
-        '기본 답변은 700자 안팎으로 하되, 필요한 경우 3~5개의 구체 항목으로 정리하세요.',
+        '질문이 교사 업무나 이 앱 사용법에 관한 것이면 아래 "앱에 저장된 관련 맥락"을 최우선 근거로 참고해 실무적으로 답하세요. 그와 무관한 일반 대화·잡담·지식 질문에는 그 맥락을 억지로 끌어오지 말고, 보통의 AI 챗봇처럼 질문 자체에 자연스럽게 답하세요.',
+        '고정 안내문처럼 답하지 말고, 질문의 실제 의도에 맞춰 구체적으로 답하세요.',
+        '업무 관련 질문일 때는 가능하면 바로 쓸 수 있는 문장, 확인할 항목, 다음 행동을 포함하세요.',
+        '기본 답변은 700자 안팎으로 하되, 필요한 경우에만 3~5개의 구체 항목으로 정리하고, 간단한 대화는 짧고 자연스럽게 답하세요.',
         '의학적 진단, 낙인 표현, 단정적 판단을 피하고 교사가 활용할 수 있는 실무 문장으로 도와주세요.',
-        `현재 페이지: ${page}`,
+        `(참고용) 현재 페이지: ${page}`,
         '',
-        context ? `앱에 저장된 관련 맥락:\n${context}\n` : '',
+        context ? `앱에 저장된 관련 맥락(관련 있을 때만 참고):\n${context}\n` : '',
         history ? `지금까지 나눈 대화:\n${history}\n` : '',
         retryText ? `이전 답변에 한국어가 아닌 문자가 섞였습니다. 아래 질문에 대해 다시 한국어로만 답하세요.\n${retryText}` : `사용자 질문: ${question}`
       ].join('\n');

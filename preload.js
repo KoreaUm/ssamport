@@ -136,6 +136,10 @@ contextBridge.exposeInMainWorld('nativeApi', {
   restore: () => ipcRenderer.send('window-restore'),
   maximize: () => ipcRenderer.send('window-maximize'),
   close: () => ipcRenderer.send('window-close'),
+  // 기본 alert/confirm 대체 (닫힌 뒤 입력 포커스가 사라지는 문제 방지)
+  alertSync: (message) => ipcRenderer.sendSync('native-dialog-sync', 'alert', message),
+  confirmSync: (message) => ipcRenderer.sendSync('native-dialog-sync', 'confirm', message),
+  refocus: () => ipcRenderer.send('window-refocus'),
   alwaysOnTop: (flag) => ipcRenderer.send('window-always-on-top', flag),
   setOpacity: (val) => ipcRenderer.send('window-set-opacity', val),
   getOpacity: () => ipcRenderer.invoke('window-get-opacity'),
