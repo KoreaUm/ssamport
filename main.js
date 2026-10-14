@@ -2153,6 +2153,68 @@ ipcMain.handle('ai-local-chat', async (e, payload = {}) => {
   }
 });
 
+// AI 채팅에 엑셀/CSV/PDF 파일을 첨부하면 내용을 텍스트로 뽑아 질문과 함께 AI에 전달한다.
+// 너무 긴 파일은 토큰이 과도하게 늘어나지 않도록 일정 길이에서 잘라낸다.
+const AI_CHAT_FILE_TEXT_LIMIT = 8000;
+
+function truncateForAiChat(text) {
+  const value = String(text || '');
+  if (value.length <= AI_CHAT_FILE_TEXT_LIMIT) return { text: value, truncated: false };
+  return { text: value.slice(0, AI_CHAT_FILE_TEXT_LIMIT), truncated: true };
+}
+
+async function extractExcelText(buffer) {
+  const xlsx = require('xlsx');
+  const wb = xlsx.read(buffer, { type: 'buffer' });
+  const parts = wb.SheetNames.map((name) => {
+    const sheet = wb.Sheets[name];
+    const csv = xlsx.utils.sheet_to_csv(sheet).trim();
+    return wb.SheetNames.length > 1 ? `[시트: ${name}]\n${csv}` : csv;
+  });
+  return parts.filter(Boolean).join('\n\n');
+}
+
+async function extractPdfText(buffer) {
+  // pdf-parse v2(PDFParse)는 내부 pdfjs-dist가 캔버스/DOMMatrix를 쓰는 렌더링 경로를
+  // 타는데, Electron 메인 프로세스의 Node 환경에서는 그 폴리필이 실패해
+  // "DOMMatrix is not defined" 오류가 난다. v1은 렌더링 없이 순수 텍스트만 뽑아서
+  // 이 문제가 없으므로 v1을 쓴다.
+  const pdf = require('pdf-parse');
+  const result = await pdf(buffer);
+  return String(result && result.text || '').trim();
+}
+
+ipcMain.handle('ai-chat-extract-file', async (e, filePath) => {
+  try {
+    const p = String(filePath || '');
+    if (!p) return { error: '파일 경로가 없습니다.' };
+    const ext = path.extname(p).toLowerCase().replace('.', '');
+    const name = path.basename(p);
+    const stat = fs.statSync(p);
+    if (stat.size > 25 * 1024 * 1024) return { error: '파일이 너무 큽니다 (25MB 이하만 가능).' };
+    const buffer = fs.readFileSync(p);
+
+    let rawText = '';
+    if (ext === 'xlsx' || ext === 'xls') {
+      rawText = await extractExcelText(buffer);
+    } else if (ext === 'csv') {
+      rawText = buffer.toString('utf8').replace(/^﻿/, '');
+    } else if (ext === 'pdf') {
+      rawText = await extractPdfText(buffer);
+    } else {
+      return { error: '지원하지 않는 파일 형식입니다 (엑셀 .xlsx/.xls, .csv, .pdf만 가능).' };
+    }
+
+    rawText = rawText.trim();
+    if (!rawText) return { error: '파일에서 읽을 수 있는 내용이 없습니다. (스캔 이미지로 된 PDF일 수 있습니다)' };
+
+    const { text, truncated } = truncateForAiChat(rawText);
+    return { ok: true, name, ext, text, truncated };
+  } catch (err) {
+    return { error: '파일을 읽는 중 오류가 발생했습니다: ' + (err && err.message || err) };
+  }
+});
+
 ipcMain.handle('import-class-timetable-excel', async (e, payload) => {
   try {
     const buffer = Buffer.from(String(payload?.data || ''), 'base64');
@@ -3070,7 +3132,11 @@ ipcMain.handle('macro-fill-edufine-cdp', async (e, { wsUrl, items }) => {
 
 // ── 한글(HWP) 템플릿 빌더: hwpx XML 직접 생성 (한글 설치 불필요) ─
 ipcMain.handle('show-open-dialog', async (_evt, opts) => {
-  return dialog.showOpenDialog(mainWindow, opts || {});
+  const result = await dialog.showOpenDialog(mainWindow, opts || {});
+  // 네이티브 alert/confirm과 마찬가지로, 파일 선택 창이 닫혀도 렌더러의 입력 포커스가
+  // 돌아오지 않는 경우가 있어(예: AI 채팅 첨부 후 입력칸에 글자가 안 써짐) 명시적으로 되돌린다.
+  setTimeout(refocusMainWindow, 0);
+  return result;
 });
 
 ipcMain.handle('hwp-build-hwpx', async (_evt, opts) => {

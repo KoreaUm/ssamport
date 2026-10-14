@@ -1004,6 +1004,35 @@ tbody tr:hover { background: var(--hover); }
 .ai-chat-table th, .ai-chat-table td { border: 1px solid var(--border); padding: 4px 7px; text-align: left; }
 .ai-chat-table th { background: var(--bg2); font-weight: 700; }
 .ai-chat-empty { margin: auto; text-align: center; color: var(--text2); font-size: 13px; line-height: 1.7; padding: 0 12px; }
+.ai-chat-attachment {
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin: 0 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text2);
+}
+.ai-chat-attachment-icon { flex-shrink: 0; }
+.ai-chat-attachment-name { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.ai-chat-attachment-note { flex-shrink: 0; }
+.ai-chat-attachment-remove { margin-left: auto; border: 0; background: transparent; color: var(--text2); cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 4px; }
+.ai-chat-attachment-remove:hover { background: var(--hover); }
+.ai-chat-attach {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text2);
+  font-size: 15px;
+  cursor: pointer;
+}
+.ai-chat-attach:hover { background: var(--hover); }
+.ai-chat-attach:disabled { opacity: .6; cursor: default; }
 .ai-chat-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); align-items: flex-end; }
 .ai-chat-input {
   flex: 1;

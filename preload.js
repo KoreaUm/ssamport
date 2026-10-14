@@ -343,6 +343,8 @@ contextBridge.exposeInMainWorld('nativeApi', {
     ipcRenderer.invoke('ai-assistant-chat', payload),
   aiLocalChat: (payload) =>
     ipcRenderer.invoke('ai-local-chat', payload),
+  aiChatExtractFile: (filePath) =>
+    ipcRenderer.invoke('ai-chat-extract-file', filePath),
   ocrImage: (imageBase64, lang) =>
     ipcRenderer.invoke('ocr-image', imageBase64, lang),
   parseExcelEstimate: (bufferData) =>

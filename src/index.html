@@ -3276,6 +3276,7 @@
   var aiChatMessages = [];
   var aiChatLoaded = false;
   var aiChatBusy = false;
+  var aiChatAttachment = null; // { name, ext, text, truncated }
 
   function aiChatResolveEngine(settings) {
     var s = settings || {};
@@ -3384,6 +3385,53 @@
     log.scrollTop = log.scrollHeight;
   }
 
+  function aiChatRenderAttachment() {
+    var row = document.getElementById('ai-chat-attachment');
+    if (!row) return;
+    if (!aiChatAttachment) { row.style.display = 'none'; row.innerHTML = ''; return; }
+    row.style.display = 'flex';
+    var sizeNote = aiChatAttachment.truncated ? ' (내용이 길어 앞부분만 사용)' : '';
+    row.innerHTML =
+      '<span class="ai-chat-attachment-icon">📎</span>' +
+      '<span class="ai-chat-attachment-name"></span>' +
+      '<span class="ai-chat-attachment-note">' + aiChatEscapeHtml(sizeNote) + '</span>' +
+      '<button type="button" class="ai-chat-attachment-remove" id="ai-chat-attachment-remove" title="첨부 제거">✕</button>';
+    row.querySelector('.ai-chat-attachment-name').textContent = aiChatAttachment.name;
+    document.getElementById('ai-chat-attachment-remove').onclick = function () {
+      aiChatAttachment = null;
+      aiChatRenderAttachment();
+    };
+  }
+
+  async function aiChatPickAttachment() {
+    try {
+      var picked = await api.showOpenDialog({
+        properties: ['openFile'],
+        filters: [{ name: '엑셀/CSV/PDF', extensions: ['xlsx', 'xls', 'csv', 'pdf'] }]
+      });
+      if (!picked || picked.canceled || !picked.filePaths || !picked.filePaths[0]) return;
+
+      var attachBtn = document.getElementById('ai-chat-attach');
+      if (attachBtn) { attachBtn.disabled = true; attachBtn.textContent = '⏳'; }
+
+      var result = await api.aiChatExtractFile(picked.filePaths[0]);
+      if (result && result.error) {
+        toast(result.error, 'error');
+      } else if (result && result.ok) {
+        aiChatAttachment = { name: result.name, ext: result.ext, text: result.text, truncated: !!result.truncated };
+        aiChatRenderAttachment();
+      }
+      if (attachBtn) { attachBtn.disabled = false; attachBtn.textContent = '📎'; }
+    } catch (error) {
+      toast((error && error.message) || '파일을 읽는 중 오류가 발생했습니다.', 'error');
+      var btn = document.getElementById('ai-chat-attach');
+      if (btn) { btn.disabled = false; btn.textContent = '📎'; }
+    }
+    // 네이티브 파일 선택 창이 닫힌 뒤 입력칸 포커스가 사라지는 경우가 있어 되돌려준다.
+    var chatInput = document.getElementById('ai-chat-input');
+    if (chatInput) { if (window.nativeApi && window.nativeApi.refocus) window.nativeApi.refocus(); chatInput.focus(); }
+  }
+
   async function aiChatSend() {
     var input = document.getElementById('ai-chat-input');
     var sendBtn = document.getElementById('ai-chat-send');
@@ -3391,9 +3439,15 @@
     var text = input.value.trim();
     if (!text) return;
 
+    var attachment = aiChatAttachment;
+    aiChatAttachment = null; // 한 번 보내고 나면 매 질문마다 다시 첨부 내용을 보내지 않도록 비운다.
+    aiChatRenderAttachment();
     input.value = '';
     input.style.height = 'auto';
-    aiChatMessages.push({ role: 'user', text: text });
+    aiChatMessages.push({
+      role: 'user',
+      text: attachment ? ('📎 ' + attachment.name + '\n' + text) : text
+    });
     aiChatRenderLog();
 
     aiChatBusy = true;
@@ -3410,15 +3464,20 @@
       return { role: msg.role === 'user' ? 'user' : 'assistant', text: msg.text };
     });
 
+    // 첨부 파일이 있으면 그 내용을 context로 전달한다. 클라우드로 보낼 때는
+    // 혹시 모를 학생 개인정보 노출을 막기 위해 가명화 처리(sensitive)를 강제한다.
+    var context = attachment ? ('첨부파일 "' + attachment.name + '" 내용:\n' + attachment.text) : '';
+
     try {
       var settings = await api.getAllSettings();
       var info = aiChatResolveEngine(settings);
       var result = info.useCloud
         ? await api.aiAssistantChat({
             provider: info.external, model: info.model, apiKey: info.apiKey,
-            page: 'AI 채팅', question: text, context: '', history: history
+            page: 'AI 채팅', question: text, context: context, history: history,
+            sensitive: !!attachment
           })
-        : await api.aiLocalChat({ engine: info.localEngine, page: 'AI 채팅', question: text, context: '', history: history });
+        : await api.aiLocalChat({ engine: info.localEngine, page: 'AI 채팅', question: text, context: context, history: history });
 
       if (result && result.error) aiChatMessages.push({ role: 'assistant', text: '오류: ' + result.error, error: true });
       else aiChatMessages.push({ role: 'assistant', text: (result && result.result) || '답변을 받지 못했습니다.' });
@@ -3463,7 +3522,9 @@
         '</div>' +
       '</div>' +
       '<div class="ai-chat-log" id="ai-chat-log"></div>' +
+      '<div class="ai-chat-attachment" id="ai-chat-attachment" style="display:none"></div>' +
       '<div class="ai-chat-input-row">' +
+        '<button type="button" class="ai-chat-attach" id="ai-chat-attach" title="엑셀·CSV·PDF 첨부">📎</button>' +
         '<textarea class="ai-chat-input" id="ai-chat-input" rows="1" placeholder="질문을 입력하세요 (Enter 전송, Shift+Enter 줄바꿈)"></textarea>' +
         '<button class="btn btn-primary btn-sm ai-chat-send" id="ai-chat-send">보내기</button>' +
       '</div>';
@@ -3487,10 +3548,14 @@
     document.getElementById('ai-chat-reset').onclick = function () {
       if (aiChatMessages.length && !confirm('지금까지의 대화를 모두 지우고 새로 시작할까요?')) return;
       aiChatMessages = [];
+      aiChatAttachment = null;
+      aiChatRenderAttachment();
       aiChatRenderLog();
       aiChatSave();
     };
     document.getElementById('ai-chat-send').onclick = aiChatSend;
+    document.getElementById('ai-chat-attach').onclick = aiChatPickAttachment;
+    aiChatRenderAttachment();
 
     var input = document.getElementById('ai-chat-input');
     input.addEventListener('keydown', function (event) {
