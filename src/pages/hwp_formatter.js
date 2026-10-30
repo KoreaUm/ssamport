@@ -17,7 +17,9 @@ async function render(container) {
   var savedTopic = (await api.getSetting('hwp_topic', '')) || '';
   var savedType = (await api.getSetting('hwp_doctype', DOC_TYPES[0])) || DOC_TYPES[0];
   var savedSchool = await window.schoolProfile.name();
+  // 로고는 양식별로 따로 저장한다 — 계획서 표지 로고와 가정통신문 교표는 보통 다른 이미지.
   var savedLogo   = (await api.getSetting('hwp_logo_path', '')) || '';
+  var savedLetterLogo = (await api.getSetting('hwp_letter_logo_path', '')) || '';
   var savedSeal   = (await api.getSetting('hwp_seal_path', '')) || '';
 
   container.innerHTML = `
@@ -43,9 +45,9 @@ async function render(container) {
             <input id="hwpf-school" class="input hwp-field-grow" type="text" placeholder="부서/기관명 — 표지·본문 헤더에 자동 삽입 (예: 한국고등학교)" value="${escapeHtml(savedSchool)}">
           </div>
           <div class="hwp-row">
-            <button class="btn btn-secondary btn-sm hwp-no-shrink" id="hwpf-logo-pick">🖼 학교 로고 선택</button>
-            <span id="hwpf-logo-name" class="hwp-logo-name">${savedLogo ? savedLogo.split(/[\\/]/).pop() : '선택된 로고 없음 (없으면 기관명만 표시)'}</span>
-            <button class="btn btn-secondary btn-sm" id="hwpf-logo-clear" style="display:${savedLogo ? 'inline-block' : 'none'}">✕</button>
+            <button class="btn btn-secondary btn-sm hwp-no-shrink" id="hwpf-logo-pick">🖼 로고 선택</button>
+            <span id="hwpf-logo-name" class="hwp-logo-name"></span>
+            <button class="btn btn-secondary btn-sm" id="hwpf-logo-clear" style="display:none">✕</button>
           </div>
           <div class="hwp-row" id="hwpf-seal-row">
             <button class="btn btn-secondary btn-sm hwp-no-shrink" id="hwpf-seal-pick">🔴 직인 이미지 선택</button>
@@ -165,7 +167,28 @@ async function render(container) {
   var mdCount    = container.querySelector('#hwpf-md-count');
   var logoNameEl = container.querySelector('#hwpf-logo-name');
   var logoClearBtn = container.querySelector('#hwpf-logo-clear');
-  var currentLogoPath = savedLogo;
+  var currentLogoPath = savedLogo;             // 계획서/보고서/회의록 표지 로고
+  var currentLetterLogoPath = savedLetterLogo; // 가정통신문 머리 박스 교표
+
+  function logoSettingKey() { return letterMode() ? 'hwp_letter_logo_path' : 'hwp_logo_path'; }
+  function activeLogoPath() { return letterMode() ? currentLetterLogoPath : currentLogoPath; }
+  function setActiveLogoPath(p) {
+    if (letterMode()) currentLetterLogoPath = p; else currentLogoPath = p;
+  }
+  var LOGO_EMPTY_PLAN = '선택된 로고 없음 (없으면 기관명만 표시)';
+  var LOGO_EMPTY_LETTER = '선택된 교표 없음 (머리 박스 왼쪽 칸에 삽입)';
+
+  // 양식에 따라 로고 줄(버튼 이름 / 파일명 / ✕)을 현재 양식의 로고로 맞춘다.
+  function refreshLogoRow() {
+    var pickBtn = container.querySelector('#hwpf-logo-pick');
+    var letter = letterMode();
+    var path = activeLogoPath();
+    if (pickBtn) pickBtn.textContent = letter ? '🏫 학교 교표 선택' : '🖼 학교 로고 선택';
+    logoNameEl.textContent = path
+      ? path.split(/[\\/]/).pop()
+      : (letter ? LOGO_EMPTY_LETTER : LOGO_EMPTY_PLAN);
+    logoClearBtn.style.display = path ? 'inline-block' : 'none';
+  }
   var sealNameEl = container.querySelector('#hwpf-seal-name');
   var sealClearBtn = container.querySelector('#hwpf-seal-clear');
   var currentSealPath = savedSeal;
@@ -481,6 +504,7 @@ async function render(container) {
   function updateHints() {
     var sealRow = container.querySelector('#hwpf-seal-row');
     if (sealRow) sealRow.style.display = letterMode() ? '' : 'none';
+    refreshLogoRow();
     var hintEl = container.querySelector('#hwpf-md-hint');
     var metaEl = container.querySelector('#hwpf-md-meta-text');
     var letter = letterMode();
@@ -502,24 +526,21 @@ async function render(container) {
   // 로고 파일 선택
   container.querySelector('#hwpf-logo-pick').addEventListener('click', async function () {
     var res = await window.api.showOpenDialog({
-      title: '학교 로고 이미지 선택',
+      title: letterMode() ? '학교 교표 이미지 선택' : '학교 로고 이미지 선택',
       filters: [{ name: '이미지', extensions: ['png', 'jpg', 'jpeg', 'bmp'] }],
       properties: ['openFile']
     });
     if (!res || res.canceled || !res.filePaths || !res.filePaths[0]) return;
-    currentLogoPath = res.filePaths[0];
-    var fname = currentLogoPath.split(/[\\/]/).pop();
-    logoNameEl.textContent = fname;
-    logoClearBtn.style.display = 'inline-block';
-    api.setSetting('hwp_logo_path', currentLogoPath);
+    setActiveLogoPath(res.filePaths[0]);
+    api.setSetting(logoSettingKey(), activeLogoPath());
+    refreshLogoRow();
   });
 
-  // 로고 초기화
+  // 로고 초기화 (현재 양식의 로고만)
   logoClearBtn.addEventListener('click', function () {
-    currentLogoPath = '';
-    logoNameEl.textContent = '선택된 로고 없음 (없으면 기관명만 표시)';
-    logoClearBtn.style.display = 'none';
-    api.setSetting('hwp_logo_path', '');
+    setActiveLogoPath('');
+    api.setSetting(logoSettingKey(), '');
+    refreshLogoRow();
   });
 
   // 직인 파일 선택 (가정통신문 발신 명의 옆에 삽입)
@@ -701,7 +722,7 @@ async function render(container) {
     try {
       var r = await window.api.hwpBuildHwpx({
         markdownText: md,
-        logoPath: currentLogoPath || '',
+        logoPath: activeLogoPath() || '',
         sealPath: letterMode() ? (currentSealPath || '') : '',
         titleHint: topicEl.value.trim()
       });
