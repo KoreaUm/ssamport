@@ -219,6 +219,7 @@ async function render(c){
         <button class="cal-nav-btn" id="neis-prev">◀</button>
         <span id="neis-week-lbl" style="font-size:10px;color:var(--text3);white-space:nowrap;min-width:36px;text-align:center">이번주</span>
         <button class="cal-nav-btn" id="neis-next">▶</button>
+        <button class="btn-icon-flat" id="school-tt-settings-btn" title="학급 시간표 설정">⚙</button>
       </div>
     </div>
     <div id="neis-tt-wrap" style="padding:0 6px 6px;flex:1;overflow:hidden"></div>
@@ -276,6 +277,10 @@ async function init(){
   document.getElementById('neis-class-sel').onchange = renderSchoolTT;
   document.getElementById('neis-prev').onclick = () => { neisWeekOffset--; renderSchoolTT(); };
   document.getElementById('neis-next').onclick = () => { neisWeekOffset++; renderSchoolTT(); };
+  document.getElementById('school-tt-settings-btn').onclick = () => {
+    window.__settingsScrollTarget = 'settings-timetable';
+    navigateTo('settings');
+  };
   document.getElementById('ai-run-btn').onclick = runAI;
   document.getElementById('ai-clear-btn').onclick = () => {
     document.getElementById('ai-input').value = '';

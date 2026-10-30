@@ -18,3 +18,6 @@ Thumbs.db
 
 # Local Google OAuth credentials (never commit)
 oauth-config.local.json
+
+# 참고용 원본 한글 문서 (양식 샘플 등)
+*.hwp

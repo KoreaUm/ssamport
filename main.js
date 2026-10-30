@@ -9,6 +9,7 @@ const net = require('net');
 const crypto = require('crypto');
 const { autoUpdater } = require('electron-updater');
 const neisApi = require('./src/neis-api.js');
+const comciganApi = require('./src/comcigan-api.js');
 const { resolveGoogleOAuthConfig } = require('./src/google_oauth_config.js');
 
 const AppDatabase = require('./src/database.js');
@@ -1824,6 +1825,33 @@ ipcMain.handle('neis-search-schools', async (e, keyword) => {
   try { return await neisApi.searchSchools(keyword); } catch (err) { return []; }
 });
 
+ipcMain.handle('comcigan-search-schools', async (e, keyword) => {
+  try { return await comciganApi.searchSchools(keyword); } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle('comcigan-fetch-timetable', async (e, payload) => {
+  try {
+    const schoolCode = Number(payload?.schoolCode);
+    const grade = Number(payload?.grade);
+    const classNum = Number(payload?.classNum);
+    if (!schoolCode || !grade || !classNum) {
+      throw new Error('학교, 학년, 반을 모두 선택해 주세요.');
+    }
+    const entries = await comciganApi.fetchClassTimetable(schoolCode, grade, classNum);
+    if (!entries.length) {
+      throw new Error('불러온 시간표가 비어 있습니다. 학년/반을 확인해 주세요.');
+    }
+    db.setSetting('class_timetable_json', JSON.stringify(entries));
+    db.setSetting('class_timetable_file_name', '');
+    db.setSetting('class_timetable_source', 'comcigan');
+    db.setSetting('comcigan_school_code', String(schoolCode));
+    db.setSetting('comcigan_school_name', String(payload?.schoolName || ''));
+    return { success: true, count: entries.length };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 
 ipcMain.handle('ai-extract-todos', async (e, apiKey, model, provider, text) => {
   try {
@@ -2220,6 +2248,7 @@ ipcMain.handle('import-class-timetable-excel', async (e, payload) => {
     const buffer = Buffer.from(String(payload?.data || ''), 'base64');
     const entries = await parseClassTimetableExcel(buffer);
     db.setSetting('class_timetable_json', JSON.stringify(entries));
+    db.setSetting('class_timetable_source', 'neis_excel');
     if (payload?.name) {
       db.setSetting('class_timetable_file_name', payload.name);
     }
@@ -3139,15 +3168,28 @@ ipcMain.handle('show-open-dialog', async (_evt, opts) => {
   return result;
 });
 
+// 마크다운의 "제목:" 줄을 저장 파일 이름으로 사용 (없으면 "문서")
+function buildHwpFileName(markdownText, titleHint) {
+  const text = String(markdownText || '');
+  const m = text.match(/^\s*제목\s*[:：]\s*(.+?)\s*$/m);
+  let name = m ? m[1] : String(titleHint || '');
+  // 파일 이름에 쓸 수 없는 문자 제거 + 공백 정리
+  name = name.replace(/[\\/:*?"<>|\r\n\t]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (name.length > 80) name = name.slice(0, 80).trim();
+  return name || '문서';
+}
+
 ipcMain.handle('hwp-build-hwpx', async (_evt, opts) => {
   const markdownText = (opts && typeof opts === 'object') ? opts.markdownText : opts;
   const logoPath = (opts && typeof opts === 'object' && opts.logoPath) ? opts.logoPath : '';
+  const sealPath = (opts && typeof opts === 'object' && opts.sealPath) ? opts.sealPath : '';
+  const titleHint = (opts && typeof opts === 'object' && opts.titleHint) ? opts.titleHint : '';
   if (!markdownText || !String(markdownText).trim()) {
     return { ok: false, error: '입력 텍스트가 비어있습니다.' };
   }
   const saveRes = await dialog.showSaveDialog(mainWindow, {
     title: 'hwpx 파일 저장 위치 (깔끔 템플릿)',
-    defaultPath: '문서.hwpx',
+    defaultPath: buildHwpFileName(markdownText, titleHint) + '.hwpx',
     filters: [{ name: '한글 문서', extensions: ['hwpx'] }]
   });
   if (saveRes.canceled || !saveRes.filePath) {
@@ -3180,7 +3222,9 @@ ipcMain.handle('hwp-build-hwpx', async (_evt, opts) => {
         return resolve({ ok: false, error: 'Python 실행 파일을 찾을 수 없습니다. Python 3.8+ 설치가 필요합니다.' });
       }
       const pyArgs = [builderPath, tmpTxt, saveRes.filePath];
-      if (logoPath) pyArgs.push(logoPath);
+      // 직인만 선택한 경우에도 인자 위치를 맞추기 위해 로고 자리는 빈 문자열로 채운다
+      if (logoPath || sealPath) pyArgs.push(logoPath);
+      if (sealPath) pyArgs.push(sealPath);
       const py = spawn(pyCandidates[idx], pyArgs, {
         windowsHide: true,
         env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
@@ -3240,8 +3284,100 @@ ipcMain.handle('hwp-build-prompt', async (_evt, { topic, docType, school, sectio
   return { ok: true, prompt: buildHwpMarkdownPrompt(topic || '', docType || '', school || '', sections || null, allowExtraSections !== false) };
 });
 
+const HWP_LETTER_TYPES = ['가정통신문'];
+
+// 가정통신문은 계획서/보고서와 양식이 완전히 달라(머리 박스 + 줄글 본문 + 안내 표 +
+// 날짜·학교장 발신) 전용 프롬프트를 사용한다. hwpx_builder.py 의 letter 모드 태그와 짝.
+function buildHwpLetterPrompt(topic, school, sections, allowExtraSections) {
+  const schoolName = school || '○○고등학교';
+  let sectionInstr = '';
+  if (Array.isArray(sections) && sections.length) {
+    const lines = ['[섹션 구성 — 아래 순서·이름 그대로]'];
+    sections.forEach((sec, i) => {
+      const writeLabel = sec.mode === 'manual' ? '✍️ 직접 작성 (본문 비워둘 것)' : '🤖 AI 작성';
+      lines.push(`  ${i + 1}. ${sec.name}  — ${writeLabel}`);
+    });
+    lines.push('');
+    lines.push('규칙:');
+    lines.push('- 인사말/안내 성격의 섹션은 "소제목:" 없이 줄글 문단으로만 작성 (평문 한 줄 = 한 문단)');
+    lines.push('- 그 외 섹션은 "소제목: <이름>" 줄 + 그 아래 ◦ 항목 2~4개');
+    lines.push('- ✍️ 직접 작성 섹션: "소제목: <이름>" 줄과 빈 줄만 출력하고 본문은 비워둘 것');
+    lines.push(allowExtraSections
+      ? '- 흐름상 필요하면 섹션을 더 추가해도 되지만, 위 섹션은 모두 포함할 것'
+      : '- 위에 없는 섹션은 임의로 만들지 말 것');
+    sectionInstr = lines.join('\n');
+  }
+
+  return [
+    '당신은 한국 학교의 가정통신문 작성 전문가입니다.',
+    `아래 주제로 학부모님께 보내는 "가정통신문"을 작성해주세요.`,
+    '',
+    `주제: ${topic}`,
+    `학교: ${schoolName}`,
+    '',
+    '[출력 규칙 - 반드시 지켜주세요]',
+    '- 아래 태그 형식으로만 작성 (설명·코드블록 없이 본문만 출력)',
+    '- 첫 줄은 반드시 "양식: 가정통신문"',
+    `- 학교: ${schoolName}  ← 이 문자열을 글자 그대로 사용 (임의로 늘리거나 줄이지 말 것)`,
+    '- 교훈: 교훈 (모르면 "교훈" 줄은 생략)',
+    '- 부서: 담당 부서명 (예: 상담부)',
+    '- 연락처: ☎ 교무실 000-0000-0000  FAX 000-0000-0000  (여러 줄 가능)',
+    '- 제목: 통신문 제목 (예: 2026. 학생 정서·행동특성검사 실시 안내문)',
+    '- 본문은 평문 줄글로 작성 — 한 줄이 한 문단이 됨 ("~입니다", "~바랍니다" 같은 정중한 완결 문장체)',
+    '- 안내제목: 표나 안내 묶음 앞의 가운데 제목 (예: 2026년 학생 정서·행동발달 지원내용)',
+    '- 소제목: 협조 사항 등 항목형 안내의 제목',
+    '- ◦ 항목 — 항목형 안내',
+    '-   - 세부항목 — "공백 2칸 + 대시(-) + 공백"으로 시작',
+    '- ※ 주석 내용',
+    '- 표:',
+    '  헤더1 | 헤더2 | 헤더3',
+    '  값1 | 값2 | 값3',
+    '  (표 끝은 빈 줄)',
+    '- 문의: 담당자/연락처',
+    '- 학교 로고와 직인 이미지는 프로그램에서 직접 넣으므로, 본문에 그림·직인 관련 문구를 쓰지 말 것',
+    '- 날짜: 2026년 3월 30일 형식',
+    `- 발신: ${schoolName}장 (글자 사이를 띄워 "○ ○ 고 등 학 교 장" 형태로)`,
+    '',
+    '[문체]',
+    '- 학부모님을 대상으로 한 정중한 존댓말 줄글. 공문서식 명사형 종결("~함", "~추진") 금지',
+    '- 인사말 1문단 → 안내 내용 2~3문단 → 협조 요청 1문단 순서가 기본',
+    '',
+    sectionInstr,
+    '',
+    '[예시]',
+    '양식: 가정통신문',
+    `학교: ${schoolName}`,
+    '교훈: 誠實, 協同, 勤勉',
+    '부서: 상담부',
+    '연락처: ☎ 교무실 043-000-0000  FAX 043-000-0001',
+    '제목: 2026. 학생 정서·행동특성검사 실시 안내문',
+    '',
+    '자녀들의 올바른 성장을 위해 늘 애써 주시는 학부모님께 깊은 감사를 드리며, 가정에 건강과 행복이 가득하기를 기원합니다.',
+    '우리 학교에서는 1학년 전체 학생을 대상으로 학생 정서·행동특성검사를 4월 둘째 주에 실시할 예정입니다. 검사 결과는 생활기록부나 건강기록부에 남지 않으며, 응답 내용은 비밀이 보장됩니다.',
+    '',
+    '안내제목: 2026년 학생 정서·행동발달 지원내용',
+    '표:',
+    '구분 | 담당 | 추진 내용',
+    '정서·행동특성검사 | 학교 | 1학년 전체 학생 대상 자가 평가 실시',
+    '심층평가 | 전문기관 | 관심군 학생 상담 및 검사 지원',
+    '',
+    '소제목: 가정에서 협조해 주실 사항',
+    '◦ 검사 결과를 바탕으로 자녀와 충분히 대화해 주시기 바랍니다.',
+    '※ 개인정보는 관련 법령에 따라 안전하게 보호됩니다.',
+    '',
+    '문의: 전문상담교사 ☎ 043-000-0000',
+    '날짜: 2026년 3월 30일',
+    `발신: ${schoolName.split('').join(' ')}장`,
+    '',
+    '이제 같은 형식으로 작성하세요 (태그 형식 본문만, 설명 없이):'
+  ].filter(Boolean).join('\n');
+}
+
 function buildHwpMarkdownPrompt(topic, docType, school, sections, allowExtraSections) {
   const typeLabel = docType || '공문서';
+  if (HWP_LETTER_TYPES.includes(docType)) {
+    return buildHwpLetterPrompt(topic, school, sections, allowExtraSections);
+  }
   const schoolLine = school ? `부서: ${school}` : `부서: 부서명 팀명 (예: 중등교육과 중등교육팀)`;
 
   // sections 가 주어지면 그 순서대로, AI 섹션만 본문 작성. 직접 작성 섹션은 대제목 줄만 출력.

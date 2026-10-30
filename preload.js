@@ -351,6 +351,10 @@ contextBridge.exposeInMainWorld('nativeApi', {
     ipcRenderer.invoke('parse-excel-estimate', bufferData),
   importClassTimetableExcel: (payload) =>
     ipcRenderer.invoke('import-class-timetable-excel', payload),
+  comciganSearchSchools: (keyword) =>
+    ipcRenderer.invoke('comcigan-search-schools', keyword),
+  comciganFetchTimetable: (payload) =>
+    ipcRenderer.invoke('comcigan-fetch-timetable', payload),
   applyAppPatch: () => ipcRenderer.invoke('apply-app-patch'),
 
   // 에듀파인 CDP 매크로

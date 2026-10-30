@@ -18,6 +18,7 @@ async function render(container) {
   var savedType = (await api.getSetting('hwp_doctype', DOC_TYPES[0])) || DOC_TYPES[0];
   var savedSchool = await window.schoolProfile.name();
   var savedLogo   = (await api.getSetting('hwp_logo_path', '')) || '';
+  var savedSeal   = (await api.getSetting('hwp_seal_path', '')) || '';
 
   container.innerHTML = `
     <div class="page-wrap">
@@ -46,6 +47,11 @@ async function render(container) {
             <span id="hwpf-logo-name" class="hwp-logo-name">${savedLogo ? savedLogo.split(/[\\/]/).pop() : '선택된 로고 없음 (없으면 기관명만 표시)'}</span>
             <button class="btn btn-secondary btn-sm" id="hwpf-logo-clear" style="display:${savedLogo ? 'inline-block' : 'none'}">✕</button>
           </div>
+          <div class="hwp-row" id="hwpf-seal-row">
+            <button class="btn btn-secondary btn-sm hwp-no-shrink" id="hwpf-seal-pick">🔴 직인 이미지 선택</button>
+            <span id="hwpf-seal-name" class="hwp-logo-name">${savedSeal ? savedSeal.split(/[\\/]/).pop() : '선택된 직인 없음 (가정통신문 발신 명의 옆에 삽입)'}</span>
+            <button class="btn btn-secondary btn-sm" id="hwpf-seal-clear" style="display:${savedSeal ? 'inline-block' : 'none'}">✕</button>
+          </div>
           <div class="hwp-doctype-row">
             <select id="hwpf-doctype" class="input">
               ${DOC_TYPES.map(t => `<option ${t === savedType ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}
@@ -72,13 +78,13 @@ async function render(container) {
         <div class="card hwp-step">
           <div class="hwp-md-head">
             <div class="hwp-step-title">2️⃣ 마크다운 작성/편집</div>
-            <div class="hwp-md-hint">
+            <div class="hwp-md-hint" id="hwpf-md-hint">
               <code>제목:</code> · <code>부제목:</code> · <code>부서:</code> · <code>대제목:</code> · <code>소제목:</code> · <code>◦ 항목</code> · <code>  - 세부항목</code> · <code>※ 주석</code> · <code>표:</code> · <code>붙임:</code>
             </div>
           </div>
           <textarea id="hwpf-md" class="input hwp-md-textarea">${escapeHtml(savedMd)}</textarea>
           <div class="hwp-md-meta">
-            <span>위계: 제목→부제목→부서→대제목(로마자 박스)→소제목(□)→◦항목→  -세부항목→※주석→표: · 붙임(전폭 박스, 자동 번호)</span>
+            <span id="hwpf-md-meta-text">위계: 제목→부제목→부서→대제목(로마자 박스)→소제목(□)→◦항목→  -세부항목→※주석→표: · 붙임(전폭 박스, 자동 번호)</span>
             <span><span id="hwpf-md-count">0</span>자</span>
           </div>
         </div>
@@ -160,6 +166,14 @@ async function render(container) {
   var logoNameEl = container.querySelector('#hwpf-logo-name');
   var logoClearBtn = container.querySelector('#hwpf-logo-clear');
   var currentLogoPath = savedLogo;
+  var sealNameEl = container.querySelector('#hwpf-seal-name');
+  var sealClearBtn = container.querySelector('#hwpf-seal-clear');
+  var currentSealPath = savedSeal;
+
+  // 가정통신문은 계획서/보고서와 전혀 다른 양식(머리 박스 + 줄글 본문)으로 변환된다.
+  var LETTER_TYPES = ['가정통신문'];
+  function isLetterType(t) { return LETTER_TYPES.indexOf(t) !== -1; }
+  function letterMode() { return isLetterType(typeEl.value); }
 
   function escapeRegex(s) {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -318,6 +332,8 @@ async function render(container) {
   // 이미 형식이 맞거나 태그 줄(제목/대제목/소제목/표/※)은 건드리지 않음.
   function normalizeManualBody(text) {
     if (!text) return text;
+    // 가정통신문은 줄글(문단) 중심이므로 평문을 ◦ 항목으로 바꾸지 않는다.
+    if (letterMode()) return text;
     var SKIP_PREFIXES = /^\s*(제목|부제목|부서|대제목|소제목|표)\s*[:：]/;
     return text.split('\n').map(function (line) {
       if (!line.trim()) return line;
@@ -339,7 +355,7 @@ async function render(container) {
 
   // 직접 작성 섹션의 본문을 최종 마크다운의 해당 대제목 아래에 주입.
   // 사용자가 textarea에서 이미 채워넣은 섹션은 건드리지 않음 (textarea 우선).
-  var SECTION_HEADER_RE = /^\s*(대제목|붙임)\s*[:：]\s*(.+?)\s*$/;
+  var SECTION_HEADER_RE = /^\s*(대제목|소제목|붙임)\s*[:：]\s*(.+?)\s*$/;
 
   function injectManualSectionBodies(md) {
     var manualWithBody = sections.filter(function (s) {
@@ -349,7 +365,7 @@ async function render(container) {
     // key: "대제목:이름" or "붙임:이름"
     var byKey = {};
     manualWithBody.forEach(function (s) {
-      var tag = s.type === 'attachment' ? '붙임' : '대제목';
+      var tag = s.type === 'attachment' ? '붙임' : (letterMode() ? '소제목' : '대제목');
       byKey[tag + ':' + s.name.trim()] = normalizeManualBody(s.body).trim();
     });
 
@@ -418,8 +434,9 @@ async function render(container) {
     var md = ta.value.trim();
     md = normalizeBullets(md);
     md = injectManualSectionBodies(md);
+    if (school) md = normalizeSchoolName(md, school);
+    if (letterMode()) return buildLetterMd(md, school);
     if (!school) return md;
-    md = normalizeSchoolName(md, school);
     // 기존 부서: 줄이 있으면 학교명으로 교체
     if (/^\s*(기관|학교|기관명|학교명|소속|부서)\s*[:：]/m.test(md)) {
       return md.replace(/^(\s*(기관|학교|기관명|학교명|소속|부서)\s*[:：]).*/m, '$1 ' + school);
@@ -433,6 +450,42 @@ async function render(container) {
       }
     }
     return '부서: ' + school + '\n' + md;
+  }
+
+  // 가정통신문 마크다운 머리글 보정: 양식/학교 줄을 보장한다.
+  function buildLetterMd(md, school) {
+    var lines = md.split('\n');
+    var hasForm = false, hasSchool = false;
+    for (var i = 0; i < lines.length; i++) {
+      if (/^\s*양식\s*[:：]/.test(lines[i])) { lines[i] = '양식: 가정통신문'; hasForm = true; }
+      else if (/^\s*(학교|학교명|기관명)\s*[:：]/.test(lines[i])) {
+        hasSchool = true;
+        if (school) lines[i] = '학교: ' + school;
+      } else if (/^\s*(부서|기관|소속)\s*[:：]/.test(lines[i]) && school) {
+        // 계획서용 "부서: 학교명" 줄이 섞여 들어온 경우 학교 줄로 승격
+        lines[i] = '학교: ' + school;
+        hasSchool = true;
+      }
+    }
+    var head = [];
+    if (!hasForm) head.push('양식: 가정통신문');
+    if (!hasSchool && school) head.push('학교: ' + school);
+    return head.concat(lines).join('\n');
+  }
+
+  var PLAN_HINT = '<code>제목:</code> · <code>부제목:</code> · <code>부서:</code> · <code>대제목:</code> · <code>소제목:</code> · <code>◦ 항목</code> · <code>  - 세부항목</code> · <code>※ 주석</code> · <code>표:</code> · <code>붙임:</code>';
+  var LETTER_HINT = '<code>학교:</code> · <code>교훈:</code> · <code>부서:</code> · <code>연락처:</code> · <code>제목:</code> · <code>문단(줄글)</code> · <code>안내제목:</code> · <code>소제목:</code> · <code>◦ 항목</code> · <code>표:</code> · <code>문의:</code> · <code>날짜:</code> · <code>발신:</code>';
+  var PLAN_META = '위계: 제목→부제목→부서→대제목(로마자 박스)→소제목(□)→◦항목→  -세부항목→※주석→표: · 붙임(전폭 박스, 자동 번호)';
+  var LETTER_META = '가정통신문 서식: 상단 [교훈 | 가 정 통 신 문 | 학교명·부서명] 박스 → 연락처 → 제목 박스 → 줄글 본문(평문 한 줄 = 한 문단) → 안내 표 → 문의 → 날짜 → 학교장 발신';
+
+  function updateHints() {
+    var sealRow = container.querySelector('#hwpf-seal-row');
+    if (sealRow) sealRow.style.display = letterMode() ? '' : 'none';
+    var hintEl = container.querySelector('#hwpf-md-hint');
+    var metaEl = container.querySelector('#hwpf-md-meta-text');
+    var letter = letterMode();
+    if (hintEl) hintEl.innerHTML = letter ? LETTER_HINT : PLAN_HINT;
+    if (metaEl) metaEl.textContent = letter ? LETTER_META : PLAN_META;
   }
 
   function updateCount() { mdCount.textContent = ta.value.length.toLocaleString(); }
@@ -467,6 +520,27 @@ async function render(container) {
     logoNameEl.textContent = '선택된 로고 없음 (없으면 기관명만 표시)';
     logoClearBtn.style.display = 'none';
     api.setSetting('hwp_logo_path', '');
+  });
+
+  // 직인 파일 선택 (가정통신문 발신 명의 옆에 삽입)
+  container.querySelector('#hwpf-seal-pick').addEventListener('click', async function () {
+    var res = await window.api.showOpenDialog({
+      title: '직인 이미지 선택',
+      filters: [{ name: '이미지', extensions: ['png', 'jpg', 'jpeg', 'bmp'] }],
+      properties: ['openFile']
+    });
+    if (!res || res.canceled || !res.filePaths || !res.filePaths[0]) return;
+    currentSealPath = res.filePaths[0];
+    sealNameEl.textContent = currentSealPath.split(/[\\/]/).pop();
+    sealClearBtn.style.display = 'inline-block';
+    api.setSetting('hwp_seal_path', currentSealPath);
+  });
+
+  sealClearBtn.addEventListener('click', function () {
+    currentSealPath = '';
+    sealNameEl.textContent = '선택된 직인 없음 (가정통신문 발신 명의 옆에 삽입)';
+    sealClearBtn.style.display = 'none';
+    api.setSetting('hwp_seal_path', '');
   });
 
   // AI 사이트 바로가기 (외부 브라우저로 열기)
@@ -515,6 +589,7 @@ async function render(container) {
     api.setSetting('hwp_doctype', typeEl.value);
     sections = defaultSections(typeEl.value);
     updateSectionsSummary();
+    updateHints();
     // 모달이 열려있으면 목록도 갱신
     var modal = container.querySelector('#hwpf-sections-modal');
     if (modal && modal.style.display !== 'none') renderSectionsList();
@@ -523,6 +598,7 @@ async function render(container) {
     if (e.target.id === 'hwpf-sections-modal') closeSectionsModal();
   });
   updateSectionsSummary();
+  updateHints();
 
   // 프롬프트 복사
   container.querySelector('#hwpf-copy-prompt').addEventListener('click', async function () {
@@ -623,7 +699,12 @@ async function render(container) {
     btn.disabled = true; spinner.style.display = 'block'; resultDiv.style.display = 'none';
     statusText.textContent = '템플릿으로 hwpx 생성 중...';
     try {
-      var r = await window.api.hwpBuildHwpx({ markdownText: md, logoPath: currentLogoPath || '' });
+      var r = await window.api.hwpBuildHwpx({
+        markdownText: md,
+        logoPath: currentLogoPath || '',
+        sealPath: letterMode() ? (currentSealPath || '') : '',
+        titleHint: topicEl.value.trim()
+      });
       showResult(r);
       // 저장 성공 시 기본 프로그램(한글 등)으로 파일 자동 열기
       if (r && r.ok && r.savedTo && window.api && window.api.openPath) {

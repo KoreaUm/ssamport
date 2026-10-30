@@ -59,6 +59,7 @@ const DEFAULT_SHORTCUTS = [
 ];
 
 let schoolResults = [];
+let comciganSchoolResults = [];
 let menuConfigState = cloneMenuGroups(DEFAULT_MENU_GROUPS);
 let shortcutState = cloneShortcuts(DEFAULT_SHORTCUTS);
 let subjectColorState = {};
@@ -75,6 +76,8 @@ async function render(container) {
   const aiEngine = savedEngine === 'cloud' ? provider : (savedEngine === 'rule' ? 'local_lite' : savedEngine);
   const classTimetableCount = parseClassTimetableCount(settings.class_timetable_json);
   const classTimetableFileName = settings.class_timetable_file_name || '';
+  const timetableSource = settings.timetable_source === 'comcigan' ? 'comcigan' : 'neis_excel';
+  const classTimetableSource = settings.class_timetable_source || '';
   const classSubjects = parseClassTimetableSubjects(settings.class_timetable_json);
   const versionLabel = buildVersionLabel(appMeta);
   menuConfigState = parseMenuGroups(settings.menu_groups_config);
@@ -216,19 +219,55 @@ async function render(container) {
         <section class="card settings-card" id="settings-timetable">
           <div class="settings-head">
             <div>
-              <div class="settings-title">\uD559\uAE09 \uC2DC\uAC04\uD45C \uC5C5\uB85C\uB4DC</div>
-              <div class="settings-note">NEIS\uC5D0\uC11C \uB2E4\uC6B4\uBC1B\uC740 \uD559\uAE09 \uC2DC\uAC04\uD45C \uC5D1\uC140 \uD30C\uC77C\uC744 \uC62C\uB9AC\uBA74 \uD648 \uD654\uBA74\uC5D0 \uBC14\uB85C \uBC18\uC601\uB429\uB2C8\uB2E4.</div>
+              <div class="settings-title">\uD559\uAE09 \uC2DC\uAC04\uD45C \uAC00\uC838\uC624\uAE30</div>
+              <div class="settings-note">\uD559\uAD50\uAC00 NEIS \uC5D1\uC140 \uC5C5\uB85C\uB4DC\uC640 \uCEF4\uC2DC\uAC04\uC54C\uB9AC\uBBF8 \uC911 \uC5B4\uB5A4 \uBC29\uC2DD\uC744 \uC4F0\uB294\uC9C0 \uC120\uD0DD\uD558\uC138\uC694. \uB300\uC2DC\uBCF4\uB4DC \uD559\uAE09 \uC2DC\uAC04\uD45C\uC5D0 \uBC14\uB85C \uBC18\uC601\uB429\uB2C8\uB2E4.</div>
             </div>
           </div>
-          <input type="file" id="class-timetable-file" accept=".xlsx,.xls" style="display:none">
           <div class="form-row">
-            <label>\uD604\uC7AC \uC0C1\uD0DC</label>
-            <div id="class-timetable-status" class="settings-note">
-              ${escapeHtml(classTimetableFileName || (classTimetableCount ? `\uC5C5\uB85C\uB4DC\uB41C \uC218\uC5C5 ${classTimetableCount}\uCE78` : '\uC544\uC9C1 \uC5C5\uB85C\uB4DC\uB41C \uD559\uAE09 \uC2DC\uAC04\uD45C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.'))}
+            <label>\uAC00\uC838\uC624\uAE30 \uBC29\uC2DD</label>
+            <select class="input" id="timetable-source-sel" style="max-width:240px">
+              <option value="neis_excel" ${timetableSource === 'neis_excel' ? 'selected' : ''}>NEIS \uC5D1\uC140 \uC5C5\uB85C\uB4DC</option>
+              <option value="comcigan" ${timetableSource === 'comcigan' ? 'selected' : ''}>\uCEF4\uC2DC\uAC04\uC54C\uB9AC\uBBF8 \uC790\uB3D9 \uC5F0\uB3D9</option>
+            </select>
+          </div>
+
+          <div id="timetable-neis-excel-block" style="display:${timetableSource === 'comcigan' ? 'none' : 'block'}">
+            <input type="file" id="class-timetable-file" accept=".xlsx,.xls" style="display:none">
+            <div class="form-row">
+              <label>\uD604\uC7AC \uC0C1\uD0DC</label>
+              <div id="class-timetable-status" class="settings-note">
+                ${escapeHtml(classTimetableFileName || (classTimetableCount ? `\uC5C5\uB85C\uB4DC\uB41C \uC218\uC5C5 ${classTimetableCount}\uCE78` : '\uC544\uC9C1 \uC5C5\uB85C\uB4DC\uB41C \uD559\uAE09 \uC2DC\uAC04\uD45C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.'))}
+              </div>
+            </div>
+            <div class="settings-actions">
+              <button class="btn btn-secondary btn-sm" id="class-timetable-pick">\uC5D1\uC140 \uD30C\uC77C \uC120\uD0DD</button>
             </div>
           </div>
-          <div class="settings-actions">
-            <button class="btn btn-secondary btn-sm" id="class-timetable-pick">\uC5D1\uC140 \uD30C\uC77C \uC120\uD0DD</button>
+
+          <div id="timetable-comcigan-block" style="display:${timetableSource === 'comcigan' ? 'block' : 'none'}">
+            <div class="settings-note" style="margin:-4px 0 10px">\uCEF4\uC2DC\uAC04\uC54C\uB9AC\uBBF8\uB294 \uBE44\uACF5\uC2DD \uC5F0\uB3D9\uC785\uB2C8\uB2E4. \uD559\uAD50 \uAC80\uC0C9 \uD6C4 \uD559\uAE09 \uC815\uBCF4(\uD559\uB144/\uBC18)\uB97C \uC800\uC7A5\uD558\uBA74 \uC2DC\uAC04\uD45C\uAC00 \uC790\uB3D9\uC73C\uB85C \uBD88\uB7EC\uC640\uC9D1\uB2C8\uB2E4.</div>
+            <div class="form-row">
+              <label>\uD559\uAD50 \uAC80\uC0C9 (\uCEF4\uC2DC\uAC04\uC54C\uB9AC\uBBF8)</label>
+              <div style="display:flex;gap:8px">
+                <input class="input" id="comcigan-keyword" placeholder="\uD559\uAD50\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694" value="${escapeHtml(settings.comcigan_school_name || '')}">
+                <button class="btn btn-secondary" id="comcigan-search-btn">\uAC80\uC0C9</button>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>\uAC80\uC0C9 \uACB0\uACFC</label>
+              <select class="input" id="comcigan-results" size="6">
+                <option value="">\uAC80\uC0C9 \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.</option>
+              </select>
+            </div>
+            <div class="settings-note" id="comcigan-school-status">
+              ${settings.comcigan_school_name ? `\uC120\uD0DD\uD55C \uD559\uAD50: ${escapeHtml(settings.comcigan_school_name)}` : '\uC120\uD0DD\uD55C \uD559\uAD50\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.'}
+            </div>
+            <div class="settings-note" id="comcigan-timetable-status">
+              ${escapeHtml(classTimetableSource === 'comcigan' ? `\uBD88\uB7EC\uC628 \uC218\uC5C5 ${classTimetableCount}\uCE78` : '\uC544\uC9C1 \uBD88\uB7EC\uC628 \uD559\uAE09 \uC2DC\uAC04\uD45C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.')}
+            </div>
+            <div class="settings-actions">
+              <button class="btn btn-primary btn-sm" id="comcigan-fetch-btn">\uD559\uAE09 \uC2DC\uAC04\uD45C \uBD88\uB7EC\uC624\uAE30</button>
+            </div>
           </div>
         </section>
 
@@ -586,6 +625,11 @@ async function init() {
       document.getElementById(button.dataset.settingsTarget)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
+  if (window.__settingsScrollTarget) {
+    const targetId = window.__settingsScrollTarget;
+    window.__settingsScrollTarget = null;
+    setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  }
   document.getElementById('ai-ollama-install-btn')?.addEventListener('click', async () => {
     const engine = selectedAiEngine();
     if (isExternalAiEngine(engine)) {
@@ -718,6 +762,48 @@ async function init() {
     if (window.navigateTo) window.navigateTo('feedback_admin');
   });
 
+  document.getElementById('timetable-source-sel').onchange = async (event) => {
+    const source = event.target.value === 'comcigan' ? 'comcigan' : 'neis_excel';
+    await api.setSetting('timetable_source', source);
+    document.getElementById('timetable-neis-excel-block').style.display = source === 'comcigan' ? 'none' : 'block';
+    document.getElementById('timetable-comcigan-block').style.display = source === 'comcigan' ? 'block' : 'none';
+  };
+
+  document.getElementById('comcigan-search-btn').onclick = async () => {
+    const keyword = document.getElementById('comcigan-keyword').value.trim();
+    if (!keyword) {
+      toast('학교명을 입력하세요.', 'warning');
+      return;
+    }
+    const select = document.getElementById('comcigan-results');
+    select.innerHTML = '<option value="">검색 중...</option>';
+    const result = await api.comciganSearchSchools(keyword);
+    if (result?.error) {
+      select.innerHTML = '<option value="">검색 결과가 없습니다.</option>';
+      toast(`학교 검색 실패: ${result.error}`, 'error');
+      return;
+    }
+    comciganSchoolResults = Array.isArray(result) ? result : [];
+    if (!comciganSchoolResults.length) {
+      select.innerHTML = '<option value="">검색 결과가 없습니다.</option>';
+      toast('검색 결과가 없습니다.', 'warning');
+      return;
+    }
+    select.innerHTML = comciganSchoolResults.map((school, index) =>
+      `<option value="${index}">${escapeHtml(`${school.name} (${school.region})`)}</option>`
+    ).join('');
+    select.selectedIndex = 0;
+    await applySelectedComciganSchool();
+  };
+  document.getElementById('comcigan-keyword').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      document.getElementById('comcigan-search-btn').click();
+    }
+  });
+  document.getElementById('comcigan-results').onchange = applySelectedComciganSchool;
+  document.getElementById('comcigan-fetch-btn').onclick = () => fetchComciganTimetable({ announceMissing: true });
+
   document.getElementById('sv-cl').onclick = async () => {
     await api.setSetting('class_year', document.getElementById('sy').value.trim());
     await api.setSetting('class_num', document.getElementById('sn').value.trim());
@@ -726,6 +812,7 @@ async function init() {
     await api.setSetting('period_count', String(Math.min(12, Math.max(1, Number(document.getElementById('spc').value) || 7))));
     toast('\uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4', 'success');
     if (typeof updateClassInfo === 'function') updateClassInfo();
+    await autoFetchComciganTimetableIfReady();
   };
 
   document.getElementById('menu-add-group').onclick = () => {
@@ -1330,6 +1417,65 @@ function applySelectedSchool() {
     api.setSetting('school_name', item.schoolName || '');
   }
   toast(`${item.schoolName} \uCF54\uB4DC\uAC00 \uC785\uB825\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`, 'success', 1800);
+}
+
+async function applySelectedComciganSchool() {
+  const select = document.getElementById('comcigan-results');
+  const item = comciganSchoolResults[Number(select.value)];
+  if (!item) return;
+  await api.setSetting('comcigan_school_code', String(item.code));
+  await api.setSetting('comcigan_school_name', item.name || '');
+  const statusEl = document.getElementById('comcigan-school-status');
+  if (statusEl) statusEl.textContent = `\uC120\uD0DD\uD55C \uD559\uAD50: ${item.name} (${item.region})`;
+  toast(`${item.name} \uD559\uAD50\uAC00 \uC120\uD0DD\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`, 'success', 1800);
+  await autoFetchComciganTimetableIfReady();
+}
+
+async function fetchComciganTimetable({ announceMissing = false } = {}) {
+  const settings = await api.getAllSettings();
+  const schoolCode = settings.comcigan_school_code;
+  const grade = Number(settings.class_year);
+  const classNum = Number(settings.class_num);
+  if (!schoolCode || !grade || !classNum) {
+    if (announceMissing) toast('\uCEF4\uC2DC\uAC04\uC54C\uB9AC\uBBF8 \uD559\uAD50 \uAC80\uC0C9\uACFC \uD559\uAE09 \uC815\uBCF4(\uD559\uB144/\uBC18)\uB97C \uBA3C\uC800 \uC800\uC7A5\uD574 \uC8FC\uC138\uC694.', 'warning');
+    return;
+  }
+  const button = document.getElementById('comcigan-fetch-btn');
+  if (button) button.disabled = true;
+  try {
+    const result = await api.comciganFetchTimetable({
+      schoolCode,
+      schoolName: settings.comcigan_school_name || '',
+      grade,
+      classNum,
+    });
+    if (result?.error) {
+      toast(`\uD559\uAE09 \uC2DC\uAC04\uD45C\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4: ${result.error}`, 'error');
+      return;
+    }
+    const statusEl = document.getElementById('comcigan-timetable-status');
+    if (statusEl) statusEl.textContent = `\uBD88\uB7EC\uC628 \uC218\uC5C5 ${result.count}\uCE78 (${grade}\uD559\uB144 ${classNum}\uBC18)`;
+    const refreshed = await api.getAllSettings();
+    subjectColorState = parseSubjectColors(refreshed.class_timetable_subject_colors, parseClassTimetableSubjects(refreshed.class_timetable_json));
+    renderSubjectColorEditor();
+    // \uB300\uC2DC\uBCF4\uB4DC\uAC00 \uC2E4\uC81C\uB85C \uADF8\uB824\uC838 \uC788\uC744 \uB54C\uB9CC \uC0C8\uB85C\uACE0\uCE68\uD55C\uB2E4.
+    // window.__pages.dashboard.refresh\uB294 dashboard.init\uACFC \uAC19\uC544\uC11C, \uC124\uC815 \uD654\uBA74\uC5D0\uC11C \uADF8\uB0E5 \uBD80\uB974\uBA74
+    // \uB300\uC2DC\uBCF4\uB4DC DOM\uC774 \uC5C6\uC5B4 'cal-prev' \uB4F1 \uC5D8\uB9AC\uBA3C\uD2B8\uB97C \uCC3E\uB2E4\uAC00 TypeError\uAC00 \uB09C\uB2E4.
+    if (window.__pages?.dashboard?.refresh && document.getElementById('neis-tt-wrap')) {
+      try { await window.__pages.dashboard.refresh(); } catch (_) { /* \uB300\uC2DC\uBCF4\uB4DC\uAC00 \uB5A0 \uC788\uC9C0 \uC54A\uC73C\uBA74 \uBB34\uC2DC */ }
+    }
+    toast(`${grade}\uD559\uB144 ${classNum}\uBC18 \uC2DC\uAC04\uD45C\uB97C \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4.`, 'success');
+  } catch (error) {
+    toast(`\uD559\uAE09 \uC2DC\uAC04\uD45C\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4: ${error.message}`, 'error');
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function autoFetchComciganTimetableIfReady() {
+  const sourceSel = document.getElementById('timetable-source-sel');
+  if (!sourceSel || sourceSel.value !== 'comcigan') return;
+  await fetchComciganTimetable({ announceMissing: false });
 }
 
 function usesFreeTextModel(provider) {

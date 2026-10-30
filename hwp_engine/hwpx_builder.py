@@ -30,8 +30,22 @@ TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templa
 SEC_OPEN = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?><hs:sec xmlns:ha="http://www.hancom.co.kr/hwpml/2011/app" xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph" xmlns:hp10="http://www.hancom.co.kr/hwpml/2016/paragraph" xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section" xmlns:hc="http://www.hancom.co.kr/hwpml/2011/core" xmlns:hh="http://www.hancom.co.kr/hwpml/2011/head" xmlns:hhs="http://www.hancom.co.kr/hwpml/2011/history" xmlns:hm="http://www.hancom.co.kr/hwpml/2011/master-page" xmlns:hpf="http://www.hancom.co.kr/schema/2011/hpf" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf/" xmlns:ooxmlchart="http://www.hancom.co.kr/hwpml/2016/ooxmlchart" xmlns:hwpunitchar="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar" xmlns:epub="http://www.idpf.org/2007/ops" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0">'
 SEC_CLOSE = '</hs:sec>'
 
+# 쪽 왼쪽 여백(15mm). 본문 표는 이 위치를 용지 기준으로 직접 지정한다 —
+# 단락 기준으로 두면 한글이 왼쪽 여백만큼 한 번 더 밀어 오른쪽으로 치우친다.
+PAGE_LEFT_MARGIN = 5669   # 좁게1 왼쪽 여백 20mm (HWPUNIT)
+
+# 본문(쪽) 바로 위에 놓이는 표: 용지 기준 고정 / 셀 안에 들어가는 표: 글자처럼 취급
+_TBL_POS_PAGE = ('<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" '
+                 'holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PAPER" vertAlign="TOP" '
+                 f'horzAlign="LEFT" vertOffset="0" horzOffset="{PAGE_LEFT_MARGIN}"/>')
+_TBL_POS_IN_CELL = ('<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" '
+                    'holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" '
+                    'horzAlign="LEFT" vertOffset="0" horzOffset="0"/>')
+
 # ─── 페이지 설정 단락 (A4 세로, 쪽 여백 "좁게1" 프리셋) ─────────────────────────
-SECPR_PARA = '<hp:p id="0" paraPrIDRef="4" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="60"><hp:secPr id="" textDirection="HORIZONTAL" spaceColumns="1134" tabStop="8000" tabStopVal="4000" tabStopUnit="HWPUNIT" outlineShapeIDRef="1" memoShapeIDRef="0" textVerticalWidthHead="0" masterPageCnt="0"><hp:grid lineGrid="0" charGrid="0" wonggojiFormat="0"/><hp:startNum pageStartsOn="BOTH" page="0" pic="0" tbl="0" equation="0"/><hp:visibility hideFirstHeader="0" hideFirstFooter="0" hideFirstMasterPage="0" border="SHOW_ALL" fill="SHOW_ALL" hideFirstPageNum="0" hideFirstEmptyLine="0" showLineNumber="0"/><hp:lineNumberShape restartType="0" countBy="0" distance="0" startNumber="0"/><hp:pagePr landscape="WIDELY" width="59528" height="84188" gutterType="LEFT_ONLY"><hp:margin header="2834" footer="2834" gutter="0" left="5669" right="5669" top="2834" bottom="2834"/></hp:pagePr><hp:footNotePr><hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/><hp:noteLine length="-1" type="SOLID" width="12" color="#000000"/><hp:noteSpacing aboveNoteLine="567" belowNoteLine="567" betweenNotes="0"/><hp:numbering type="CONTINUOUS" newNum="1"/><hp:placement position="EACH_COLUMN" beneathText="0"/></hp:footNotePr><hp:endNotePr><hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/><hp:noteLine length="-1" type="SOLID" width="12" color="#000000"/><hp:noteSpacing aboveNoteLine="567" belowNoteLine="567" betweenNotes="0"/><hp:numbering type="CONTINUOUS" newNum="1"/><hp:placement position="END_OF_DOCUMENT" beneathText="0"/></hp:endNotePr><hp:pageBorderFill type="ODD" borderFillIDRef="1" textBorder="PAPER" headerInside="0" footerInside="0" fillArea="PAPER"><hp:offset left="1417" right="1417" top="1417" bottom="1417"/></hp:pageBorderFill></hp:secPr></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" textheight="1000" baseline="850" spacing="600" horzpos="0" horzsize="48472" flags="393216"/></hp:linesegarray></hp:p>'
+# 좁게1(머리말/꼬리말 여백 포함): 위 10 / 아래 10 / 좌 20 / 우 20 / 머리말 15 / 꼬리말 15 mm
+# 한글 리소스(IDS_TBOX_PAGE_MARGIN_02)에서 확인한 값. hp:margin 단위는 mm × 141.73.
+SECPR_PARA = '<hp:p id="0" paraPrIDRef="4" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="60"><hp:secPr id="" textDirection="HORIZONTAL" spaceColumns="1134" tabStop="8000" tabStopVal="4000" tabStopUnit="HWPUNIT" outlineShapeIDRef="1" memoShapeIDRef="0" textVerticalWidthHead="0" masterPageCnt="0"><hp:grid lineGrid="0" charGrid="0" wonggojiFormat="0"/><hp:startNum pageStartsOn="BOTH" page="0" pic="0" tbl="0" equation="0"/><hp:visibility hideFirstHeader="0" hideFirstFooter="0" hideFirstMasterPage="0" border="SHOW_ALL" fill="SHOW_ALL" hideFirstPageNum="0" hideFirstEmptyLine="0" showLineNumber="0"/><hp:lineNumberShape restartType="0" countBy="0" distance="0" startNumber="0"/><hp:pagePr landscape="NARROWLY" width="59528" height="84188" gutterType="LEFT_ONLY"><hp:margin header="2126" footer="2126" gutter="0" left="2835" right="2835" top="1417" bottom="1417"/></hp:pagePr><hp:footNotePr><hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/><hp:noteLine length="-1" type="SOLID" width="12" color="#000000"/><hp:noteSpacing aboveNoteLine="567" belowNoteLine="567" betweenNotes="0"/><hp:numbering type="CONTINUOUS" newNum="1"/><hp:placement position="EACH_COLUMN" beneathText="0"/></hp:footNotePr><hp:endNotePr><hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/><hp:noteLine length="-1" type="SOLID" width="12" color="#000000"/><hp:noteSpacing aboveNoteLine="567" belowNoteLine="567" betweenNotes="0"/><hp:numbering type="CONTINUOUS" newNum="1"/><hp:placement position="END_OF_DOCUMENT" beneathText="0"/></hp:endNotePr><hp:pageBorderFill type="ODD" borderFillIDRef="1" textBorder="PAPER" headerInside="0" footerInside="0" fillArea="PAPER"><hp:offset left="1417" right="1417" top="1417" bottom="1417"/></hp:pageBorderFill></hp:secPr></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" textheight="1000" baseline="850" spacing="600" horzpos="0" horzsize="48472" flags="393216"/></hp:linesegarray></hp:p>'
 
 # ─── 제목 단락 (중앙 정렬, 굵게 대형) ───────────────────────────────────────
 # paraPr=62(CENTER), charPr=95(대형 볼드) - 실제 고교학점제 문서의 메인 타이틀
@@ -79,20 +93,23 @@ def _get_image_size_px(path):
         pass
     return 500, 200  # 기본값
 
-def inject_logo(tmp_dir, logo_path):
-    """사용자 로고로 템플릿의 image1(헤더 로고)을 교체. content.hpf 업데이트."""
+def inject_logo(tmp_dir, logo_path, item_id='image1'):
+    """사용자 이미지로 템플릿의 item_id 항목을 교체. content.hpf 업데이트.
+    item_id: 'image1'=학교 로고, 'image2'=직인"""
+    logo_path = str(logo_path)
     ext = os.path.splitext(logo_path)[1].lower()
     if ext == '.jpeg':
         ext = '.jpg'
     media_map = {'.png': 'image/png', '.jpg': 'image/jpg', '.bmp': 'image/bmp'}
     media_type = media_map.get(ext, 'image/png')
 
-    # 기존 image1.jpg 삭제 (확장자가 다른 경우)
-    old_jpg = os.path.join(tmp_dir, 'BinData', 'image1.jpg')
-    if os.path.exists(old_jpg) and ext != '.jpg':
-        os.remove(old_jpg)
+    # 기존 파일 삭제 (확장자가 다른 경우)
+    for old_ext in ('.jpg', '.png', '.bmp'):
+        old = os.path.join(tmp_dir, 'BinData', f'{item_id}{old_ext}')
+        if os.path.exists(old) and old_ext != ext:
+            os.remove(old)
 
-    new_name = f'image1{ext}'
+    new_name = f'{item_id}{ext}'
     dest = os.path.join(tmp_dir, 'BinData', new_name)
     shutil.copy2(logo_path, dest)
 
@@ -100,9 +117,9 @@ def inject_logo(tmp_dir, logo_path):
     hpf_path = os.path.join(tmp_dir, 'Contents', 'content.hpf')
     with open(hpf_path, 'r', encoding='utf-8') as f:
         hpf = f.read()
-    hpf = re.sub(r'<opf:item id="image1".*?/>',
-                 f'<opf:item id="image1" href="BinData/{new_name}" media-type="{media_type}" isEmbeded="1"/>',
-                 hpf, flags=re.DOTALL)
+    hpf = re.sub(rf'<opf:item id="{item_id}"[^>]*?/>',
+                 f'<opf:item id="{item_id}" href="BinData/{new_name}" media-type="{media_type}" isEmbeded="1"/>',
+                 hpf)
     with open(hpf_path, 'w', encoding='utf-8') as f:
         f.write(hpf)
 
@@ -162,6 +179,46 @@ def _get_template_secpr(logo_w_px=None, logo_h_px=None):
                          pic)
             secpr = secpr[:pic_start] + pic + secpr[pic_end:]
     return secpr
+
+def make_pic_xml(item_id, orig_w_px, orig_h_px, display_w_hwp):
+    """셀/단락 안에 넣을 그림(hp:pic) XML. 가로 폭에 맞춰 비율 유지."""
+    orig_w = max(1, int(orig_w_px) * 100)
+    orig_h = max(1, int(orig_h_px) * 100)
+    display_h = max(500, int(display_w_hwp * orig_h / orig_w))
+    sx = display_w_hwp / orig_w
+    sy = display_h / orig_h
+    pic_id = _new_id()
+    inst = _new_id()
+    return display_h, (
+        f'<hp:pic id="{pic_id}" zOrder="0" numberingType="PICTURE" textWrap="TOP_AND_BOTTOM" '
+        f'textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" href="" groupLevel="0" '
+        f'instid="{inst}" reverse="0">'
+        f'<hp:offset x="0" y="0"/>'
+        f'<hp:orgSz width="{orig_w}" height="{orig_h}"/>'
+        f'<hp:curSz width="{display_w_hwp}" height="{display_h}"/>'
+        f'<hp:flip horizontal="0" vertical="0"/>'
+        f'<hp:rotationInfo angle="0" centerX="{display_w_hwp//2}" centerY="{display_h//2}" '
+        f'rotateimage="1"/>'
+        f'<hp:renderingInfo>'
+        f'<hc:transMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/>'
+        f'<hc:scaMatrix e1="{sx:.6f}" e2="0" e3="0" e4="0" e5="{sy:.6f}" e6="0"/>'
+        f'<hc:rotMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/>'
+        f'</hp:renderingInfo>'
+        f'<hc:img binaryItemIDRef="{item_id}" bright="0" contrast="0" effect="REAL_PIC" alpha="0"/>'
+        f'<hp:imgRect><hc:pt0 x="0" y="0"/><hc:pt1 x="{orig_w}" y="0"/>'
+        f'<hc:pt2 x="{orig_w}" y="{orig_h}"/><hc:pt3 x="0" y="{orig_h}"/></hp:imgRect>'
+        f'<hp:imgClip left="0" right="{orig_w}" top="0" bottom="{orig_h}"/>'
+        f'<hp:inMargin left="0" right="0" top="0" bottom="0"/>'
+        f'<hp:imgDim dimwidth="{orig_w}" dimheight="{orig_h}"/>'
+        f'<hp:effects/>'
+        f'<hp:sz width="{display_w_hwp}" widthRelTo="ABSOLUTE" height="{display_h}" '
+        f'heightRelTo="ABSOLUTE" protect="0"/>'
+        f'<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" '
+        f'holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="COLUMN" vertAlign="TOP" '
+        f'horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
+        f'<hp:outMargin left="0" right="0" top="0" bottom="0"/>'
+        f'<hp:shapeComment>그림입니다.</hp:shapeComment>'
+        f'</hp:pic>')
 
 def make_logo_table(orig_w_px, orig_h_px, dept_text=None, display_w_hwp=18000):
     """표지 하단 로고+부서명 테이블 - image1을 테이블 셀 안에 삽입 (HWP 렌더링 필수).
@@ -257,8 +314,9 @@ def make_logo_table(orig_w_px, orig_h_px, dept_text=None, display_w_hwp=18000):
         f'textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="0" '
         f'rowCnt="{row_cnt}" colCnt="1" cellSpacing="0" borderFillIDRef="60" noAdjust="0">'
         f'<hp:sz width="{tbl_w}" widthRelTo="ABSOLUTE" height="{tbl_sz_h}" heightRelTo="ABSOLUTE" protect="0"/>'
-        f'<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" '
-        f'vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
+        f'<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" '
+        f'vertRelTo="PARA" horzRelTo="PAPER" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" '
+        f'horzOffset="{PAGE_LEFT_MARGIN}"/>'
         f'<hp:outMargin left="283" right="283" top="283" bottom="283"/>'
         f'<hp:inMargin left="141" right="141" top="141" bottom="141"/>'
         f'{"".join(rows)}</hp:tbl>'
@@ -349,7 +407,7 @@ _MAJOR_TEMPLATE = ('<hp:p id="2147483648" paraPrIDRef="67" styleIDRef="68" pageB
     '<hp:shadow type="NONE" color="#B2B2B2" offsetX="0" offsetY="0" alpha="0"/>'
     '<hp:drawText lastWidth="45378" name="" editable="0">'
     '<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" hasNumRef="0">'
-    '<hp:p id="2147483648" paraPrIDRef="8" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+    '<hp:p id="2147483648" paraPrIDRef="67" styleIDRef="68" pageBreak="0" columnBreak="0" merged="0">'
     '<hp:run charPrIDRef="3"><hp:t>__TITLE__</hp:t></hp:run>'
     '<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1600" textheight="1600" baseline="1360" spacing="960" horzpos="0" horzsize="44812" flags="393216"/></hp:linesegarray>'
     '</hp:p>'
@@ -375,7 +433,7 @@ _MAJOR_TEMPLATE = ('<hp:p id="2147483648" paraPrIDRef="67" styleIDRef="68" pageB
     '<hc:startPt x="0" y="0"/><hc:endPt x="100" y="100"/>'
     '</hp:line>'
     '<hp:sz width="48178" widthRelTo="ABSOLUTE" height="2248" heightRelTo="ABSOLUTE" protect="0"/>'
-    '<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="0" allowOverlap="1" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
+    f'<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PAPER" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="{PAGE_LEFT_MARGIN}"/>'
     '<hp:outMargin left="0" right="0" top="0" bottom="0"/>'
     '</hp:container>'
     '<hp:t> </hp:t></hp:run>'
@@ -411,7 +469,7 @@ _ATTACHMENT_TEMPLATE = (
     '<hp:shadow type="NONE" color="#B2B2B2" offsetX="0" offsetY="0" alpha="0"/>'
     '<hp:drawText lastWidth="48178" name="" editable="0">'
     '<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" hasNumRef="0">'
-    '<hp:p id="2147483648" paraPrIDRef="8" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+    '<hp:p id="2147483648" paraPrIDRef="67" styleIDRef="68" pageBreak="0" columnBreak="0" merged="0">'
     '<hp:run charPrIDRef="2"><hp:t>__ATTACH_TEXT__</hp:t></hp:run>'
     '<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1600" textheight="1600" baseline="1360" spacing="960" horzpos="0" horzsize="47612" flags="393216"/></hp:linesegarray>'
     '</hp:p>'
@@ -421,7 +479,7 @@ _ATTACHMENT_TEMPLATE = (
     '<hc:pt0 x="0" y="0"/><hc:pt1 x="48759" y="0"/><hc:pt2 x="48759" y="2184"/><hc:pt3 x="0" y="2184"/>'
     '</hp:rect>'
     '<hp:sz width="48178" widthRelTo="ABSOLUTE" height="2248" heightRelTo="ABSOLUTE" protect="0"/>'
-    '<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="0" allowOverlap="1" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
+    f'<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PAPER" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="{PAGE_LEFT_MARGIN}"/>'
     '<hp:outMargin left="0" right="0" top="0" bottom="0"/>'
     '</hp:container>'
     '<hp:t> </hp:t></hp:run>'
@@ -466,44 +524,49 @@ def make_major_heading(roman, title):
             .replace('__TITLE__', t))
 
 # ─── 불릿 단락들 ──────────────────────────────────────────────────────────
-def make_bullet1(text):
+def make_bullet1(text, in_cell=False):
     """◦ 수준1 불릿 단락 (paraPr=85, charPr=37+94)"""
     t = html.escape(text)
-    return (f'<hp:p id="0" paraPrIDRef="85" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+    pr = '85' if in_cell else BULLET1_PARA_PR
+    return (f'<hp:p id="0" paraPrIDRef="{pr}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
             f'<hp:run charPrIDRef="37"><hp:t> ◦ </hp:t></hp:run>'
             f'<hp:run charPrIDRef="94"><hp:t>{t}</hp:t></hp:run>'
             f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1400" textheight="1400" baseline="1190" spacing="1120" horzpos="0" horzsize="48472" flags="393216"/></hp:linesegarray>'
             f'</hp:p>')
 
-def make_bullet2(text):
+def make_bullet2(text, in_cell=False):
     """◦ 수준2 불릿 단락 (paraPr=49, charPr=89, 들여쓰기)"""
     t = html.escape(text)
-    return (f'<hp:p id="0" paraPrIDRef="49" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+    pr = '49' if in_cell else BULLET2_PARA_PR
+    return (f'<hp:p id="0" paraPrIDRef="{pr}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
             f'<hp:run charPrIDRef="89"><hp:t> ◦ {t}</hp:t></hp:run>'
             f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1400" textheight="1400" baseline="1190" spacing="1120" horzpos="0" horzsize="48472" flags="393216"/></hp:linesegarray>'
             f'</hp:p>')
 
-def make_dash(text):
+def make_dash(text, in_cell=False):
     """- 대시 불릿 단락 (paraPr=49, charPr=89)"""
     t = html.escape(text)
-    return (f'<hp:p id="0" paraPrIDRef="49" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
-            f'<hp:run charPrIDRef="89"><hp:t>   - {t}</hp:t></hp:run>'
+    pr = '49' if in_cell else BULLET2_PARA_PR
+    return (f'<hp:p id="0" paraPrIDRef="{pr}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+            f'<hp:run charPrIDRef="89"><hp:t>  - {t}</hp:t></hp:run>'
             f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1400" textheight="1400" baseline="1190" spacing="1120" horzpos="0" horzsize="48472" flags="393216"/></hp:linesegarray>'
             f'</hp:p>')
 
-def make_sub_heading(text):
+def make_sub_heading(text, in_cell=False):
     """□ 소제목 단락 (paraPr=49, charPr=90, 굵게)"""
     t = html.escape(text)
     prefix = '' if text.startswith('□') else '□ '
-    return (f'<hp:p id="2147483648" paraPrIDRef="49" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+    pr = '49' if in_cell else PLAIN_PARA_PR
+    return (f'<hp:p id="2147483648" paraPrIDRef="{pr}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
             f'<hp:run charPrIDRef="90"><hp:t>{prefix}{t}</hp:t></hp:run>'
             f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1400" textheight="1400" baseline="1190" spacing="1120" horzpos="0" horzsize="48472" flags="393216"/></hp:linesegarray>'
             f'</hp:p>')
 
-def make_note(text):
+def make_note(text, in_cell=False):
     """※ 주석 단락 (paraPr=49, charPr=89)"""
     t = html.escape(text)
-    return (f'<hp:p id="0" paraPrIDRef="49" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+    pr = '49' if in_cell else PLAIN_PARA_PR
+    return (f'<hp:p id="0" paraPrIDRef="{pr}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
             f'<hp:run charPrIDRef="89"><hp:t>※ {t}</hp:t></hp:run>'
             f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1400" textheight="1400" baseline="1190" spacing="1120" horzpos="0" horzsize="48472" flags="393216"/></hp:linesegarray>'
             f'</hp:p>')
@@ -553,6 +616,45 @@ _EXTRA_FILLS_XML = (
     '<hc:fillBrush/>'
     '</hh:borderFill>'
 )
+# 61=쪽 테두리(올리브 #939500 1.0mm) 62=머리 박스 셀(올리브 0.4mm)
+# 63=통신문 표 머리행(연두 #D8E4BC) 64=통신문 제목 박스(연파랑 #C5D9F1)
+LETTER_LINE_COLOR = '#939500'
+_LETTER_FILLS_XML = (
+    '<hh:borderFill id="61" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">'
+    '<hh:slash type="NONE" Crooked="0" isCounter="0"/><hh:backSlash type="NONE" Crooked="0" isCounter="0"/>'
+    f'<hh:leftBorder type="SOLID" width="1.0 mm" color="{LETTER_LINE_COLOR}"/>'
+    f'<hh:rightBorder type="SOLID" width="1.0 mm" color="{LETTER_LINE_COLOR}"/>'
+    f'<hh:topBorder type="SOLID" width="1.0 mm" color="{LETTER_LINE_COLOR}"/>'
+    f'<hh:bottomBorder type="SOLID" width="1.0 mm" color="{LETTER_LINE_COLOR}"/>'
+    '<hc:fillBrush/>'
+    '</hh:borderFill>'
+    '<hh:borderFill id="62" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">'
+    '<hh:slash type="NONE" Crooked="0" isCounter="0"/><hh:backSlash type="NONE" Crooked="0" isCounter="0"/>'
+    f'<hh:leftBorder type="SOLID" width="0.4 mm" color="{LETTER_LINE_COLOR}"/>'
+    f'<hh:rightBorder type="SOLID" width="0.4 mm" color="{LETTER_LINE_COLOR}"/>'
+    f'<hh:topBorder type="SOLID" width="0.4 mm" color="{LETTER_LINE_COLOR}"/>'
+    f'<hh:bottomBorder type="SOLID" width="0.4 mm" color="{LETTER_LINE_COLOR}"/>'
+    '<hc:fillBrush/>'
+    '</hh:borderFill>'
+    '<hh:borderFill id="63" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">'
+    '<hh:slash type="NONE" Crooked="0" isCounter="0"/><hh:backSlash type="NONE" Crooked="0" isCounter="0"/>'
+    '<hh:leftBorder type="SOLID" width="0.12 mm" color="#000000"/>'
+    '<hh:rightBorder type="SOLID" width="0.12 mm" color="#000000"/>'
+    '<hh:topBorder type="SOLID" width="0.12 mm" color="#000000"/>'
+    '<hh:bottomBorder type="SOLID" width="0.12 mm" color="#000000"/>'
+    '<hc:fillBrush><hc:winBrush faceColor="#D8E4BC" hatchColor="#000000" alpha="0"/></hc:fillBrush>'
+    '</hh:borderFill>'
+    '<hh:borderFill id="64" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">'
+    '<hh:slash type="NONE" Crooked="0" isCounter="0"/><hh:backSlash type="NONE" Crooked="0" isCounter="0"/>'
+    '<hh:leftBorder type="SOLID" width="0.12 mm" color="#4F81BD"/>'
+    '<hh:rightBorder type="SOLID" width="0.12 mm" color="#4F81BD"/>'
+    '<hh:topBorder type="SOLID" width="0.12 mm" color="#4F81BD"/>'
+    '<hh:bottomBorder type="SOLID" width="0.12 mm" color="#4F81BD"/>'
+    '<hc:fillBrush><hc:winBrush faceColor="#C5D9F1" hatchColor="#000000" alpha="0"/></hc:fillBrush>'
+    '</hh:borderFill>'
+)
+_EXTRA_FILLS_XML = _EXTRA_FILLS_XML + _LETTER_FILLS_XML
+
 _COVER_BAR_FILLS_XML = _EXTRA_FILLS_XML  # 하위 호환 별칭
 
 def make_cover_bar_table(title_text, center_h=5690):
@@ -614,8 +716,9 @@ def make_cover_bar_table(title_text, center_h=5690):
         f'textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="1" '
         f'rowCnt="3" colCnt="3" cellSpacing="0" borderFillIDRef="3" noAdjust="0">'
         f'<hp:sz width="{tbl_w}" widthRelTo="ABSOLUTE" height="{tbl_sz_h}" heightRelTo="ABSOLUTE" protect="0"/>'
-        f'<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" '
-        f'vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
+        f'<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" '
+        f'vertRelTo="PARA" horzRelTo="PAPER" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" '
+        f'horzOffset="{PAGE_LEFT_MARGIN}"/>'
         f'<hp:outMargin left="283" right="283" top="283" bottom="283"/>'
         f'<hp:inMargin left="141" right="141" top="141" bottom="141"/>'
         f'{_bar_row(0, row0_h)}{title_row}{_bar_row(2, row2_h)}'
@@ -653,7 +756,7 @@ PAGE_BREAK_PARA = ('<hp:p id="0" paraPrIDRef="8" styleIDRef="0" pageBreak="1" co
                    '</hp:p>')
 
 # ─── 표(hp:tbl) 생성 ─────────────────────────────────────────────────────
-def make_table(rows):
+def make_table(rows, header_fill='59', in_cell=False):
     """표 단락 생성. rows = [['헤더1','헤더2',...], ['값1','값2',...], ...]"""
     if not rows:
         return ''
@@ -681,7 +784,7 @@ def make_table(rows):
     tr_xmls = []
     for ri, row in enumerate(rows):
         is_header = (ri == 0)
-        fill_ref = '59' if is_header else '3'   # 59=연파랑 헤더, 3=테두리 일반
+        fill_ref = header_fill if is_header else '3'   # 헤더 색 / 3=테두리 일반
         char_ref = '3' if is_header else '94'
         tc_xmls = []
         for ci in range(col_cnt):
@@ -703,7 +806,7 @@ def make_table(rows):
 
     tbl_xml = (f'<hp:tbl id="{tbl_id}" zOrder="0" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="1" rowCnt="{row_cnt}" colCnt="{col_cnt}" cellSpacing="0" borderFillIDRef="3" noAdjust="0">'
                f'<hp:sz width="{total_w}" widthRelTo="ABSOLUTE" height="{tbl_sz_height}" heightRelTo="ABSOLUTE" protect="0"/>'
-               f'<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
+               f'{_TBL_POS_IN_CELL if in_cell else _TBL_POS_PAGE}'
                f'<hp:outMargin left="283" right="283" top="283" bottom="283"/>'
                f'<hp:inMargin left="141" right="141" top="141" bottom="141"/>'
                f'{"".join(tr_xmls)}</hp:tbl>')
@@ -713,18 +816,286 @@ def make_table(rows):
             f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="{tbl_height}" textheight="{tbl_height}" baseline="{int(tbl_height * 0.85)}" spacing="840" horzpos="0" horzsize="48472" flags="393216"/></hp:linesegarray>'
             f'</hp:p>')
 
+# ─── 가정통신문 서식 fragment ────────────────────────────────────────────────
+# 실제 학교 가정통신문 구조 재현:
+#   [교훈 | 가 정 통 신 문 | 학교명/부서명 박스] → 연락처 한 줄 → <제목 박스>
+#   → 줄글 본문 단락 → 안내 표 → 문의 → 날짜 → 학교장 발신
+LETTER_BANNER_TEXT = '가 정 통 신 문'
+# 쪽 전체를 감싸는 올리브 테두리 (borderFill 61)
+LETTER_BODY_PARA_PR = '99'   # header.xml에 주입하는 통신문 본문 문단 모양
+_MARGIN_XML = ('<hh:margin><hc:intent value="2000" unit="HWPUNIT"/>'
+               '<hc:left value="0" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/>'
+               '<hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin>'
+               '<hh:lineSpacing type="PERCENT" value="170" unit="HWPUNIT"/>')
+BODY_SHIFT = 0   # 여백이 정상 적용되므로 추가 보정 없음
+BULLET1_PARA_PR = '100'
+BULLET2_PARA_PR = '101'
+PLAIN_PARA_PR = '102'
+_BODY_PARA_PR_XML = ('<hh:paraPr id="100" tabPrIDRef="0" condense="0" fontLineHeight="0" snapToGrid="0" suppressLineNumbers="0" checked="0"><hh:align horizontal="JUSTIFY" vertical="BASELINE"/><hh:heading type="NONE" idRef="0" level="0"/><hh:breakSetting breakLatinWord="KEEP_WORD" breakNonLatinWord="KEEP_WORD" widowOrphan="0" keepWithNext="0" keepLines="0" pageBreakBefore="0" lineWrap="BREAK"/><hh:autoSpacing eAsianEng="0" eAsianNum="0"/><hp:switch><hp:case hp:required-namespace="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar"><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-4115" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:case><hp:default><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-4115" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:default></hp:switch><hh:border borderFillIDRef="2" offsetLeft="0" offsetRight="0" offsetTop="0" offsetBottom="0" connect="0" ignoreMargin="0"/></hh:paraPr>'
+    '<hh:paraPr id="101" tabPrIDRef="0" condense="0" fontLineHeight="0" snapToGrid="0" suppressLineNumbers="0" checked="0"><hh:align horizontal="JUSTIFY" vertical="BASELINE"/><hh:heading type="NONE" idRef="0" level="0"/><hh:breakSetting breakLatinWord="KEEP_WORD" breakNonLatinWord="KEEP_WORD" widowOrphan="0" keepWithNext="0" keepLines="0" pageBreakBefore="0" lineWrap="BREAK"/><hh:autoSpacing eAsianEng="0" eAsianNum="0"/><hp:switch><hp:case hp:required-namespace="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar"><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-2715" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:case><hp:default><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-2715" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:default></hp:switch><hh:border borderFillIDRef="2" offsetLeft="0" offsetRight="0" offsetTop="0" offsetBottom="0" connect="0" ignoreMargin="0"/></hh:paraPr>'
+    '<hh:paraPr id="102" tabPrIDRef="0" condense="0" fontLineHeight="0" snapToGrid="0" suppressLineNumbers="0" checked="0"><hh:align horizontal="JUSTIFY" vertical="BASELINE"/><hh:heading type="NONE" idRef="0" level="0"/><hh:breakSetting breakLatinWord="KEEP_WORD" breakNonLatinWord="KEEP_WORD" widowOrphan="0" keepWithNext="0" keepLines="0" pageBreakBefore="0" lineWrap="BREAK"/><hh:autoSpacing eAsianEng="0" eAsianNum="0"/><hp:switch><hp:case hp:required-namespace="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar"><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-5215" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:case><hp:default><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-5215" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:default></hp:switch><hh:border borderFillIDRef="2" offsetLeft="0" offsetRight="0" offsetTop="0" offsetBottom="0" connect="0" ignoreMargin="0"/></hh:paraPr>')
+
+_EXTRA_PARA_PR_XML = (
+    f'<hh:paraPr id="{LETTER_BODY_PARA_PR}" tabPrIDRef="0" condense="0" fontLineHeight="0" '
+    'snapToGrid="0" suppressLineNumbers="0" checked="0">'
+    '<hh:align horizontal="JUSTIFY" vertical="BASELINE"/>'
+    '<hh:heading type="NONE" idRef="0" level="0"/>'
+    '<hh:breakSetting breakLatinWord="KEEP_WORD" breakNonLatinWord="KEEP_WORD" widowOrphan="0" '
+    'keepWithNext="0" keepLines="0" pageBreakBefore="0" lineWrap="BREAK"/>'
+    '<hh:autoSpacing eAsianEng="0" eAsianNum="0"/>'
+    '<hp:switch><hp:case hp:required-namespace="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar">'
+    f'{_MARGIN_XML}</hp:case><hp:default>{_MARGIN_XML}</hp:default></hp:switch>'
+    '<hh:border borderFillIDRef="2" offsetLeft="0" offsetRight="0" offsetTop="0" '
+    'offsetBottom="0" connect="0" ignoreMargin="0"/></hh:paraPr>'
+    + _BODY_PARA_PR_XML
+)
+
+# 가정통신문은 원본 양식 파일(2026. 학생 정서·행동특성검사 안내 가정통신문.hwp)의
+# 쪽 여백을 그대로 사용한다 — 좌우 15mm, 위 10mm, 아래 5mm, 머리말·꼬리말 5mm.
+# (원본 파일의 PAGE_DEF 레코드에서 읽은 값)
+LETTER_SECPR_PARA = SECPR_PARA
+# 바깥 테두리 표의 크기·배치는 원본 양식 파일의 값을 그대로 사용한다.
+# (원본 CTRL_HEADER: width=50448, height=75739, outMargin 283, 글자처럼 취급 안 함)
+LETTER_FRAME_W = 47623      # 170mm 본문 폭 - 바깥 여백(283*2)
+LETTER_FRAME_H = 66000      # 한 쪽 본문 높이에 맞춤
+LETTER_FRAME_LEFT = PAGE_LEFT_MARGIN    # 용지 왼쪽 끝에서 20mm
+LETTER_FRAME_TOP = 7086     # 용지 위쪽 끝에서 25mm (위 여백 10 + 머리말 15)
+LETTER_TBL_W = LETTER_FRAME_W - 1000   # 바깥 테두리 안쪽에 들어가는 표 너비
+
+def _letter_cell(text, col, row, w, h, fill='62', char='94', para='62',
+                 col_span=1, row_span=1, vsize=1400, pic_xml=None, pic_h=0):
+    """통신문용 테이블 셀 XML. text 안의 개행은 여러 단락으로 분리.
+    pic_xml 제공 시 텍스트 대신 그림을 넣는다 (학교 로고 등)."""
+    inner_w = max(100, w - 282)
+    if pic_xml:
+        return (f'<hp:tc name="" header="0" hasMargin="0" protect="0" editable="0" dirty="0" '
+                f'borderFillIDRef="{fill}">'
+                f'<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" '
+                f'linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" '
+                f'hasTextRef="0" hasNumRef="0">'
+                f'<hp:p id="2147483648" paraPrIDRef="62" styleIDRef="0" pageBreak="0" '
+                f'columnBreak="0" merged="0"><hp:run charPrIDRef="114">{pic_xml}<hp:t/></hp:run>'
+                f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="{pic_h}" '
+                f'textheight="{pic_h}" baseline="{int(pic_h*0.85)}" spacing="0" horzpos="0" '
+                f'horzsize="{inner_w}" flags="393216"/></hp:linesegarray></hp:p></hp:subList>'
+                f'<hp:cellAddr colAddr="{col}" rowAddr="{row}"/>'
+                f'<hp:cellSpan colSpan="{col_span}" rowSpan="{row_span}"/>'
+                f'<hp:cellSz width="{w}" height="{h}"/>'
+                f'<hp:cellMargin left="141" right="141" top="141" bottom="141"/></hp:tc>')
+    lines = str(text).split('\n') if str(text) else ['']
+    ps = []
+    for ln in lines:
+        t = html.escape(ln)
+        run = (f'<hp:run charPrIDRef="{char}"><hp:t>{t}</hp:t></hp:run>' if t
+               else f'<hp:run charPrIDRef="{char}"/>')
+        ps.append(
+            f'<hp:p id="2147483648" paraPrIDRef="{para}" styleIDRef="0" pageBreak="0" '
+            f'columnBreak="0" merged="0">{run}'
+            f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="{vsize}" '
+            f'textheight="{vsize}" baseline="{int(vsize*0.85)}" spacing="600" horzpos="0" '
+            f'horzsize="{inner_w}" flags="393216"/></hp:linesegarray></hp:p>'
+        )
+    return (f'<hp:tc name="" header="0" hasMargin="0" protect="0" editable="0" dirty="0" '
+            f'borderFillIDRef="{fill}">'
+            f'<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" '
+            f'linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" '
+            f'hasNumRef="0">{"".join(ps)}</hp:subList>'
+            f'<hp:cellAddr colAddr="{col}" rowAddr="{row}"/>'
+            f'<hp:cellSpan colSpan="{col_span}" rowSpan="{row_span}"/>'
+            f'<hp:cellSz width="{w}" height="{h}"/>'
+            f'<hp:cellMargin left="141" right="141" top="141" bottom="141"/></hp:tc>')
+
+def _letter_tbl(rows_xml, row_cnt, col_cnt, tbl_h, tbl_fill='62'):
+    tbl_id = _new_id()
+    lineseg_h = tbl_h + 566
+    tbl_xml = (
+        f'<hp:tbl id="{tbl_id}" zOrder="0" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" '
+        f'textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="0" '
+        f'rowCnt="{row_cnt}" colCnt="{col_cnt}" cellSpacing="0" borderFillIDRef="{tbl_fill}" noAdjust="0">'
+        f'<hp:sz width="{LETTER_TBL_W}" widthRelTo="ABSOLUTE" height="{tbl_h}" '
+        f'heightRelTo="ABSOLUTE" protect="0"/>'
+        f'<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" '
+        f'holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" '
+        f'vertOffset="0" horzOffset="0"/>'
+        f'<hp:outMargin left="283" right="283" top="283" bottom="283"/>'
+        f'<hp:inMargin left="141" right="141" top="141" bottom="141"/>'
+        f'{rows_xml}</hp:tbl>')
+    return (f'<hp:p id="0" paraPrIDRef="8" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+            f'<hp:run charPrIDRef="52">{tbl_xml}<hp:t/></hp:run>'
+            f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="{lineseg_h}" '
+            f'textheight="{lineseg_h}" baseline="{int(lineseg_h*0.85)}" spacing="840" horzpos="0" '
+            f'horzsize="48472" flags="393216"/></hp:linesegarray></hp:p>')
+
+def make_letter_frame(inner_paras):
+    """통신문 전체를 감싸는 바깥 테두리 표 (원본 가정통신문과 동일한 구조).
+    inner_paras: 셀 안에 들어갈 단락 XML 리스트"""
+    inner_w = LETTER_FRAME_W - 282
+    body = ''.join(inner_paras)
+    tc = (f'<hp:tc name="" header="0" hasMargin="0" protect="0" editable="0" dirty="0" '
+          f'borderFillIDRef="61">'
+          f'<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="TOP" '
+          f'linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" '
+          f'hasNumRef="0">{body}</hp:subList>'
+          f'<hp:cellAddr colAddr="0" rowAddr="0"/><hp:cellSpan colSpan="1" rowSpan="1"/>'
+          f'<hp:cellSz width="{LETTER_FRAME_W}" height="{LETTER_FRAME_H}"/>'
+          f'<hp:cellMargin left="141" right="141" top="141" bottom="141"/></hp:tc>')
+    tbl_id = _new_id()
+    tbl_xml = (
+        f'<hp:tbl id="{tbl_id}" zOrder="0" numberingType="TABLE" textWrap="BEHIND_TEXT" '
+        f'textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="0" '
+        f'rowCnt="1" colCnt="1" cellSpacing="0" borderFillIDRef="61" noAdjust="0">'
+        f'<hp:sz width="{LETTER_FRAME_W}" widthRelTo="ABSOLUTE" height="{LETTER_FRAME_H}" '
+        f'heightRelTo="ABSOLUTE" protect="0"/>'
+        # 용지 기준 절대 위치로 고정 — 단락 들여쓰기 영향을 받지 않도록 한다
+        f'<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="0" allowOverlap="1" '
+        f'holdAnchorAndSO="0" vertRelTo="PAPER" horzRelTo="PAPER" vertAlign="TOP" '
+        f'horzAlign="LEFT" vertOffset="{LETTER_FRAME_TOP}" horzOffset="{LETTER_FRAME_LEFT}"/>'
+        f'<hp:outMargin left="283" right="283" top="283" bottom="283"/>'
+        f'<hp:inMargin left="141" right="141" top="141" bottom="141"/>'
+        f'<hp:tr>{tc}</hp:tr></hp:tbl>')
+    lineseg_h = 1000   # 떠 있는 개체이므로 단락 줄 높이는 한 줄만 차지
+    return (f'<hp:p id="0" paraPrIDRef="62" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+            f'<hp:run charPrIDRef="52">{tbl_xml}<hp:t/></hp:run>'
+            f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="{lineseg_h}" '
+            f'textheight="{lineseg_h}" baseline="{int(lineseg_h*0.85)}" spacing="0" horzpos="0" '
+            f'horzsize="{LETTER_FRAME_W}" flags="393216"/></hp:linesegarray></hp:p>')
+
+def make_letter_banner(school='', motto='', dept='', banner=None, logo_size=None):
+    """상단 통신문 머리 박스.
+    [로고] | [교 훈(校訓) / 교훈내용] | [가 정 통 신 문] | [학교명 / 부서명]
+    logo_size: (가로px, 세로px) — 주어지면 맨 왼쪽에 학교 로고 칸을 추가한다."""
+    banner = banner or LETTER_BANNER_TEXT
+    row_h = 1700
+    logo_w = 5200 if logo_size else 0
+    side_w = 10400 if logo_size else 11000
+    mid_w = LETTER_TBL_W - logo_w - side_w * 2
+    col_cnt = 4 if logo_size else 3
+    c = 1 if logo_size else 0   # 교훈 칸의 열 번호
+
+    logo_cell = ''
+    if logo_size:
+        pic_h, pic_xml = make_pic_xml('image1', logo_size[0], logo_size[1], logo_w - 600)
+        logo_cell = _letter_cell('', 0, 0, logo_w, row_h * 2, col_span=1, row_span=2,
+                                 pic_xml=pic_xml, pic_h=pic_h)
+
+    rows = (
+        '<hp:tr>'
+        + logo_cell
+        + _letter_cell('교 훈(校訓)', c, 0, side_w, row_h, char='89')
+        + _letter_cell(banner, c + 1, 0, mid_w, row_h * 2, col_span=1, row_span=2,
+                       char='95', vsize=1800)
+        + _letter_cell(school or ' ', c + 2, 0, side_w, row_h, char='67', vsize=1500)
+        + '</hp:tr>'
+        '<hp:tr>'
+        + _letter_cell(motto or ' ', c, 1, side_w, row_h, char='89')
+        + _letter_cell(dept or ' ', c + 2, 1, side_w, row_h, char='89')
+        + '</hp:tr>'
+    )
+    return _letter_tbl(rows, 2, col_cnt, row_h * 2)
+
+def make_letter_contact(lines):
+    """머리 박스 아래 연락처/홈페이지 줄 (가운데 정렬 소형)"""
+    text = '\n'.join([l for l in lines if l and l.strip()])
+    if not text:
+        return ''
+    rows = ('<hp:tr>' + _letter_cell(text, 0, 0, LETTER_TBL_W, 1200, char='89') + '</hp:tr>')
+    return _letter_tbl(rows, 1, 1, 1200 * max(1, text.count('\n') + 1))
+
+def make_letter_title(text):
+    """통신문 제목 박스 (테두리 + 가운데 굵은 큰 글씨)"""
+    rows = ('<hp:tr>'
+            + _letter_cell(text, 0, 0, LETTER_TBL_W, 2200, fill='64', char='95', vsize=1800)
+            + '</hp:tr>')
+    return _letter_tbl(rows, 1, 1, 2200, tbl_fill='64')
+
+def make_letter_section_title(text):
+    """본문 중간 안내 제목 (<   내용   > 형태, 가운데 굵게)"""
+    t = text.strip()
+    if not (t.startswith('<') and t.endswith('>')):
+        t = f'<   {t}   >'
+    t = html.escape(t)
+    return (f'<hp:p id="2147483648" paraPrIDRef="62" styleIDRef="0" pageBreak="0" '
+            f'columnBreak="0" merged="0"><hp:run charPrIDRef="90"><hp:t>{t}</hp:t></hp:run>'
+            f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1400" textheight="1400" '
+            f'baseline="1190" spacing="1120" horzpos="0" horzsize="48472" flags="393216"/>'
+            f'</hp:linesegarray></hp:p>')
+
+def make_letter_para(text):
+    """통신문 줄글 본문 단락 (첫 줄만 들여쓰기, 양쪽 정렬, 줄간격 170%)"""
+    t = html.escape(text.strip())
+    return (f'<hp:p id="0" paraPrIDRef="{LETTER_BODY_PARA_PR}" styleIDRef="0" pageBreak="0" '
+            f'columnBreak="0" merged="0">'
+            f'<hp:run charPrIDRef="94"><hp:t>{t}</hp:t></hp:run>'
+            f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1400" textheight="1400" '
+            f'baseline="1190" spacing="980" horzpos="0" horzsize="{LETTER_TBL_W}" flags="393216"/>'
+            f'</hp:linesegarray></hp:p>')
+
+def make_letter_center(text, char='67', vsize=1500):
+    """가운데 정렬 한 줄 (날짜 등)"""
+    t = html.escape(text.strip())
+    return (f'<hp:p id="2147483648" paraPrIDRef="62" styleIDRef="0" pageBreak="0" '
+            f'columnBreak="0" merged="0"><hp:run charPrIDRef="{char}"><hp:t>{t}</hp:t></hp:run>'
+            f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="{vsize}" '
+            f'textheight="{vsize}" baseline="{int(vsize*0.85)}" spacing="900" horzpos="0" '
+            f'horzsize="48472" flags="393216"/></hp:linesegarray></hp:p>')
+
+def make_letter_sender(text, seal_size=None):
+    """하단 발신 명의 (예: ○ ○ 고 등 학 교 장). seal_size 제공 시 뒤에 직인 이미지."""
+    if not seal_size:
+        return make_letter_center(text, char='95', vsize=1800)
+    t = html.escape(text.strip())
+    seal_h, seal_xml = make_pic_xml('image2', seal_size[0], seal_size[1], 4200)
+    vsize = max(1800, seal_h)
+    return (f'<hp:p id="2147483648" paraPrIDRef="62" styleIDRef="0" pageBreak="0" '
+            f'columnBreak="0" merged="0">'
+            f'<hp:run charPrIDRef="95"><hp:t>{t}</hp:t></hp:run>'
+            f'<hp:run charPrIDRef="114">{seal_xml}<hp:t/></hp:run>'
+            f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="{vsize}" '
+            f'textheight="{vsize}" baseline="{int(vsize*0.85)}" spacing="300" horzpos="0" '
+            f'horzsize="{LETTER_TBL_W}" flags="393216"/></hp:linesegarray></hp:p>')
+
 # ─── 마크다운 파서 ─────────────────────────────────────────────────────────
 ROMAN_NUMS = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ', 'Ⅴ', 'Ⅵ', 'Ⅶ', 'Ⅷ', 'Ⅸ', 'Ⅹ']
 
-def parse_markdown(md_text):
-    """마크다운 텍스트를 (type, content) 리스트로 파싱"""
+LETTER_DOC_TYPES = ('가정통신문',)
+
+def detect_doc_mode(md_text):
+    """마크다운 첫머리의 "양식: ..." 줄로 문서 모드 판별 ('letter' 또는 'plan')"""
+    for line in md_text.split('\n'):
+        m = re.match(r'^\s*양식\s*[:：]\s*(.+?)\s*$', line)
+        if m:
+            return 'letter' if m.group(1).strip() in LETTER_DOC_TYPES else 'plan'
+    return 'plan'
+
+def parse_markdown(md_text, mode='plan'):
+    """마크다운 텍스트를 (type, content) 리스트로 파싱.
+    mode='letter' 이면 가정통신문 전용 태그와 줄글 본문 규칙을 적용한다."""
+    letter = (mode == 'letter')
     elements = []
     lines = md_text.split('\n')
     i = 0
     while i < len(lines):
         line = lines[i].rstrip()
 
-        if line.startswith('제목:'):
+        if re.match(r'^\s*양식\s*[:：]', line):
+            pass
+        elif letter and re.match(r'^\s*(학교|학교명|기관명)\s*[:：]', line):
+            elements.append(('school', line.split(':', 1)[-1].split('：')[-1].strip()))
+        elif letter and re.match(r'^\s*(교훈|훈화)\s*[:：]', line):
+            elements.append(('motto', line.split(':', 1)[-1].split('：')[-1].strip()))
+        elif letter and re.match(r'^\s*(연락처|전화|홈페이지)\s*[:：]', line):
+            elements.append(('contact', line.split(':', 1)[-1].split('：')[-1].strip()))
+        elif letter and re.match(r'^\s*(문단|인사말)\s*[:：]', line):
+            elements.append(('para', line.split(':', 1)[-1].split('：')[-1].strip()))
+        elif letter and re.match(r'^\s*(안내제목|구분제목)\s*[:：]', line):
+            elements.append(('letter_section', line.split(':', 1)[-1].split('：')[-1].strip()))
+        elif letter and re.match(r'^\s*(문의|문의처)\s*[:：]', line):
+            elements.append(('para', '문의 : ' + line.split(':', 1)[-1].split('：')[-1].strip()))
+        elif letter and re.match(r'^\s*날짜\s*[:：]', line):
+            elements.append(('letter_date', line.split(':', 1)[-1].split('：')[-1].strip()))
+        elif letter and re.match(r'^\s*(발신|명의|발신명의)\s*[:：]', line):
+            elements.append(('letter_sender', line.split(':', 1)[-1].split('：')[-1].strip()))
+        elif line.startswith('제목:'):
             elements.append(('title', line[3:].strip()))
         elif line.startswith('부제목:'):
             elements.append(('subtitle', line[4:].strip()))
@@ -783,7 +1154,7 @@ def parse_markdown(md_text):
             if elements and elements[-1][0] != 'spacer':
                 elements.append(('spacer', ''))
         elif line.strip():
-            elements.append(('bullet1', line.strip()))
+            elements.append(('para' if letter else 'bullet1', line.strip()))
 
         i += 1
     return elements
@@ -812,9 +1183,76 @@ def assign_roman_numerals(elements):
 # ─── hwpx 빌더 메인 함수 ──────────────────────────────────────────────────
 _COVER_TYPES = {'title', 'subtitle', 'dept'}
 
-def build_hwpx(md_text, output_path, logo_path=None):
-    """마크다운 텍스트 → hwpx 파일 생성. logo_path: 학교 로고 이미지 파일 경로 (선택)"""
-    elements = parse_markdown(md_text)
+def build_letter_paras(elements, logo_size=None, seal_size=None):
+    """가정통신문 본문 단락 조립 (머리 박스 → 연락처 → 제목 박스 → 줄글 → 표 → 날짜/발신)"""
+    def _first(kind):
+        return next((v for k, v in elements if k == kind), '')
+
+    school = _first('school') or _first('dept')
+    motto = _first('motto')
+    dept = _first('dept') if _first('school') else ''
+    contacts = [v for k, v in elements if k == 'contact']
+    title = _first('title')
+
+    paras = [make_letter_banner(school, motto, dept, logo_size=logo_size)]
+    contact_xml = make_letter_contact(contacts)
+    if contact_xml:
+        paras.append(contact_xml)
+    if title:
+        paras.append(make_letter_title(title))
+    paras.append(SMALL_SPACER)
+
+    HEAD_KINDS = {'school', 'motto', 'dept', 'contact', 'title', 'subtitle'}
+    tail = []
+    for kind, content in elements:
+        if kind in HEAD_KINDS:
+            continue
+        if kind == 'para':
+            paras.append(make_letter_para(content))
+        elif kind == 'letter_section':
+            paras.append(SMALL_SPACER)
+            paras.append(make_letter_section_title(content))
+        elif kind == 'letter_date':
+            tail.append(('date', content))
+        elif kind == 'letter_sender':
+            tail.append(('sender', content))
+        elif kind == 'major_heading':
+            paras.append(SMALL_SPACER)
+            paras.append(make_sub_heading(content[1] if isinstance(content, tuple) else content, in_cell=True))
+        elif kind == 'attachment_heading':
+            num, atitle = content
+            paras.append(SMALL_SPACER)
+            paras.append(make_attachment_heading(num, atitle))
+        elif kind == 'sub_heading':
+            paras.append(make_sub_heading(content, in_cell=True))
+        elif kind == 'bullet1':
+            paras.append(make_bullet1(content, in_cell=True))
+        elif kind == 'bullet2':
+            paras.append(make_bullet2(content, in_cell=True))
+        elif kind == 'dash':
+            paras.append(make_dash(content, in_cell=True))
+        elif kind == 'note':
+            paras.append(make_note(content, in_cell=True))
+        elif kind == 'table':
+            paras.append(make_table(content, header_fill='63', in_cell=True))
+        elif kind == 'spacer':
+            paras.append(SPACER_PARA)
+
+    if tail:
+        paras.append(SMALL_SPACER)
+        for kind, content in tail:
+            if kind == 'date':
+                paras.append(make_letter_center(content))
+            else:
+                paras.append(make_letter_sender(content, seal_size=seal_size))
+    return paras
+
+
+def build_hwpx(md_text, output_path, logo_path=None, seal_path=None):
+    """마크다운 텍스트 → hwpx 파일 생성.
+    logo_path: 학교 로고 이미지 (선택), seal_path: 직인 이미지 (선택, 가정통신문 전용)"""
+    doc_mode = detect_doc_mode(md_text)
+    elements = parse_markdown(md_text, doc_mode)
     elements = assign_roman_numerals(elements)
 
     # 로고 파일 유효성 확인 및 크기 읽기
@@ -822,6 +1260,17 @@ def build_hwpx(md_text, output_path, logo_path=None):
     logo_w_px, logo_h_px = _get_image_size_px(logo_path) if logo_valid else (500, 200)
 
     paras = [SECPR_PARA]
+
+    if doc_mode == 'letter':
+        seal_valid = bool(seal_path) and os.path.isfile(seal_path)
+        letter_paras = build_letter_paras(
+            elements,
+            logo_size=(logo_w_px, logo_h_px) if logo_valid else None,
+            seal_size=_get_image_size_px(seal_path) if seal_valid else None)
+        paras = [LETTER_SECPR_PARA, make_letter_frame(letter_paras)]
+        return _write_hwpx(paras, output_path,
+                           logo_path if logo_valid else None,
+                           seal_path if seal_valid else None)
 
     # 표지 요소(제목/부제목/부서)를 앞에서 분리
     first_real = next((k for k, _ in elements if k != 'spacer'), None)
@@ -907,7 +1356,13 @@ def build_hwpx(md_text, output_path, logo_path=None):
         prev_kind = kind
 
     paras.append(SPACER_PARA)
+    return _write_hwpx(paras, output_path, logo_path if logo_valid else None)
 
+
+def _write_hwpx(paras, output_path, logo_path=None, seal_path=None):
+    """조립된 단락 목록을 템플릿에 끼워 넣어 hwpx 파일로 저장"""
+    logo_valid = bool(logo_path) and os.path.isfile(logo_path)
+    seal_valid = bool(seal_path) and os.path.isfile(seal_path)
     section_xml = SEC_OPEN + ''.join(paras) + SEC_CLOSE
 
     tmp_dir = tempfile.mkdtemp()
@@ -919,14 +1374,19 @@ def build_hwpx(md_text, output_path, logo_path=None):
         hdr_path = os.path.join(tmp_dir, 'Contents', 'header.xml')
         with open(hdr_path, 'r', encoding='utf-8') as f:
             hdr = f.read()
-        hdr = hdr.replace('borderFills itemCnt="55"', 'borderFills itemCnt="60"', 1)
+        hdr = hdr.replace('borderFills itemCnt="55"', 'borderFills itemCnt="64"', 1)
         hdr = hdr.replace('</hh:borderFills>', _EXTRA_FILLS_XML + '</hh:borderFills>', 1)
+        # 통신문 본문용 문단 모양 추가
+        hdr = hdr.replace('<hh:paraProperties itemCnt="99"', '<hh:paraProperties itemCnt="103"', 1)
+        hdr = hdr.replace('</hh:paraProperties>', _EXTRA_PARA_PR_XML + '</hh:paraProperties>', 1)
         with open(hdr_path, 'w', encoding='utf-8') as f:
             f.write(hdr)
 
         # 로고 이미지 파일 BinData에 복사 + content.hpf 등록
         if logo_valid:
-            inject_logo(tmp_dir, logo_path)
+            inject_logo(tmp_dir, logo_path, 'image1')
+        if seal_valid:
+            inject_logo(tmp_dir, seal_path, 'image2')
 
         sec_path = os.path.join(tmp_dir, 'Contents', 'section0.xml')
         with open(sec_path, 'w', encoding='utf-8') as f:
@@ -956,7 +1416,8 @@ if __name__ == '__main__':
         with open(sys.argv[1], 'r', encoding='utf-8') as f:
             md = f.read()
         logo = sys.argv[3] if len(sys.argv) > 3 else None
-        result = build_hwpx(md, sys.argv[2], logo)
+        seal = sys.argv[4] if len(sys.argv) > 4 else None
+        result = build_hwpx(md, sys.argv[2], logo or None, seal or None)
         print(json.dumps({'ok': True, 'path': result, 'savedTo': result}))
     except Exception as e:
         print(json.dumps({'ok': False, 'error': str(e)}))
