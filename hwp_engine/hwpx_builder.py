@@ -35,17 +35,52 @@ SEC_CLOSE = '</hs:sec>'
 PAGE_LEFT_MARGIN = 5669   # 좁게1 왼쪽 여백 20mm (HWPUNIT)
 
 # 본문(쪽) 바로 위에 놓이는 표: 용지 기준 고정 / 셀 안에 들어가는 표: 글자처럼 취급
-_TBL_POS_PAGE = ('<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" '
-                 'holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PAPER" vertAlign="TOP" '
-                 f'horzAlign="LEFT" vertOffset="0" horzOffset="{PAGE_LEFT_MARGIN}"/>')
+_TBL_POS_PAGE = ('<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" '
+                 'holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" '
+                 'horzAlign="LEFT" vertOffset="0" horzOffset="0"/>')
 _TBL_POS_IN_CELL = ('<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" '
                     'holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" '
                     'horzAlign="LEFT" vertOffset="0" horzOffset="0"/>')
 
 # ─── 페이지 설정 단락 (A4 세로, 쪽 여백 "좁게1" 프리셋) ─────────────────────────
 # 좁게1(머리말/꼬리말 여백 포함): 위 10 / 아래 10 / 좌 20 / 우 20 / 머리말 15 / 꼬리말 15 mm
-# 한글 리소스(IDS_TBOX_PAGE_MARGIN_02)에서 확인한 값. hp:margin 단위는 mm × 141.73.
-SECPR_PARA = '<hp:p id="0" paraPrIDRef="4" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="60"><hp:secPr id="" textDirection="HORIZONTAL" spaceColumns="1134" tabStop="8000" tabStopVal="4000" tabStopUnit="HWPUNIT" outlineShapeIDRef="1" memoShapeIDRef="0" textVerticalWidthHead="0" masterPageCnt="0"><hp:grid lineGrid="0" charGrid="0" wonggojiFormat="0"/><hp:startNum pageStartsOn="BOTH" page="0" pic="0" tbl="0" equation="0"/><hp:visibility hideFirstHeader="0" hideFirstFooter="0" hideFirstMasterPage="0" border="SHOW_ALL" fill="SHOW_ALL" hideFirstPageNum="0" hideFirstEmptyLine="0" showLineNumber="0"/><hp:lineNumberShape restartType="0" countBy="0" distance="0" startNumber="0"/><hp:pagePr landscape="NARROWLY" width="59528" height="84188" gutterType="LEFT_ONLY"><hp:margin header="2126" footer="2126" gutter="0" left="2835" right="2835" top="1417" bottom="1417"/></hp:pagePr><hp:footNotePr><hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/><hp:noteLine length="-1" type="SOLID" width="12" color="#000000"/><hp:noteSpacing aboveNoteLine="567" belowNoteLine="567" betweenNotes="0"/><hp:numbering type="CONTINUOUS" newNum="1"/><hp:placement position="EACH_COLUMN" beneathText="0"/></hp:footNotePr><hp:endNotePr><hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/><hp:noteLine length="-1" type="SOLID" width="12" color="#000000"/><hp:noteSpacing aboveNoteLine="567" belowNoteLine="567" betweenNotes="0"/><hp:numbering type="CONTINUOUS" newNum="1"/><hp:placement position="END_OF_DOCUMENT" beneathText="0"/></hp:endNotePr><hp:pageBorderFill type="ODD" borderFillIDRef="1" textBorder="PAPER" headerInside="0" footerInside="0" fillArea="PAPER"><hp:offset left="1417" right="1417" top="1417" bottom="1417"/></hp:pageBorderFill></hp:secPr></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" textheight="1000" baseline="850" spacing="600" horzpos="0" horzsize="48472" flags="393216"/></hp:linesegarray></hp:p>'
+# 한글 리소스(IDS_TBOX_PAGE_MARGIN_02)에서 확인한 값. hp:margin 단위는 HWPUNIT(1mm = 283.465).
+_FALLBACK_SECPR_PARA = '<hp:p id="0" paraPrIDRef="4" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="60"><hp:secPr id="" textDirection="HORIZONTAL" spaceColumns="1134" tabStop="8000" tabStopVal="4000" tabStopUnit="HWPUNIT" outlineShapeIDRef="1" memoShapeIDRef="0" textVerticalWidthHead="0" masterPageCnt="0"><hp:grid lineGrid="0" charGrid="0" wonggojiFormat="0"/><hp:startNum pageStartsOn="BOTH" page="0" pic="0" tbl="0" equation="0"/><hp:visibility hideFirstHeader="0" hideFirstFooter="0" hideFirstMasterPage="0" border="SHOW_ALL" fill="SHOW_ALL" hideFirstPageNum="0" hideFirstEmptyLine="0" showLineNumber="0"/><hp:lineNumberShape restartType="0" countBy="0" distance="0" startNumber="0"/><hp:pagePr landscape="NARROWLY" width="59528" height="84188" gutterType="LEFT_ONLY"><hp:margin header="4252" footer="4252" gutter="0" left="5669" right="5669" top="2834" bottom="2834"/></hp:pagePr><hp:footNotePr><hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/><hp:noteLine length="-1" type="SOLID" width="12" color="#000000"/><hp:noteSpacing aboveNoteLine="567" belowNoteLine="567" betweenNotes="0"/><hp:numbering type="CONTINUOUS" newNum="1"/><hp:placement position="EACH_COLUMN" beneathText="0"/></hp:footNotePr><hp:endNotePr><hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/><hp:noteLine length="-1" type="SOLID" width="12" color="#000000"/><hp:noteSpacing aboveNoteLine="567" belowNoteLine="567" betweenNotes="0"/><hp:numbering type="CONTINUOUS" newNum="1"/><hp:placement position="END_OF_DOCUMENT" beneathText="0"/></hp:endNotePr><hp:pageBorderFill type="ODD" borderFillIDRef="1" textBorder="PAPER" headerInside="0" footerInside="0" fillArea="PAPER"><hp:offset left="1417" right="1417" top="1417" bottom="1417"/></hp:pageBorderFill></hp:secPr></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" textheight="1000" baseline="850" spacing="600" horzpos="0" horzsize="48472" flags="393216"/></hp:linesegarray></hp:p>'
+
+# ─── 쪽 여백 (한글 "좁게1": 위10 아래10 좌20 우20 머리말15 꼬리말15 mm) ────────
+# 단위는 HWPUNIT (1mm = 283.465)
+PAGE_MARGIN_XML = ('<hp:margin header="4252" footer="4252" gutter="0" '
+                   'left="5669" right="5669" top="2834" bottom="2834"/>')
+
+def _build_secpr_para():
+    """템플릿 section0.xml의 secPr을 그대로 가져와 쪽 여백만 바꿔 사용한다.
+    직접 만든 secPr은 일부 속성 이름이 달라 한글이 쪽 설정을 통째로 무시했다."""
+    try:
+        with zipfile.ZipFile(TEMPLATE_PATH, 'r') as z:
+            sec = z.read('Contents/section0.xml').decode('utf-8')
+        start = sec.index('<hp:p ')
+        end = sec.index('</hp:p>', start) + len('</hp:p>')
+        para = sec[start:end]
+        p_open = para[:para.index('>', para.index('<hp:p ')) + 1]
+        run_open = '<hp:run charPrIDRef="60">'
+        sec_start = para.index('<hp:secPr')
+        sec_end = para.index('</hp:secPr>') + len('</hp:secPr>')
+        secpr = para[sec_start:sec_end]
+        # secPr 바로 뒤의 단 설정(hp:colPr) ctrl 까지 함께 가져온다 —
+        # 이게 빠지면 한글이 쪽 설정을 무시하고 기본값으로 되돌린다.
+        tail = para[sec_end:]
+        m_ctrl = re.match(r'\s*<hp:ctrl>.*?</hp:ctrl>', tail, re.S)
+        if m_ctrl and 'colPr' in m_ctrl.group(0):
+            secpr += m_ctrl.group(0)
+        # 머리말/꼬리말(그림 포함)은 쓰지 않으므로 secPr만 남긴다
+        secpr = re.sub(r'<hp:margin [^/]*/>', PAGE_MARGIN_XML, secpr, count=1)
+        lsa_start = para.index('<hp:linesegarray>')
+        lsa = para[lsa_start:para.index('</hp:linesegarray>') + len('</hp:linesegarray>')]
+        return p_open + run_open + secpr + '</hp:run>' + lsa + '</hp:p>'
+    except Exception:
+        return re.sub(r'<hp:margin [^/]*/>', PAGE_MARGIN_XML, _FALLBACK_SECPR_PARA, count=1)
+
+SECPR_PARA = _build_secpr_para()
 
 # ─── 제목 단락 (중앙 정렬, 굵게 대형) ───────────────────────────────────────
 # paraPr=62(CENTER), charPr=95(대형 볼드) - 실제 고교학점제 문서의 메인 타이틀
@@ -314,9 +349,8 @@ def make_logo_table(orig_w_px, orig_h_px, dept_text=None, display_w_hwp=18000):
         f'textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="0" '
         f'rowCnt="{row_cnt}" colCnt="1" cellSpacing="0" borderFillIDRef="60" noAdjust="0">'
         f'<hp:sz width="{tbl_w}" widthRelTo="ABSOLUTE" height="{tbl_sz_h}" heightRelTo="ABSOLUTE" protect="0"/>'
-        f'<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" '
-        f'vertRelTo="PARA" horzRelTo="PAPER" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" '
-        f'horzOffset="{PAGE_LEFT_MARGIN}"/>'
+        f'<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" '
+        f'vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
         f'<hp:outMargin left="283" right="283" top="283" bottom="283"/>'
         f'<hp:inMargin left="141" right="141" top="141" bottom="141"/>'
         f'{"".join(rows)}</hp:tbl>'
@@ -407,7 +441,7 @@ _MAJOR_TEMPLATE = ('<hp:p id="2147483648" paraPrIDRef="67" styleIDRef="68" pageB
     '<hp:shadow type="NONE" color="#B2B2B2" offsetX="0" offsetY="0" alpha="0"/>'
     '<hp:drawText lastWidth="45378" name="" editable="0">'
     '<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" hasNumRef="0">'
-    '<hp:p id="2147483648" paraPrIDRef="67" styleIDRef="68" pageBreak="0" columnBreak="0" merged="0">'
+    '<hp:p id="2147483648" paraPrIDRef="8" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
     '<hp:run charPrIDRef="3"><hp:t>__TITLE__</hp:t></hp:run>'
     '<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1600" textheight="1600" baseline="1360" spacing="960" horzpos="0" horzsize="44812" flags="393216"/></hp:linesegarray>'
     '</hp:p>'
@@ -433,7 +467,7 @@ _MAJOR_TEMPLATE = ('<hp:p id="2147483648" paraPrIDRef="67" styleIDRef="68" pageB
     '<hc:startPt x="0" y="0"/><hc:endPt x="100" y="100"/>'
     '</hp:line>'
     '<hp:sz width="48178" widthRelTo="ABSOLUTE" height="2248" heightRelTo="ABSOLUTE" protect="0"/>'
-    f'<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PAPER" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="{PAGE_LEFT_MARGIN}"/>'
+    '<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="0" allowOverlap="1" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
     '<hp:outMargin left="0" right="0" top="0" bottom="0"/>'
     '</hp:container>'
     '<hp:t> </hp:t></hp:run>'
@@ -469,7 +503,7 @@ _ATTACHMENT_TEMPLATE = (
     '<hp:shadow type="NONE" color="#B2B2B2" offsetX="0" offsetY="0" alpha="0"/>'
     '<hp:drawText lastWidth="48178" name="" editable="0">'
     '<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" hasNumRef="0">'
-    '<hp:p id="2147483648" paraPrIDRef="67" styleIDRef="68" pageBreak="0" columnBreak="0" merged="0">'
+    '<hp:p id="2147483648" paraPrIDRef="8" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
     '<hp:run charPrIDRef="2"><hp:t>__ATTACH_TEXT__</hp:t></hp:run>'
     '<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1600" textheight="1600" baseline="1360" spacing="960" horzpos="0" horzsize="47612" flags="393216"/></hp:linesegarray>'
     '</hp:p>'
@@ -479,7 +513,7 @@ _ATTACHMENT_TEMPLATE = (
     '<hc:pt0 x="0" y="0"/><hc:pt1 x="48759" y="0"/><hc:pt2 x="48759" y="2184"/><hc:pt3 x="0" y="2184"/>'
     '</hp:rect>'
     '<hp:sz width="48178" widthRelTo="ABSOLUTE" height="2248" heightRelTo="ABSOLUTE" protect="0"/>'
-    f'<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PAPER" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="{PAGE_LEFT_MARGIN}"/>'
+    '<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="0" allowOverlap="1" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
     '<hp:outMargin left="0" right="0" top="0" bottom="0"/>'
     '</hp:container>'
     '<hp:t> </hp:t></hp:run>'
@@ -493,17 +527,43 @@ def _new_id():
     return _id_counter[0]
 
 def make_attachment_heading(num, title):
-    """붙임 헤더 단락 생성 (전폭 남색 바, 흰색 텍스트 '붙임 N. 제목')"""
-    label = f'붙임 {num}.'
+    """붙임 제목 박스 (남색 전폭 박스 + 흰색 글자).
+    예전에는 그리기 개체로 그렸으나 한글에서 글자가 보이지 않아 표로 그린다."""
+    label = f'붙임 {num}.' if num else '붙임'
     text = html.escape(f'{label}  {title}' if title else label)
-    cid   = _new_id()
-    inst1 = _new_id()
-    inst2 = _new_id()
-    return (_ATTACHMENT_TEMPLATE
-            .replace('__CID__',        str(cid))
-            .replace('__INST1__',      str(inst1))
-            .replace('__INST2__',      str(inst2))
-            .replace('__ATTACH_TEXT__', text))
+    tbl_id = _new_id()
+    tbl_w = 48178
+    inner_w = tbl_w - 682
+    cell_h = 1800
+    tc = (f'<hp:tc name="" header="0" hasMargin="0" protect="0" editable="0" dirty="0" '
+          f'borderFillIDRef="65">'
+          f'<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" '
+          f'linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" '
+          f'hasNumRef="0">'
+          f'<hp:p id="2147483648" paraPrIDRef="8" styleIDRef="0" pageBreak="0" columnBreak="0" '
+          f'merged="0"><hp:run charPrIDRef="2"><hp:t>{text}</hp:t></hp:run>'
+          f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1500" textheight="1500" '
+          f'baseline="1275" spacing="300" horzpos="0" horzsize="{inner_w}" flags="393216"/>'
+          f'</hp:linesegarray></hp:p></hp:subList>'
+          f'<hp:cellAddr colAddr="0" rowAddr="0"/><hp:cellSpan colSpan="1" rowSpan="1"/>'
+          f'<hp:cellSz width="{tbl_w}" height="{cell_h}"/>'
+          f'<hp:cellMargin left="400" right="141" top="141" bottom="141"/></hp:tc>')
+    tbl_xml = (f'<hp:tbl id="{tbl_id}" zOrder="0" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" '
+               f'textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" '
+               f'repeatHeader="0" rowCnt="1" colCnt="1" cellSpacing="0" borderFillIDRef="65" '
+               f'noAdjust="0">'
+               f'<hp:sz width="{tbl_w}" widthRelTo="ABSOLUTE" height="{cell_h + 282}" '
+               f'heightRelTo="ABSOLUTE" protect="0"/>'
+               f'{_TBL_POS_PAGE}'
+               f'<hp:outMargin left="0" right="0" top="283" bottom="283"/>'
+               f'<hp:inMargin left="141" right="141" top="141" bottom="141"/>'
+               f'<hp:tr>{tc}</hp:tr></hp:tbl>')
+    h = cell_h + 848
+    return (f'<hp:p id="0" paraPrIDRef="8" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+            f'<hp:run charPrIDRef="52">{tbl_xml}<hp:t/></hp:run>'
+            f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="{h}" textheight="{h}" '
+            f'baseline="{int(h * 0.85)}" spacing="0" horzpos="0" horzsize="48472" flags="393216"/>'
+            f'</hp:linesegarray></hp:p>')
 
 def make_major_heading(roman, title):
     """대제목 컨테이너 단락 생성 (남색 박스 + 파란 구분선 + 제목 텍스트)"""
@@ -653,7 +713,17 @@ _LETTER_FILLS_XML = (
     '<hc:fillBrush><hc:winBrush faceColor="#C5D9F1" hatchColor="#000000" alpha="0"/></hc:fillBrush>'
     '</hh:borderFill>'
 )
-_EXTRA_FILLS_XML = _EXTRA_FILLS_XML + _LETTER_FILLS_XML
+_ATTACH_FILL_XML = (
+    '<hh:borderFill id="65" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">'
+    '<hh:slash type="NONE" Crooked="0" isCounter="0"/><hh:backSlash type="NONE" Crooked="0" isCounter="0"/>'
+    '<hh:leftBorder type="NONE" width="0.12 mm" color="#000000"/>'
+    '<hh:rightBorder type="NONE" width="0.12 mm" color="#000000"/>'
+    '<hh:topBorder type="NONE" width="0.12 mm" color="#000000"/>'
+    '<hh:bottomBorder type="NONE" width="0.12 mm" color="#000000"/>'
+    '<hc:fillBrush><hc:winBrush faceColor="#18304B" hatchColor="#000000" alpha="0"/></hc:fillBrush>'
+    '</hh:borderFill>'
+)
+_EXTRA_FILLS_XML = _EXTRA_FILLS_XML + _LETTER_FILLS_XML + _ATTACH_FILL_XML
 
 _COVER_BAR_FILLS_XML = _EXTRA_FILLS_XML  # 하위 호환 별칭
 
@@ -716,9 +786,8 @@ def make_cover_bar_table(title_text, center_h=5690):
         f'textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="1" '
         f'rowCnt="3" colCnt="3" cellSpacing="0" borderFillIDRef="3" noAdjust="0">'
         f'<hp:sz width="{tbl_w}" widthRelTo="ABSOLUTE" height="{tbl_sz_h}" heightRelTo="ABSOLUTE" protect="0"/>'
-        f'<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" '
-        f'vertRelTo="PARA" horzRelTo="PAPER" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" '
-        f'horzOffset="{PAGE_LEFT_MARGIN}"/>'
+        f'<hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" '
+        f'vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>'
         f'<hp:outMargin left="283" right="283" top="283" bottom="283"/>'
         f'<hp:inMargin left="141" right="141" top="141" bottom="141"/>'
         f'{_bar_row(0, row0_h)}{title_row}{_bar_row(2, row2_h)}'
@@ -776,9 +845,23 @@ def make_table(rows, header_fill='59', in_cell=False):
     # 마지막 열로 나머지 흡수 (반올림 오차 조정)
     col_widths[-1] = max(min_w, total_w - sum(col_widths[:-1]))
 
-    # 행당 실제 높이: 셀 내용(1400) + 상하 cellMargin(141*2) = 1682
-    row_h = 1682
-    tbl_sz_height = row_cnt * row_h          # <hp:sz height> (테이블 내부 순수 높이)
+    # 행 높이: 셀 글자가 줄바꿈되면 줄 수만큼 높인다 (고정 높이면 글자가 겹침)
+    LINE_H = 1400
+    CELL_PAD = 282                           # 상하 cellMargin(141*2)
+    def _cell_lines(text, col_w):
+        text = str(text or '').strip()
+        if not text:
+            return 1
+        # 한글 한 글자 ≈ 1400 HWPUNIT, 셀 안쪽 폭 기준으로 줄 수 추정
+        per_line = max(4, int((col_w - 282) / 1250))
+        return max(1, -(-len(text) // per_line))
+    row_heights = []
+    for row in rows:
+        lines = 1
+        for ci in range(col_cnt):
+            lines = max(lines, _cell_lines(row[ci] if ci < len(row) else '', col_widths[ci]))
+        row_heights.append(lines * LINE_H + CELL_PAD)
+    tbl_sz_height = sum(row_heights)         # <hp:sz height> (테이블 내부 순수 높이)
     tbl_height = tbl_sz_height + 566         # lineseg vertsize (outMargin 상하 283*2 포함)
 
     tr_xmls = []
@@ -799,7 +882,7 @@ def make_table(rows, header_fill='59', in_cell=False):
                       f'<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1400" textheight="1400" baseline="1190" spacing="600" horzpos="0" horzsize="{inner_w}" flags="393216"/></hp:linesegarray>'
                       f'</hp:p></hp:subList>'
                       f'<hp:cellAddr colAddr="{ci}" rowAddr="{ri}"/><hp:cellSpan colSpan="1" rowSpan="1"/>'
-                      f'<hp:cellSz width="{w}" height="1400"/>'
+                      f'<hp:cellSz width="{w}" height="{row_heights[ri] - CELL_PAD}"/>'
                       f'<hp:cellMargin left="141" right="141" top="141" bottom="141"/></hp:tc>')
             tc_xmls.append(tc_xml)
         tr_xmls.append(f'<hp:tr>{"".join(tc_xmls)}</hp:tr>')
@@ -828,12 +911,10 @@ _MARGIN_XML = ('<hh:margin><hc:intent value="2000" unit="HWPUNIT"/>'
                '<hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin>'
                '<hh:lineSpacing type="PERCENT" value="170" unit="HWPUNIT"/>')
 BODY_SHIFT = 0   # 여백이 정상 적용되므로 추가 보정 없음
-BULLET1_PARA_PR = '100'
-BULLET2_PARA_PR = '101'
-PLAIN_PARA_PR = '102'
-_BODY_PARA_PR_XML = ('<hh:paraPr id="100" tabPrIDRef="0" condense="0" fontLineHeight="0" snapToGrid="0" suppressLineNumbers="0" checked="0"><hh:align horizontal="JUSTIFY" vertical="BASELINE"/><hh:heading type="NONE" idRef="0" level="0"/><hh:breakSetting breakLatinWord="KEEP_WORD" breakNonLatinWord="KEEP_WORD" widowOrphan="0" keepWithNext="0" keepLines="0" pageBreakBefore="0" lineWrap="BREAK"/><hh:autoSpacing eAsianEng="0" eAsianNum="0"/><hp:switch><hp:case hp:required-namespace="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar"><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-4115" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:case><hp:default><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-4115" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:default></hp:switch><hh:border borderFillIDRef="2" offsetLeft="0" offsetRight="0" offsetTop="0" offsetBottom="0" connect="0" ignoreMargin="0"/></hh:paraPr>'
-    '<hh:paraPr id="101" tabPrIDRef="0" condense="0" fontLineHeight="0" snapToGrid="0" suppressLineNumbers="0" checked="0"><hh:align horizontal="JUSTIFY" vertical="BASELINE"/><hh:heading type="NONE" idRef="0" level="0"/><hh:breakSetting breakLatinWord="KEEP_WORD" breakNonLatinWord="KEEP_WORD" widowOrphan="0" keepWithNext="0" keepLines="0" pageBreakBefore="0" lineWrap="BREAK"/><hh:autoSpacing eAsianEng="0" eAsianNum="0"/><hp:switch><hp:case hp:required-namespace="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar"><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-2715" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:case><hp:default><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-2715" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:default></hp:switch><hh:border borderFillIDRef="2" offsetLeft="0" offsetRight="0" offsetTop="0" offsetBottom="0" connect="0" ignoreMargin="0"/></hh:paraPr>'
-    '<hh:paraPr id="102" tabPrIDRef="0" condense="0" fontLineHeight="0" snapToGrid="0" suppressLineNumbers="0" checked="0"><hh:align horizontal="JUSTIFY" vertical="BASELINE"/><hh:heading type="NONE" idRef="0" level="0"/><hh:breakSetting breakLatinWord="KEEP_WORD" breakNonLatinWord="KEEP_WORD" widowOrphan="0" keepWithNext="0" keepLines="0" pageBreakBefore="0" lineWrap="BREAK"/><hh:autoSpacing eAsianEng="0" eAsianNum="0"/><hp:switch><hp:case hp:required-namespace="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar"><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-5215" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:case><hp:default><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="-5215" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hp:default></hp:switch><hh:border borderFillIDRef="2" offsetLeft="0" offsetRight="0" offsetTop="0" offsetBottom="0" connect="0" ignoreMargin="0"/></hh:paraPr>')
+BULLET1_PARA_PR = '85'
+BULLET2_PARA_PR = '49'
+PLAIN_PARA_PR = '49'
+_BODY_PARA_PR_XML = ''
 
 _EXTRA_PARA_PR_XML = (
     f'<hh:paraPr id="{LETTER_BODY_PARA_PR}" tabPrIDRef="0" condense="0" fontLineHeight="0" '
@@ -1374,10 +1455,10 @@ def _write_hwpx(paras, output_path, logo_path=None, seal_path=None):
         hdr_path = os.path.join(tmp_dir, 'Contents', 'header.xml')
         with open(hdr_path, 'r', encoding='utf-8') as f:
             hdr = f.read()
-        hdr = hdr.replace('borderFills itemCnt="55"', 'borderFills itemCnt="64"', 1)
+        hdr = hdr.replace('borderFills itemCnt="55"', 'borderFills itemCnt="65"', 1)
         hdr = hdr.replace('</hh:borderFills>', _EXTRA_FILLS_XML + '</hh:borderFills>', 1)
         # 통신문 본문용 문단 모양 추가
-        hdr = hdr.replace('<hh:paraProperties itemCnt="99"', '<hh:paraProperties itemCnt="103"', 1)
+        hdr = hdr.replace('<hh:paraProperties itemCnt="99"', '<hh:paraProperties itemCnt="100"', 1)
         hdr = hdr.replace('</hh:paraProperties>', _EXTRA_PARA_PR_XML + '</hh:paraProperties>', 1)
         with open(hdr_path, 'w', encoding='utf-8') as f:
             f.write(hdr)
