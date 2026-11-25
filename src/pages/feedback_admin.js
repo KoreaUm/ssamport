@@ -25,7 +25,7 @@ async function render(container) {
   const authState = window.appAuthGetState ? window.appAuthGetState() : null;
   if (!authState?.isAdmin) {
     container.innerHTML = `
-      <div class="page-wrap" style="max-width:920px;margin:0 auto">
+      <div class="page-wrap">
         <div class="page-header">
           <h1 class="page-header-title">피드백 관리</h1>
         </div>
@@ -38,7 +38,7 @@ async function render(container) {
   }
 
   container.innerHTML = `
-    <div class="page-wrap" style="max-width:920px;margin:0 auto">
+    <div class="page-wrap">
       <div class="page-header flex items-center justify-between gap-3 flex-wrap">
         <h1 class="page-header-title">피드백 관리</h1>
         <div class="flex gap-2 flex-wrap">

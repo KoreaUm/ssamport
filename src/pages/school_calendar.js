@@ -71,14 +71,14 @@ async function render(container) {
         <h1 class="page-header-title">학사 일정</h1>
         <div class="flex items-center gap-2 flex-wrap">
           <button class="btn btn-secondary btn-sm" id="sc-add">일정 추가</button>
-          <button class="cal-nav-btn" id="sc-p">◀</button>
+          <button class="cal-nav-btn" id="sc-p">‹</button>
           <span id="sc-l" style="font-size:15px;font-weight:700;min-width:120px;text-align:center"></span>
-          <button class="cal-nav-btn" id="sc-n">▶</button>
+          <button class="cal-nav-btn" id="sc-n">›</button>
           <button class="cal-today-btn" id="sc-t">오늘</button>
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px">
         <div class="card" style="padding:16px">
           <div class="cal-dow-row" style="margin-bottom:8px">
             ${DAY_LABELS.map((day, index) => `<span class="cal-dow" style="color:${index === 0 ? 'var(--danger)' : index === 6 ? 'var(--accent)' : 'var(--text2)'}">${day}</span>`).join('')}
@@ -88,8 +88,8 @@ async function render(container) {
 
         <div class="card" style="padding:16px;overflow-y:auto;max-height:680px">
           <div class="flex items-center justify-between gap-2 mb-3">
-            <div style="font-weight:700;font-size:13px" id="sc-el-title"></div>
-            <div style="font-size:11px;color:var(--text3)" id="sc-selected-date"></div>
+            <div style="font-weight:700;font-size:14px" id="sc-el-title"></div>
+            <div style="font-size:13px;color:var(--text3)" id="sc-selected-date"></div>
           </div>
           <div id="sc-el"></div>
         </div>
@@ -279,7 +279,7 @@ function renderList() {
 
   if (!visibleEvents.length) {
     list.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:10px;color:var(--text3);font-size:13px">
+      <div style="display:flex;flex-direction:column;gap:10px;color:var(--text3);font-size:14px">
         <div>표시할 일정이 없습니다.</div>
         <button class="btn btn-secondary btn-sm" id="sc-empty-add">일정 추가</button>
       </div>

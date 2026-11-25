@@ -150,18 +150,14 @@
 
   async function render(container) {
     container.innerHTML = `
-      <div class="counsel-shell">
-        <section class="counsel-hero">
-          <div>
-            <div class="counsel-eyebrow">Student Care Console</div>
-            <h1>학생 상담 관리</h1>
-            <p>상담 기록을 남기는 데서 끝나지 않고, 학생별 이력·위험 신호·후속 조치까지 이어지도록 설계했습니다.</p>
-          </div>
-          <div class="counsel-actions">
+      <div class="page-wrap counsel-shell">
+        <div class="page-header">
+          <h1 class="page-header-title">상담 일지</h1>
+          <div class="page-header-actions">
             <button class="btn btn-secondary" id="co-export">CSV 내보내기</button>
             <button class="btn btn-primary" id="co-add">+ 상담 기록</button>
           </div>
-        </section>
+        </div>
 
         <section class="counsel-metrics">
           <div class="counsel-metric"><span>전체 상담</span><b id="co-m-total">0</b></div>
@@ -180,36 +176,7 @@
           <button class="btn btn-secondary" id="co-reset">초기화</button>
         </section>
 
-        <section class="counsel-layout">
-          <div class="counsel-list" id="co-list"></div>
-          <aside class="card counsel-side">
-            <h3>상담 품질 체크</h3>
-            <div class="counsel-guide">
-              <b>담임교사 관점</b>
-              <span>생활, 출결, 교우관계, 보호자 연계, 학급 적응을 중심으로 학생의 전체 맥락을 봅니다.</span>
-            </div>
-            <div class="counsel-guide">
-              <b>교과교사 관점</b>
-              <span>수업 참여, 학습 습관, 과제·평가, 교과 이해도처럼 수업 안에서 보이는 변화를 기록합니다.</span>
-            </div>
-            <div class="counsel-guide">
-              <b>상담교사 관점</b>
-              <span>정서·심리, 위기 신호, 전문기관/보호자 연계, 지속 사례관리를 중심으로 봅니다.</span>
-            </div>
-            <div class="counsel-guide">
-              <b>기록 원칙</b>
-              <span>판단보다 사실, 낙인보다 관찰, 감정보다 학생의 실제 발화를 중심으로 적습니다.</span>
-            </div>
-            <div class="counsel-guide">
-              <b>위기 신호</b>
-              <span>자해·자살, 폭력, 가정 위기, 장기 결석, 급격한 정서 변화는 반드시 후속 조치를 남깁니다.</span>
-            </div>
-            <div class="counsel-guide">
-              <b>후속 관리</b>
-              <span>상담 후 “누가, 언제, 무엇을 확인할지”를 다음 조치에 구체적으로 남기면 관리가 쉬워집니다.</span>
-            </div>
-          </aside>
-        </section>
+        <div class="counsel-list" id="co-list"></div>
       </div>
     `;
   }

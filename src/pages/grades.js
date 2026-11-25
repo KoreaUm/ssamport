@@ -34,7 +34,7 @@ async function render(container) {
       ? '로그인 없이 사용 중입니다. 성적관리는 로그인 후 관리자에게 권한을 받아야 사용할 수 있습니다.'
       : '관리자가 성적관리 권한을 부여한 교사만 사용할 수 있습니다.';
     container.innerHTML = `
-      <div class="page-wrap page-wrap-md">
+      <div class="page-wrap">
         <div class="page-header"><h1 class="page-header-title">취업 데이터 관리</h1></div>
         <section class="card settings-card">
           <div class="settings-title">접근 권한이 없습니다.</div>
@@ -65,14 +65,10 @@ async function render(container) {
   }
 
   container.innerHTML = `
-    <div class="page-wrap grades-secret-shell">
-      <div class="grades-hero">
-        <div class="grades-hero-copy">
-          <div class="grades-kicker">SECURE CAREER INTELLIGENCE</div>
-          <h1 class="grades-title">취업 데이터 관리</h1>
-          <div class="grades-subtitle">외부 API 없이, 이 프로그램 안의 현학생/졸업생 데이터만으로 취업 가능성과 준비 전략을 분석합니다.</div>
-        </div>
-        <div class="grades-hero-actions">
+    <div class="page-wrap">
+      <div class="page-header">
+        <h1 class="page-header-title">취업 데이터 관리</h1>
+        <div class="page-header-actions">
           <button class="btn btn-secondary btn-sm" id="career-template-btn">CSV 양식 다운로드</button>
           <button class="btn btn-secondary btn-sm" id="career-import-btn">CSV 올리기</button>
           <button class="btn btn-secondary btn-sm" id="career-export-btn">CSV 내려받기</button>
@@ -119,7 +115,6 @@ async function render(container) {
       <section class="card settings-card grades-panel grades-ai-panel mb-4">
         <div class="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <div class="grades-kicker">LOCAL AI BRIEFING</div>
             <div class="settings-title">로컬 AI 상담 요약</div>
             <div class="settings-note mt-1">외부 서버로 데이터를 보내지 않고, 현재 저장된 졸업생/현학생 데이터만 읽어서 상담용 요약과 데이터 오류 후보를 만듭니다.</div>
           </div>
@@ -131,7 +126,6 @@ async function render(container) {
       <section class="card settings-card grades-panel mb-4">
         <div class="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <div class="grades-kicker">OFFICIAL PUBLIC HIRING DATA</div>
             <div class="settings-title">기관별 자격증 가산점 조회</div>
             <div class="settings-note mt-1">기업/공공기관에 취업할 때 어떤 자격증이 가산점인지, 몇 점 또는 몇 %인지 공식 공고 근거로 확인합니다.</div>
           </div>

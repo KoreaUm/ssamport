@@ -1,7 +1,7 @@
 (function(){
 async function render(c){
   c.innerHTML=`<div class="page-wrap">
-  <div class="page-header"><h1 class="page-header-title">📋 제출물 관리</h1>
+  <div class="page-header"><h1 class="page-header-title">제출물 관리</h1>
     <button class="btn btn-primary" id="sb-add">+ 제출물 추가</button></div>
   <div id="sb-list" class="flex flex-col gap-3"></div>
   </div>`;
@@ -32,7 +32,7 @@ window.__sbSt=async(id)=>{
   const submitted=status.filter(s=>s.submitted).length;
   showModal(`<div class="modal-header"><span class="modal-title">제출 현황 - ${sub.name}</span><button class="modal-close" data-close>✕</button></div>
   <div class="modal-body" style="max-height:400px;overflow-y:auto">
-    <div style="margin-bottom:8px;font-size:12px;color:var(--text2)">제출: ${submitted}명 / 미제출: ${students.length-submitted}명</div>
+    <div style="margin-bottom:8px;font-size:13px;color:var(--text2)">제출: ${submitted}명 / 미제출: ${students.length-submitted}명</div>
     <table style="width:100%"><thead><tr><th>번호</th><th>이름</th><th>제출여부</th></tr></thead>
     <tbody>${students.map(s=>`<tr><td>${s.number}</td><td>${s.name}</td>
     <td><input type="checkbox" ${stMap[s.id]?'checked':''} onchange="window.__sbTg(${id},${s.id},this.checked)"></td></tr>`).join('')}</tbody>

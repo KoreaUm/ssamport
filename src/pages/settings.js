@@ -66,6 +66,29 @@ let subjectColorState = {};
 let menuAutosaveTimer = null;
 let shortcutAutosaveTimer = null;
 
+// 설정은 묶음별로 나눠 한 번에 하나만 보여 준다. 새 설정 카드를 만들면 여기 sections에 추가한다.
+const SETTINGS_TABS = [
+  { key: 'school', label: '학교와 학급', sections: ['settings-onboarding-link', 'settings-class', 'settings-neis'] },
+  { key: 'timetable', label: '학급 시간표', sections: ['settings-timetable', 'settings-subject-color'] },
+  { key: 'menu', label: '메뉴와 바로가기', sections: ['settings-menu', 'settings-shortcuts'] },
+  { key: 'ai', label: 'AI', sections: ['settings-ai'] },
+  { key: 'google', label: 'Google 연동', sections: ['settings-google'] },
+  { key: 'account', label: '계정', sections: ['settings-account'] },
+  { key: 'app', label: '앱과 백업', sections: ['settings-app', 'settings-backup', 'settings-patch'] },
+];
+let lastSettingsTab = SETTINGS_TABS[0].key;
+
+function showSettingsTab(key) {
+  const tab = SETTINGS_TABS.find((item) => item.key === key) || SETTINGS_TABS[0];
+  lastSettingsTab = tab.key;
+  document.querySelectorAll('.settings-card').forEach((card) => {
+    card.hidden = !tab.sections.includes(card.id);
+  });
+  document.querySelectorAll('.settings-nav button').forEach((button) => {
+    button.classList.toggle('active', button.dataset.settingsTab === tab.key);
+  });
+}
+
 async function render(container) {
   const settings = await api.getAllSettings();
   const appMeta = await api.getAppMeta();
@@ -101,22 +124,11 @@ async function render(container) {
 
   container.innerHTML = `
     <div class="page-wrap settings-page-wrap">
-      <div class="settings-hero">
-        <div class="settings-hero-badge">\u2699\uFE0F</div>
-        <div>
-          <h1>\uD658\uACBD \uC124\uC815</h1>
-          <p>\uC571\uACFC \uD559\uAE09, AI, \uBA54\uB274\uB97C \uD55C \uAD6C\uC5D0\uC11C \uAD00\uB9AC\uD558\uC138\uC694.</p>
-        </div>
-      </div>
+      <div class="page-header"><h1 class="page-header-title">설정</h1></div>
 
       <div class="settings-layout">
       <aside class="settings-nav">
-        <button data-settings-target="settings-app">앱</button>
-        <button data-settings-target="settings-account">계정</button>
-        <button data-settings-target="settings-class">학급</button>
-        <button data-settings-target="settings-menu">메뉴</button>
-        <button data-settings-target="settings-ai">AI</button>
-        <button data-settings-target="settings-backup">백업</button>
+        ${SETTINGS_TABS.map((tab) => `<button type="button" data-settings-tab="${tab.key}">${tab.label}</button>`).join('')}
       </aside>
       <div class="settings-stack">
         <section class="card settings-card" id="settings-app">
@@ -175,7 +187,7 @@ async function render(container) {
         <section class="card settings-card" id="settings-menu">
           <div class="settings-head">
             <div>
-              <div class="settings-title">\uC0C1\uB2E8 \uBA54\uB274 \uAD6C\uC131</div>
+              <div class="settings-title">메뉴 구성</div>
               <div class="settings-note">\uD648\uC740 \uB300\uC2DC\uBCF4\uB4DC\uB85C \uACE0\uC815\uB418\uACE0, \uB098\uBA38\uC9C0 \uBC94\uC8FC\uB294 \uC774\uB984\uACFC \uC21C\uC11C, \uD3EC\uD568\uD560 \uBA54\uB274\uB97C \uC790\uC720\uB86D\uAC8C \uBC14\uAFC0 \uC218 \uC788\uC2B5\uB2C8\uB2E4.</div>
             </div>
           </div>
@@ -405,21 +417,21 @@ async function render(container) {
               <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:#fff;border:none" id="gcal-disconnect">연동 해제</button>
             </div>
           </div>` : `
-          <div style="background:var(--bg2,#f4f6fb);border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:13px;line-height:1.8">
+          <div style="background:var(--bg2,#f4f6fb);border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.8">
             <b>사용자는 Google 계정 연결만 하면 됩니다.</b><br>
             <span style="color:var(--text2)">
               OAuth 앱 설정은 쌤포트 배포판에 포함됩니다. 선생님은 아래 버튼을 눌러 개인 Google 계정으로 로그인하고 Calendar/Tasks 권한만 허용해 주세요.
             </span>
           </div>
-          <div id="gcal-status" style="font-size:12px;color:var(--text3);margin-bottom:4px">연동되지 않음</div>
+          <div id="gcal-status" style="font-size:13px;color:var(--text3);margin-bottom:4px">연동되지 않음</div>
           `}
 
           ${!settings.gcal_refresh_token ? `
-          <div style="background:#fff8e1;border-radius:8px;padding:10px 14px;font-size:12px;color:#7a5c00;margin-bottom:12px">
+          <div style="background:#fff8e1;border-radius:8px;padding:10px 14px;font-size:13px;color:#7a5c00;margin-bottom:12px">
             💡 학교 Google 계정은 기관 정책으로 차단될 수 있습니다. 가능하면 개인 Gmail 계정으로 연결해 주세요.
           </div>
           <div class="settings-actions">
-            <button class="btn btn-primary" id="gcal-connect">🔗 Google 계정 연결하기</button>
+            <button class="btn btn-primary" id="gcal-connect">Google 계정 연결하기</button>
           </div>` : ''}
         </section>
 
@@ -621,14 +633,17 @@ async function init() {
     });
   });
   document.querySelectorAll('.settings-nav button').forEach((button) => {
-    button.addEventListener('click', () => {
-      document.getElementById(button.dataset.settingsTarget)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    button.onclick = () => {
+      showSettingsTab(button.dataset.settingsTab);
+      document.getElementById('page-content').scrollTop = 0;
+    };
   });
-  if (window.__settingsScrollTarget) {
-    const targetId = window.__settingsScrollTarget;
-    window.__settingsScrollTarget = null;
-    setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  const scrollTarget = window.__settingsScrollTarget;
+  window.__settingsScrollTarget = null;
+  const targetTab = SETTINGS_TABS.find((tab) => tab.sections.includes(scrollTarget));
+  showSettingsTab(targetTab ? targetTab.key : lastSettingsTab);
+  if (targetTab) {
+    setTimeout(() => document.getElementById(scrollTarget)?.scrollIntoView({ block: 'start' }), 50);
   }
   document.getElementById('ai-ollama-install-btn')?.addEventListener('click', async () => {
     const engine = selectedAiEngine();
@@ -1243,7 +1258,7 @@ async function saveMenuConfig() {
   menuConfigState = cleaned;
   await api.setSetting('menu_groups_config', JSON.stringify(cleaned));
   if (window.reloadTopNavigation) await window.reloadTopNavigation();
-  toast('\uC0C1\uB2E8 \uBA54\uB274 \uAD6C\uC131\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
+  toast('메뉴 구성\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
   renderMenuConfigEditor();
 }
 
@@ -1561,8 +1576,8 @@ function renderSubjectColorEditor() {
       <div style="display:flex;align-items:center;gap:12px">
         <input type="color" class="subject-color-input" data-subject="${escapeHtml(subject)}" value="${escapeHtml(subjectColorState[subject])}" style="width:44px;height:32px;border:none;background:none;padding:0;cursor:pointer">
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:700;color:var(--text)">${escapeHtml(subject)}</div>
-          <div style="margin-top:6px;display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:${escapeHtml(subjectColorState[subject])};color:#fff;font-size:11px;font-weight:700">${escapeHtml(subject)}</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${escapeHtml(subject)}</div>
+          <div style="margin-top:6px;display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:${escapeHtml(subjectColorState[subject])};color:#fff;font-size:13px;font-weight:700">${escapeHtml(subject)}</div>
         </div>
       </div>
     </div>

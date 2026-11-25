@@ -1,7 +1,7 @@
 (function(){
 async function render(c){
   c.innerHTML=`<div class="page-wrap">
-  <div class="page-header"><h1 class="page-header-title">📚 수업 진도</h1>
+  <div class="page-header"><h1 class="page-header-title">수업 지도</h1>
     <button class="btn btn-primary" id="ls-add">+ 진도 추가</button></div>
   <div class="tbl-wrap"><table>
     <thead><tr><th>날짜</th><th>교과</th><th>교시</th><th>주제</th><th>내용</th><th>과제</th><th></th></tr></thead>

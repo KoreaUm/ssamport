@@ -61,16 +61,17 @@ function sortedNotes() {
 
 function renderPage(c) {
   c.innerHTML = `
-<div class="sn-page">
-  <div class="sn-toolbar">
-    <div class="sn-toolbar-left">
-      <button class="btn btn-primary btn-sm" id="sn-add-btn">+ 새 메모</button>
-      <div class="sn-color-filters" id="sn-color-filters">
-        <button class="sn-cf-btn ${filterColor === 'all' ? 'active' : ''}" data-color="all">전체</button>
-        ${COLORS.map(c => `<button class="sn-cf-btn ${filterColor === c.id ? 'active' : ''}" data-color="${c.id}" style="background:${c.bg};border-color:${c.border}">${c.label}</button>`).join('')}
-      </div>
+<div class="page-wrap">
+  <div class="page-header">
+    <h1 class="page-header-title">스티커 메모</h1>
+    <div class="page-header-actions">
+      <span class="sn-count" id="sn-count"></span>
+      <button class="btn btn-primary" id="sn-add-btn">+ 새 메모</button>
     </div>
-    <span class="sn-count" id="sn-count"></span>
+  </div>
+  <div class="sn-color-filters mb-4" id="sn-color-filters">
+    <button class="sn-cf-btn ${filterColor === 'all' ? 'active' : ''}" data-color="all">전체</button>
+    ${COLORS.map(c => `<button class="sn-cf-btn ${filterColor === c.id ? 'active' : ''}" data-color="${c.id}" style="background:${c.bg};border-color:${c.border}">${c.label}</button>`).join('')}
   </div>
   <div class="sn-grid" id="sn-grid"></div>
 </div>`;
@@ -96,7 +97,7 @@ function renderGrid() {
   if (count) count.textContent = `${list.length}개`;
 
   if (list.length === 0) {
-    grid.innerHTML = `<div class="sn-empty">📝 메모가 없습니다. 새 메모를 추가해보세요!</div>`;
+    grid.innerHTML = `<div class="sn-empty">아직 메모가 없습니다. ‘+ 새 메모’를 눌러 시작해 보세요.</div>`;
     return;
   }
 

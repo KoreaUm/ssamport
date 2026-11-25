@@ -118,34 +118,34 @@ function rebuildPeriodStrip(studentId, st) {
 
 // DB에는 '결과'로 저장, UI에는 '외출'로 표시
 const STATUSES = [
-  { val: '출석', label: '출석', color: '#22c55e' },
-  { val: '지각', label: '지각', color: '#eab308' },
-  { val: '조퇴', label: '조퇴', color: '#8b5cf6' },
-  { val: '결과', label: '외출', color: '#3b82f6' },
-  { val: '결석', label: '결석', color: '#ef4444' },
+  { val: '출석', label: '출석', color: '#4f8a70' },
+  { val: '지각', label: '지각', color: '#b5812a' },
+  { val: '조퇴', label: '조퇴', color: '#7d6ba8' },
+  { val: '결과', label: '외출', color: '#4a76a8' },
+  { val: '결석', label: '결석', color: '#bd5049' },
 ];
 const STATUS_MAP = Object.fromEntries(STATUSES.map((s) => [s.val, s]));
 
 const CATEGORY_OPTIONS = ['출석인정', '미인정', '질병'];
 const CATEGORY_COLORS = {
-  출석: '#22c55e',
+  출석: '#4f8a70',
   출석인정: 'var(--accent)',
-  미인정: '#ef4444',
-  질병: '#f59e0b',
+  미인정: '#bd5049',
+  질병: '#b5812a',
 };
 
 const STATUS_COLS = [
-  { key: 'absent', label: '결석', status: '결석', color: '#ef4444' },
-  { key: 'result', label: '외출', status: '결과', color: '#3b82f6' },
-  { key: 'late',   label: '지각', status: '지각', color: '#eab308' },
-  { key: 'early',  label: '조퇴', status: '조퇴', color: '#8b5cf6' },
+  { key: 'absent', label: '결석', status: '결석', color: '#bd5049' },
+  { key: 'result', label: '외출', status: '결과', color: '#4a76a8' },
+  { key: 'late',   label: '지각', status: '지각', color: '#b5812a' },
+  { key: 'early',  label: '조퇴', status: '조퇴', color: '#7d6ba8' },
 ];
 
 async function render(container) {
   container.innerHTML = `
     <div class="page-wrap">
       <div class="page-header">
-        <h1 class="page-header-title">출결 관리</h1>
+        <h1 class="page-header-title">출석 관리</h1>
       </div>
       <div class="tabs">
         <button class="tab-btn active" data-tab="daily">일일 출결</button>

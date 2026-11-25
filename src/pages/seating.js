@@ -15,29 +15,29 @@ async function render(c) {
   c.innerHTML = `
   <div class="page-wrap">
     <div class="page-header">
-      <h1 class="page-header-title">🪑 자리 배치</h1>
+      <h1 class="page-header-title">자리 배치</h1>
       <div class="page-header-actions">
-        <label style="font-size:13px;color:var(--text2)">행
+        <label style="font-size:14px;color:var(--text2)">행
           <input type="number" id="seat-rows" class="input" min="1" max="12" style="width:54px;margin:0 8px 0 4px">
         </label>
-        <label style="font-size:13px;color:var(--text2)">열
+        <label style="font-size:14px;color:var(--text2)">열
           <input type="number" id="seat-cols" class="input" min="1" max="12" style="width:54px;margin:0 12px 0 4px">
         </label>
         <button class="btn btn-secondary" id="seat-resize">적용</button>
-        <button class="btn btn-secondary" id="seat-mode-lock">🔒 고정</button>
-        <button class="btn btn-secondary" id="seat-mode-block">🚫 자리 막기</button>
-        <button class="btn btn-secondary" id="seat-random">🔀 랜덤 배치</button>
+        <button class="btn btn-secondary" id="seat-mode-lock">고정</button>
+        <button class="btn btn-secondary" id="seat-mode-block">자리 막기</button>
+        <button class="btn btn-secondary" id="seat-random">무작위 배치</button>
         <button class="btn btn-secondary" id="seat-reset">초기화</button>
-        <button class="btn btn-primary" id="seat-img">📷 이미지 저장</button>
+        <button class="btn btn-primary" id="seat-img">이미지 저장</button>
       </div>
     </div>
-    <div id="seat-info" style="font-size:12px;color:var(--text3);margin-bottom:8px"></div>
-    <div id="seat-hint" style="font-size:12px;color:var(--accent);margin-bottom:8px;min-height:16px"></div>
+    <div id="seat-info" style="font-size:13px;color:var(--text3);margin-bottom:8px"></div>
+    <div id="seat-hint" style="font-size:13px;color:var(--accent);margin-bottom:8px;min-height:16px"></div>
     <div id="seat-wrap">
-      <div style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:4px">↑ 교실 뒤쪽</div>
+      <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:4px">교실 뒤쪽</div>
       <div id="seat-grid"></div>
-      <div class="mt-1" style="font-size:11px;color:var(--text3);text-align:center">교사 시점 (칠판 쪽) ↓</div>
-      <div id="seat-board">📋 칠판</div>
+      <div class="mt-1" style="font-size:13px;color:var(--text3);text-align:center">교사 시점 (칠판 쪽)</div>
+      <div id="seat-board">칠판</div>
     </div>
   </div>`;
 }
@@ -407,7 +407,7 @@ async function downloadImage() {
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 15px "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('📋 칠판', W / 2, by + bh / 2 + 5);
+  ctx.fillText('칠판', W / 2, by + bh / 2 + 5);
 
   // 다운로드
   const url = canvas.toDataURL('image/png');

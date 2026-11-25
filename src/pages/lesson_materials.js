@@ -147,30 +147,13 @@
   async function render(container) {
     container.innerHTML = [
       `<style>${styles()}</style>`,
-      `<div class="lm-page">`,
-      `  <section class="lm-hero">`,
-      `    <div>`,
-      `      <div class="lm-kicker">AI Studio</div>`,
-      `      <h1>수업자료제작</h1>`,
-      `      <p>주제와 조건을 고르면 Gemini Canvas에 바로 붙여넣을 수 있는 수업 콘텐츠 제작 프롬프트를 만들어줍니다.</p>`,
+      `<div class="page-wrap lm-page">`,
+      `  <div class="page-header">`,
+      `    <h1 class="page-header-title">수업자료제작</h1>`,
+      `    <div class="page-header-actions">`,
+      `      <button type="button" class="btn btn-secondary" id="lm-reset">초기화</button>`,
+      `      <button type="button" class="btn btn-secondary" id="lm-open-gemini">Gemini 열기</button>`,
       `    </div>`,
-      `    <div class="lm-guide-card">`,
-      `      <b>사용법</b>`,
-      `      <ol>`,
-      `        <li>Gemini 접속</li>`,
-      `        <li>로그인</li>`,
-      `        <li>Canvas 선택</li>`,
-      `        <li>복사한 프롬프트 붙여넣기</li>`,
-      `      </ol>`,
-      `      <div class="lm-hero-actions">`,
-      `        <button type="button" class="btn btn-secondary btn-sm" id="lm-open-gemini">Gemini 열기</button>`,
-      `        <button type="button" class="lm-reset-btn" id="lm-reset">초기화</button>`,
-      `      </div>`,
-      `    </div>`,
-      `  </section>`,
-      `  <div class="lm-tabs">`,
-      `    <button type="button" class="lm-tab active" data-tab="builder">마스터 빌더</button>`,
-      `    <button type="button" class="lm-tab" data-tab="guide">사용 설명서</button>`,
       `  </div>`,
       `  <div id="lm-builder" class="lm-workspace">`,
       `    <div class="lm-builder">`,
@@ -245,16 +228,6 @@
       `      </div>`,
       `    </aside>`,
       `  </div>`,
-      `  <section id="lm-guide" class="lm-guide" style="display:none">`,
-      `    <h2>사용 설명서</h2>`,
-      `    <div class="lm-guide-steps">`,
-      `      <div><b>1. Gemini 접속</b><span>브라우저에서 Gemini를 열고 Google 계정으로 로그인합니다.</span></div>`,
-      `      <div><b>2. Canvas 선택</b><span>Gemini 화면에서 Canvas를 선택해 긴 결과물을 만들 준비를 합니다.</span></div>`,
-      `      <div><b>3. PDF 첨부</b><span>PDF 수업자료가 있으면 Gemini Canvas에 PDF를 먼저 첨부합니다.</span></div>`,
-      `      <div><b>4. 붙여넣기</b><span>쌤포트에서 복사한 프롬프트를 Gemini Canvas에 붙여넣고 생성합니다.</span></div>`,
-      `    </div>`,
-      `    <div class="lm-warning"><b>주의</b><br>학생 개인정보, 상담 내용, 성적 등 민감정보는 프롬프트나 PDF에 넣지 마세요. 수업자료 제작에는 단원명, 개념, 수업 활동 조건만 입력하는 것이 안전합니다.</div>`,
-      `  </section>`,
       `</div>`
     ].join("");
   }
@@ -304,10 +277,6 @@
     const pdfInput = document.getElementById("lm-pdf-input");
     if (pdfInput) pdfInput.addEventListener("change", handlePdfFiles);
 
-    document.querySelectorAll(".lm-tab").forEach((button) => {
-      button.addEventListener("click", () => switchLocalTab(button.dataset.tab));
-    });
-
     const openGemini = document.getElementById("lm-open-gemini");
     if (openGemini) openGemini.addEventListener("click", () => window.open("https://gemini.google.com/", "_blank"));
 
@@ -326,12 +295,6 @@
       if (group === 'grade') button.hidden = parseInt(button.dataset.key, 10) > schoolProfile.gradeCount(state.school[0]);
       button.classList.toggle("on", Array.isArray(state[group]) && state[group].includes(button.dataset.key));
     });
-  }
-
-  function switchLocalTab(tab) {
-    document.querySelectorAll(".lm-tab").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
-    document.getElementById("lm-builder").style.display = tab === "builder" ? "grid" : "none";
-    document.getElementById("lm-guide").style.display = tab === "guide" ? "block" : "none";
   }
 
   function toggleTag(button) {
@@ -711,64 +674,43 @@ PDF 분석 기준:
 
   function styles() {
     return `
-      .lm-page{padding:24px;background:#f7f7f5;min-height:100%;color:#37352f}
-      .lm-hero{display:flex;justify-content:space-between;gap:18px;align-items:stretch;margin-bottom:16px}
-      .lm-kicker{font-size:12px;text-transform:uppercase;letter-spacing:.16em;color:#787774;font-weight:900;margin-bottom:8px}
-      .lm-hero h1{font-size:38px;letter-spacing:-.045em;margin:0 0 8px;color:#37352f}
-      .lm-hero p{font-size:15px;color:#787774;line-height:1.7;max-width:760px}
-      .lm-guide-card{min-width:270px;background:#fff;border:1px solid rgba(55,53,47,.12);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(15,15,15,.04)}
-      .lm-guide-card b{display:block;color:#37352f;margin-bottom:8px}
-      .lm-guide-card ol{margin:0 0 12px 18px;color:#787774;line-height:1.7;font-size:13px}
-      .lm-hero-actions{display:flex;flex-direction:column;gap:8px;align-items:stretch}
-      .lm-reset-btn{border:1px solid rgba(200,50,50,.25);background:#fff5f5;color:#c0392b;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:900;cursor:pointer;transition:.15s}
-      .lm-reset-btn:hover{background:#fee2e2;border-color:#e03e3e}
-      .lm-tabs{display:flex;gap:8px;margin-bottom:16px}
-      .lm-tab{border:1px solid rgba(55,53,47,.12);background:#fff;color:#787774;border-radius:8px;padding:9px 15px;font-weight:900}
-      .lm-tab.active{background:#37352f;color:#fff;border-color:#37352f;box-shadow:none}
       .lm-workspace{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:18px;align-items:start}
       .lm-builder{display:grid;gap:14px;min-width:0}
-      .lm-block{background:#fff;border:1px solid rgba(55,53,47,.12);border-radius:12px;padding:18px;box-shadow:0 1px 2px rgba(15,15,15,.04)}
-      .lm-block.active{border-left:5px solid #37352f;box-shadow:0 3px 10px rgba(15,15,15,.05)}
-      .lm-topic-block{border-color:rgba(55,53,47,.18);background:#fff}
+      .lm-block{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;}
+      .lm-block.active{border-color:var(--accent)}
+      .lm-topic-block{border-color:var(--border);background:var(--card)}
       .lm-step{display:flex;align-items:center;gap:9px;margin-bottom:12px}
-      .lm-step span{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f1f1ef;color:#37352f;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:800}
-      .lm-step b{font-size:16px;color:#37352f}
-      .lm-help{font-size:13px;color:#787774;line-height:1.6;margin:8px 0}
-      .lm-topic{width:100%;min-height:110px;border:1px solid rgba(55,53,47,.16);background:#fbfbfa;border-radius:8px;padding:14px;font-size:15px;outline:none;resize:vertical}
-      .lm-topic:focus{border-color:#37352f;box-shadow:0 0 0 3px rgba(55,53,47,.08)}
-      .lm-subtitle{font-size:12px;color:#787774;font-weight:900;text-transform:uppercase;letter-spacing:.07em;margin:14px 0 8px;padding-left:8px;border-left:3px solid #d9d9d6}
+      .lm-step span{background:var(--bg2);color:var(--text);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:500}
+      .lm-step b{font-size:16px;color:var(--text)}
+      .lm-help{font-size:13px;color:var(--text2);line-height:1.6;margin:8px 0}
+      .lm-topic{width:100%;min-height:110px;border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:14px;font-size:15px;outline:none;resize:vertical}
+      .lm-topic:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-l)}
+      .lm-subtitle{font-size:12px;color:var(--text2);font-weight:600;margin:14px 0 8px;border-left:none}
       .lm-tags{display:flex;flex-wrap:wrap;gap:7px}
-      .lm-tag{border:1px solid rgba(55,53,47,.12);background:#fbfbfa;border-radius:8px;padding:9px 12px;color:#37352f;font-size:13px;font-weight:800;transition:.15s}
-      .lm-tag:hover{background:#f1f1ef;border-color:rgba(55,53,47,.25)}
-      .lm-tag.on{background:#37352f;color:#fff;border-color:#37352f}
-      .lm-note{margin-top:12px;padding:11px 13px;border-radius:8px;background:#f1f1ef;border:1px solid rgba(55,53,47,.1);font-size:13px;color:#55534d;line-height:1.6}
+      .lm-tag{border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-weight:500;transition:.15s}
+      .lm-tag:hover{background:var(--bg2);border-color:var(--border-md)}
+      .lm-tag.on{background:var(--accent-l);color:var(--accent-d);border-color:var(--accent)}
+      .lm-note{margin-top:12px;padding:11px 13px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);font-size:13px;color:var(--text2);line-height:1.6}
       .lm-counts .lm-tag{min-width:58px;text-align:center}
       .lm-youtube-row{display:flex;gap:8px}
       .lm-youtube-row .input{flex:1}
       .lm-youtube-list{display:grid;gap:8px;margin-top:10px}
-      .lm-youtube-item,.lm-pdf-item{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px;border:1px solid rgba(55,53,47,.12);border-radius:8px;background:#fbfbfa}
-      .lm-youtube-item b{display:block;word-break:break-all;font-size:12px;color:#37352f;margin-bottom:6px}
-      .lm-youtube-item select{border:1px solid #d9e2ec;border-radius:8px;background:#fff;padding:5px;font-size:12px}
-      .lm-youtube-item button,.lm-pdf-item button{border:none;background:transparent;color:#e03e3e;font-weight:900}
-      .lm-pdf-picker{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;border:1px dashed rgba(55,53,47,.2);border-radius:10px;background:#fbfbfa;color:#787774;font-size:13px}
+      .lm-youtube-item,.lm-pdf-item{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}
+      .lm-youtube-item b{display:block;word-break:break-all;font-size:12px;color:var(--text);margin-bottom:6px}
+      .lm-youtube-item select{border:1px solid var(--border-md);border-radius:8px;background:var(--card);padding:5px;font-size:12px}
+      .lm-youtube-item button,.lm-pdf-item button{border:none;background:transparent;color:var(--danger);font-weight:600}
+      .lm-pdf-picker{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;border:1px dashed var(--border-md);border-radius:10px;background:var(--bg);color:var(--text2);font-size:13px}
       .lm-pdf-list{display:grid;gap:8px;margin-top:10px}
-      .lm-preview{position:sticky;top:16px;background:#fff;border:1px solid rgba(55,53,47,.12);border-radius:12px;box-shadow:0 1px 2px rgba(15,15,15,.05);overflow:hidden}
-      .lm-preview-scroll{max-height:calc(100vh - 270px);overflow:auto;padding:16px}
-      .lm-preview-box{border:1px solid rgba(55,53,47,.12);border-radius:8px;background:#fbfbfa;margin-bottom:10px;overflow:hidden}
-      .lm-preview-label{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#787774;font-weight:900;text-transform:uppercase;letter-spacing:.08em;padding:8px 11px;border-bottom:1px solid rgba(55,53,47,.1)}
-      .lm-preview-box pre{margin:0;padding:12px;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.55;color:#37352f;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-      .lm-copy-panel{padding:16px;border-top:1px solid rgba(55,53,47,.12);background:#fff}
-      .lm-copy-btn{width:100%;border:none;border-radius:8px;background:#37352f;color:#fff;font-weight:900;font-size:16px;padding:15px;box-shadow:none}
-      .lm-copy-panel p{text-align:center;font-size:12px;color:#787774;margin:10px 0 0;line-height:1.5}
-      .lm-guide{background:#fff;border:1px solid rgba(55,53,47,.12);border-radius:12px;padding:24px;box-shadow:0 1px 2px rgba(15,15,15,.04)}
-      .lm-guide h2{font-size:26px;color:#37352f;margin-bottom:16px}
-      .lm-guide-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-      .lm-guide-steps div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:16px}
-      .lm-guide-steps b{display:block;color:#0f172a;margin-bottom:8px}
-      .lm-guide-steps span{font-size:13px;color:#64748b;line-height:1.6}
-      .lm-warning{margin-top:18px;background:#fef2f2;border-left:5px solid #ef4444;border-radius:12px;padding:16px;color:#7f1d1d;line-height:1.7}
-      @media(max-width:1180px){.lm-workspace{grid-template-columns:1fr}.lm-preview{position:relative;top:0}.lm-guide-steps{grid-template-columns:1fr 1fr}}
-      @media(max-width:760px){.lm-page{padding:14px}.lm-hero{flex-direction:column}.lm-hero h1{font-size:30px}.lm-guide-steps{grid-template-columns:1fr}.lm-youtube-row{flex-direction:column}}
+      .lm-preview{position:sticky;top:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+      .lm-preview-scroll{max-height:calc(100vh - 220px);overflow:auto;padding:16px}
+      .lm-preview-box{border:1px solid var(--border);border-radius:8px;background:var(--bg);margin-bottom:10px;overflow:hidden}
+      .lm-preview-label{font-size:11px;color:var(--text2);font-weight:600;padding:8px 11px;border-bottom:1px solid var(--border)}
+      .lm-preview-box pre{margin:0;padding:12px;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.55;color:var(--text)}
+      .lm-copy-panel{padding:16px;border-top:1px solid var(--border);background:var(--card)}
+      .lm-copy-btn{width:100%;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:15px;padding:13px}
+      .lm-copy-panel p{text-align:center;font-size:12px;color:var(--text2);margin:10px 0 0;line-height:1.5}
+      @media(max-width:1180px){.lm-workspace{grid-template-columns:1fr}.lm-preview{position:relative;top:0}}
+      @media(max-width:760px){.lm-youtube-row{flex-direction:column}}
     `;
   }
 

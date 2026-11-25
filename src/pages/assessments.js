@@ -3,7 +3,7 @@ let currentClassFilter='';
 
 async function render(c){
   c.innerHTML=`<div class="page-wrap">
-  <div class="page-header"><h1 class="page-header-title">📊 수행평가</h1>
+  <div class="page-header"><h1 class="page-header-title">수행평가</h1>
     <button class="btn btn-primary" id="as-add">+ 평가 추가</button></div>
   <div id="as-class-tabs" class="flex flex-wrap mb-3" style="gap:6px"></div>
   <div id="as-list" class="flex flex-col gap-3"></div>
@@ -44,7 +44,7 @@ async function refresh(){
     <div class="flex items-center justify-between" style="margin-bottom:8px">
       <div>
         <span style="font-size:15px;font-weight:700">${escHtml(a.name)}</span>
-        ${a.class_group?`<span class="badge badge-accent" style="margin-left:6px">🏫 ${escHtml(a.class_group)}</span>`:''}
+        ${a.class_group?`<span class="badge badge-accent" style="margin-left:6px">${escHtml(a.class_group)}</span>`:''}
         <span class="badge badge-accent" style="margin-left:6px">${escHtml(a.subject)}</span>
         <span class="badge badge-gray" style="margin-left:4px">${escHtml(a.type)}</span>
       </div>
@@ -53,7 +53,7 @@ async function refresh(){
         <button class="btn btn-secondary btn-sm" onclick="window.__asE(${a.id})">수정</button>
       </div>
     </div>
-    <div style="font-size:12px;color:var(--text2)">만점: ${a.max_score}점 · 날짜: ${a.date||'-'}</div>
+    <div style="font-size:13px;color:var(--text2)">만점: ${a.max_score}점 · 날짜: ${a.date||'-'}</div>
   </div>`).join('');
 }
 

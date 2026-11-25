@@ -1,10 +1,11 @@
 (function(){
 async function render(c){
   c.innerHTML=`<div class="page-wrap">
-  <div class="page-header"><h1 class="page-header-title">🍱 급식 메뉴</h1></div>
-  <div class="flex items-center gap-3" style="margin-bottom:20px">
-    <input type="date" class="input" id="meal-dt" value="${today()}" style="width:180px">
-    <button class="btn btn-primary" id="meal-ld">조회</button>
+  <div class="page-header"><h1 class="page-header-title">급식 메뉴</h1>
+    <div class="page-header-actions">
+      <input type="date" class="input" id="meal-dt" value="${today()}" aria-label="날짜">
+      <button class="btn btn-primary" id="meal-ld">조회</button>
+    </div>
   </div>
   <div id="meal-ct"></div>
   </div>`;
@@ -23,9 +24,9 @@ async function load(){
     ${['조식','중식','석식'].filter(t=>meal[t]).map(t=>{
       const{menu=[],cal=''}=meal[t];
       return `<div class="card" style="padding:20px">
-        <div style="font-size:16px;font-weight:700;margin-bottom:12px">${icons[t]} ${t}</div>
-        ${menu.map(m=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">${m}</div>`).join('')}
-        ${cal?`<div style="margin-top:10px;font-size:12px;color:var(--text3)">🔥 ${cal}</div>`:''}
+        <div style="font-size:16px;font-weight:700;margin-bottom:12px">${t}</div>
+        ${menu.map(m=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:14px">${m}</div>`).join('')}
+        ${cal?`<div style="margin-top:10px;font-size:13px;color:var(--text3)">${cal}</div>`:''}
       </div>`;
     }).join('')}
   </div>`;

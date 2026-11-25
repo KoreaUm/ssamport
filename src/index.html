@@ -19,90 +19,84 @@
 <script src="sv/page.js"></script>
 </head>
 <body>
-<div id="titlebar">
-  <div id="titlebar-drag">
-    <span id="app-title"><img src="../assets/ssamport-logo.svg" alt="">쌤포트</span>
-  </div>
-  <div id="titlebar-btns">
-    <button id="min-btn" title="최소화">─</button>
-    <button id="max-btn" title="최대화">▢</button>
-    <button id="close-btn" title="닫기">✕</button>
-  </div>
+<div id="titlebar-btns">
+  <button id="min-btn" title="최소화">─</button>
+  <button id="max-btn" title="최대화">▢</button>
+  <button id="close-btn" title="닫기">✕</button>
 </div>
 
 <div id="app-layout">
+  <aside id="sidebar">
+    <div class="sidebar-brand"><img src="../assets/ssamport-logo.svg" alt="쌤포트"></div>
+    <nav id="page-tabs" aria-label="큰 메뉴"></nav>
+  </aside>
+  <nav id="menu-flyout" aria-label="화면 선택" hidden></nav>
   <div id="content-wrap">
     <header id="topbar">
-      <div id="topbar-left">
-        <button id="home-btn" class="topbar-btn home-btn" title="홈 대시보드">🏠</button>
-        <span id="class-info">--학년 --반 · --교사</span>
-        <div class="vdiv"></div>
+      <div id="topbar-left"></div>
+      <div id="topbar-right">
+        <span id="local-save-status" class="topbar-status" style="display:none"></span>
+        <span id="sync-status" class="topbar-status" role="status" style="display:none"></span>
+        <button id="sync-retry" class="topbar-btn" style="display:none">동기화 재시도</button>
+        <span id="update-slot"></span>
+        <button id="edit-layout-btn" class="topbar-btn" style="display:none">배치 바꾸기</button>
+        <div id="widget-mode-wrap" class="pop-wrap" style="display:none">
+          <button id="widget-mode-btn" class="topbar-btn">바탕화면 위젯</button>
+          <div id="widget-mode-panel" class="pop-panel" style="display:none">
+            <label><input type="checkbox" id="widget-toggle-todo"> 할일</label>
+            <label><input type="checkbox" id="widget-toggle-timetable"> 시간표</label>
+            <label><input type="checkbox" id="widget-toggle-memo"> 메모</label>
+          </div>
+        </div>
         <div id="global-search" class="global-search">
-          <input id="global-search-input" class="global-search-input" placeholder="기능 검색... 예: 출석, 급식, 공지" autocomplete="off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+          <input id="global-search-input" class="global-search-input" placeholder="기능 찾기" title="기능 찾기 (Ctrl+K)" autocomplete="off" aria-label="기능 찾기">
           <div id="global-search-results" class="global-search-results" style="display:none"></div>
         </div>
-      </div>
-      <div id="topbar-right">
-        <button id="update-btn" class="topbar-btn" style="display:none">업데이트 확인</button>
-        <button id="manual-btn" class="topbar-btn" title="기능 설명서">설명서</button>
-        <button id="edit-layout-btn" class="topbar-btn" style="display:none">배열 편집</button>
-        <div id="widget-mode-wrap" style="position:relative;display:none">
-          <button id="widget-mode-btn" class="topbar-btn">데스크탑 위젯</button>
-          <div id="widget-mode-panel" style="display:none;position:absolute;right:0;top:38px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px;box-shadow:var(--shadow-md);z-index:9999;min-width:170px">
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px">
-              <input type="checkbox" id="widget-toggle-todo"> ✅ 할일 위젯
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px">
-              <input type="checkbox" id="widget-toggle-timetable"> 🗓️ 시간표 위젯
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px">
-              <input type="checkbox" id="widget-toggle-memo"> 📝 메모 위젯
-            </label>
+        <button id="help-btn" class="topbar-btn" type="button" style="display:none">사용법</button>
+        <button id="ai-chat-btn" class="topbar-btn" type="button">AI 도우미</button>
+        <div class="pop-wrap">
+          <button id="more-btn" class="icon-btn" type="button" title="더보기" aria-label="더보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="12" r=".9"/><circle cx="12" cy="12" r=".9"/><circle cx="18.5" cy="12" r=".9"/></svg></button>
+          <div id="more-panel" class="pop-panel" style="display:none">
+            <button id="ai-settings-btn" class="topbar-btn" type="button">AI 설정</button>
+            <button id="google-connect-btn" class="topbar-btn" type="button">Google 연동</button>
+            <button id="opacity-btn" class="topbar-btn" type="button">창 투명도</button>
+            <button id="manual-btn" class="topbar-btn" type="button">전체 설명서 PDF</button>
+            <button id="update-btn" class="topbar-btn" type="button">업데이트 확인</button>
+            <button id="feedback-btn" class="topbar-btn" type="button">오류 제보 · 의견 보내기</button>
+            <div class="more-info"><span id="class-info"></span><span id="header-date"></span></div>
           </div>
-        </div>
-        <div style="position:relative">
-          <button id="opacity-btn" class="topbar-btn" title="투명도 조절">투명도</button>
-          <div id="opacity-panel" style="display:none;position:absolute;right:0;top:38px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;box-shadow:var(--shadow-md);z-index:9999;align-items:center;gap:10px;white-space:nowrap;min-width:220px">
-            <span style="font-size:12px;color:var(--text2)">투명도</span>
-            <input id="opacity-slider" type="range" min="20" max="100" value="100" style="flex:1;accent-color:var(--accent)">
-            <span id="opacity-lbl" style="font-size:12px;font-weight:600;color:var(--accent);width:34px;text-align:right">100%</span>
+          <div id="opacity-panel" class="pop-panel" style="display:none">
+            <span>투명도</span>
+            <input id="opacity-slider" type="range" min="20" max="100" value="100" aria-label="창 투명도">
+            <span id="opacity-lbl">100%</span>
           </div>
-        </div>
-        <div style="position:relative">
-          <button id="ai-settings-btn" class="topbar-btn" title="AI 설정">⚙️ AI</button>
-          <div id="ai-settings-panel" style="display:none;position:absolute;right:0;top:38px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 18px 14px;box-shadow:var(--shadow-md);z-index:9999;min-width:300px;max-width:340px">
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">AI 엔진 선택</div>
+          <div id="ai-settings-panel" class="pop-panel" style="display:none">
+            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">AI 엔진 선택</div>
             <div id="ai-quick-engine-list" style="display:grid;gap:6px;margin-bottom:14px"></div>
             <div id="ai-quick-external" style="display:none;gap:8px;flex-direction:column;margin-bottom:8px">
               <div>
-                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">API 키</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">API 키</div>
                 <input id="ai-quick-key" class="input" type="password" placeholder="API 키 입력" style="width:100%;font-size:13px;box-sizing:border-box">
               </div>
               <div id="ai-quick-model-select-wrap">
-                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">모델</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">모델</div>
                 <select id="ai-quick-model" class="input" style="width:100%;font-size:13px"></select>
               </div>
               <div id="ai-quick-model-text-wrap" style="display:none">
-                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">모델 이름 (직접 입력)</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">모델 이름 (직접 입력)</div>
                 <input id="ai-quick-model-text" class="input" type="text" placeholder="예: google/gemma-4-31b-it:free" style="width:100%;font-size:13px;box-sizing:border-box">
-                <div style="font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5">OpenRouter 사이트(openrouter.ai)에서 "free"로 검색해 마음에 드는 모델을 고른 뒤, 이름 끝이 <b>:free</b>로 끝나는 모델 이름을 그대로 복사해서 붙여넣으세요.</div>
+                <div style="font-size:13px;color:var(--text2);margin-top:4px;line-height:1.5">OpenRouter 사이트(openrouter.ai)에서 "free"로 검색해 마음에 드는 모델을 고른 뒤, 이름 끝이 <b>:free</b>로 끝나는 모델 이름을 그대로 복사해서 붙여넣으세요.</div>
               </div>
             </div>
             <button id="ai-quick-goto-settings" class="btn btn-secondary btn-sm" style="width:100%;margin-bottom:8px">자세한 설정은 설정 페이지에서 →</button>
             <button id="ai-quick-save" class="btn btn-primary btn-sm" style="width:100%">저장</button>
           </div>
         </div>
-        <button id="google-connect-btn" class="topbar-btn" title="Google 계정 연동">🔗 Google 연동</button>
-        <div class="vdiv"></div>
-        <span id="local-save-status" style="font-size:11px;color:var(--danger,#d33);display:none"></span>
-        <span id="sync-status" role="status" style="font-size:11px;color:var(--danger,#d33);display:none"></span>
-        <button id="sync-retry" class="topbar-btn" style="display:none">동기화 재시도</button>
-        <span id="header-date"></span>
       </div>
     </header>
-    <nav id="page-tabs"></nav>
 
-    <div id="remote-change-notice" role="status" style="display:none;padding:8px 16px;background:var(--accent-l)">다른 기기의 변경사항이 있습니다. 작성 중인 내용은 유지됩니다. <button id="apply-remote-change" class="btn btn-secondary btn-sm">현재 화면에 적용</button></div>
+    <div id="remote-change-notice" role="status" style="display:none">다른 기기의 변경사항이 있습니다. 작성 중인 내용은 유지됩니다. <button id="apply-remote-change" class="btn btn-secondary btn-sm">현재 화면에 적용</button></div>
     <main id="page-content"></main>
   </div>
 </div>
@@ -196,7 +190,6 @@
   }
 
   var currentPage = "dashboard";
-  var openGroupKey = "";
 
   // ── 업무 효율성 추적 ──────────────────────────────────────
   var _usagePageStartTime = null;
@@ -230,7 +223,6 @@
     _usagePageStartTime = _usageCurrentPage ? Date.now() : null;
   }
   // ─────────────────────────────────────────────────────────
-  var closeGroupTimer = null;
   var firebaseApp = null;
   var firebaseAuth = null;
   var firebaseDb = null;
@@ -695,7 +687,9 @@
     class: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 8.5a2.5 2.5 0 1 0 0-5"/><path d="M15 14.2c2.6.4 4.5 2.7 5 5.8"/></svg>',
     records: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.7.46L14 18l-3.3 1.96a.5.5 0 0 1-.7-.46V6"/><path d="M6 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2"/><path d="M9 9h6M9 12.5h4"/></svg>',
     work: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a1 1 0 0 1 1-1Z"/><path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>',
-    settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V20a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 18.35a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.64 14 1.7 1.7 0 0 0 3.09 13H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.14a1.7 1.7 0 0 0 1.04-1.56V2.5a2 2 0 1 1 4 0v.09c0 .69.41 1.32 1.04 1.56.6.25 1.3.12 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.5c.25.6.87 1 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1Z"/></svg>'
+    settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V20a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 18.35a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.64 14 1.7 1.7 0 0 0 3.09 13H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.14a1.7 1.7 0 0 0 1.04-1.56V2.5a2 2 0 1 1 4 0v.09c0 .69.41 1.32 1.04 1.56.6.25 1.3.12 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.5c.25.6.87 1 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1Z"/></svg>',
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11 12 4.5l7.5 6.5"/><path d="M6.5 9.5V18a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5V9.5"/></svg>',
+    custom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h3.5l2 2H18a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/></svg>'
   };
 
   var menuGroups = cloneMenuGroups(DEFAULT_MENU_GROUPS);
@@ -775,8 +769,8 @@
     var actions = [
       { key: "dashboard", title: "대시보드", desc: "홈 화면으로 이동", text: "홈 메인 대시보드 처음", run: function () { navigateTo("dashboard"); } },
       { key: "check_update", title: "업데이트 확인", desc: "새 버전 확인", text: "업데이트 확인 다운로드 설치 최신버전", run: function () { var btn = document.getElementById("update-btn"); if (btn) btn.click(); } },
-      { key: "edit_layout", title: "대시보드 배열 편집", desc: "위젯 위치와 크기 변경", text: "배열 편집 위젯 위치 크기 대시보드", run: function () { navigateTo("dashboard").then(function () { var btn = document.getElementById("edit-layout-btn"); if (btn) btn.click(); }); } },
-      { key: "widget_mode", title: "데스크탑 위젯", desc: "할일·시간표를 보여주는 작은 창을 화면에 띄우기", text: "위젯 모드 투명 미니 데스크탑 할일 시간표", run: function () { var btn = document.getElementById("widget-mode-btn"); if (btn) btn.click(); } },
+      { key: "edit_layout", title: "대시보드 배치 바꾸기", desc: "위젯 위치와 크기 변경", text: "배치 바꾸기 배열 편집 위젯 위치 크기 대시보드", run: function () { navigateTo("dashboard").then(function () { var btn = document.getElementById("edit-layout-btn"); if (btn) btn.click(); }); } },
+      { key: "widget_mode", title: "바탕화면 위젯", desc: "할일·시간표를 보여주는 작은 창을 화면에 띄우기", text: "위젯 모드 투명 미니 바탕화면 데스크탑 할일 시간표", run: function () { var btn = document.getElementById("widget-mode-btn"); if (btn) btn.click(); } },
       { key: "opacity", title: "투명도 조절", desc: "창 투명도 패널 열기", text: "투명도 불투명 창 투명", run: function () { var btn = document.getElementById("opacity-btn"); if (btn) btn.click(); } }
     ];
 
@@ -2429,6 +2423,12 @@
     var next = state || {};
     btn.disabled = false;
     btn.classList.remove("active");
+    // 지금 할 일이 있을 때만 상단에 드러내고, 평소에는 더보기 안에 둔다.
+    var urgent = ["available", "downloading", "downloaded", "error"].indexOf(next.status) >= 0;
+    var slot = document.getElementById("update-slot");
+    var morePanel = document.getElementById("more-panel");
+    if (urgent && slot) slot.appendChild(btn);
+    else if (morePanel) morePanel.insertBefore(btn, document.getElementById("feedback-btn"));
 
     if (next.status === "dev") {
       btn.style.display = "";
@@ -2510,129 +2510,100 @@
     });
   }
 
-  function positionTabDropdown(section) {
-    var items = section.querySelector(".tab-group-items");
-    if (!items) return;
-    var rect = section.getBoundingClientRect();
-    items.style.top = (rect.bottom - 1) + "px";
-    items.style.left = rect.left + "px";
+  // 왼쪽에는 큰 묶음만 두고, 묶음을 누르면 바로 옆에 화면 목록(#menu-flyout)이 잠깐 열린다.
+  var openFlyoutKey = "";
+
+  function findGroupOf(pageKey) {
+    return menuGroups.find(function (group) { return group.items.indexOf(pageKey) >= 0; });
+  }
+
+  function makeRailButton(groupKey, label, icon, onClick) {
+    var button = document.createElement("button");
+    button.className = "rail-btn";
+    button.type = "button";
+    button.setAttribute("data-group-key", groupKey);
+    button.innerHTML = icon;
+    var labelText = document.createElement("span");
+    labelText.textContent = label;
+    button.appendChild(labelText);
+    button.addEventListener("click", onClick);
+    return button;
+  }
+
+  function closeMenuFlyout() {
+    openFlyoutKey = "";
+    document.getElementById("menu-flyout").hidden = true;
+    document.querySelectorAll(".rail-btn").forEach(function (button) { button.classList.remove("open"); });
+  }
+
+  function openMenuFlyout(group, railButton) {
+    closeMenuFlyout();
+    var flyout = document.getElementById("menu-flyout");
+    flyout.innerHTML = "";
+    group.items.forEach(function (itemKey) {
+      var item = findMenuPage(itemKey);
+      if (!item) return;
+      var button = document.createElement("button");
+      button.className = "tab-link" + (itemKey === currentPage ? " active" : "");
+      button.type = "button";
+      button.setAttribute("data-key", item.key);
+      if (itemKey === currentPage) button.setAttribute("aria-current", "page");
+      button.textContent = item.label;
+      button.addEventListener("click", function () {
+        closeMenuFlyout();
+        navigateTo(item.key);
+      });
+      flyout.appendChild(button);
+    });
+    flyout.hidden = false;
+    openFlyoutKey = group.key;
+    railButton.classList.add("open");
+    // 누른 묶음 옆에 붙이되 화면 아래로 넘치지 않게 한다.
+    var rect = railButton.getBoundingClientRect();
+    flyout.style.top = Math.max(8, Math.min(rect.top, window.innerHeight - flyout.offsetHeight - 8)) + "px";
+    flyout.style.left = (rect.right + 14) + "px";
+  }
+
+  document.addEventListener("click", function (event) {
+    if (!event.target.closest("#menu-flyout, .rail-btn")) closeMenuFlyout();
+  }, true);
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") closeMenuFlyout();
+  });
+
+  function buildTopTabs() {
+    closeMenuFlyout();
+    var nav = document.getElementById("page-tabs");
+    nav.innerHTML = "";
+    var home = makeRailButton("", "대시보드", MENU_GROUP_ICONS.home, function () {
+      closeMenuFlyout();
+      navigateTo("dashboard");
+    });
+    home.id = "home-btn";
+    nav.appendChild(home);
+    menuGroups.forEach(function (group) {
+      if (!group.items.length) return;
+      nav.appendChild(makeRailButton(group.key, group.label, MENU_GROUP_ICONS[group.key] || MENU_GROUP_ICONS.custom, function (event) {
+        // 화면이 하나뿐인 묶음(예: 설정)은 목록 없이 바로 연다.
+        if (group.items.length === 1) {
+          closeMenuFlyout();
+          navigateTo(group.items[0]);
+        } else if (openFlyoutKey === group.key) {
+          closeMenuFlyout();
+        } else {
+          openMenuFlyout(group, event.currentTarget);
+        }
+      }));
+    });
+    syncActiveTabs();
   }
 
   function syncActiveTabs() {
-    var homeBtn = document.getElementById("home-btn");
-    if (homeBtn) homeBtn.classList.toggle("active", currentPage === "dashboard");
-
-    document.querySelectorAll(".tab-link").forEach(function (button) {
-      button.classList.toggle("active", button.getAttribute("data-key") === currentPage);
+    var group = currentPage === "dashboard" ? null : findGroupOf(currentPage);
+    document.querySelectorAll(".rail-btn").forEach(function (button) {
+      var active = group ? button.getAttribute("data-group-key") === group.key : (currentPage === "dashboard" && button.id === "home-btn");
+      button.classList.toggle("active", active);
     });
-
-    document.querySelectorAll(".tab-group").forEach(function (groupEl) {
-      var groupKey = groupEl.getAttribute("data-group-key");
-      var group = menuGroups.find(function (entry) { return entry.key === groupKey; });
-      if (!group) return;
-
-      var currentItemKey = group.items.find(function (itemKey) { return itemKey === currentPage; });
-      var currentItem = currentItemKey ? findMenuPage(currentItemKey) : null;
-      var valueEl = groupEl.querySelector(".tab-group-value");
-      if (valueEl) {
-        valueEl.textContent = currentItem ? currentItem.label : (group.items[0] ? findMenuPage(group.items[0]).label : "");
-      }
-      groupEl.classList.toggle("open", openGroupKey === groupKey);
-      groupEl.classList.toggle("selected", !!currentItem);
-    });
-  }
-
-  function buildTopTabs() {
-    var nav = document.getElementById("page-tabs");
-    nav.innerHTML = "";
-
-    menuGroups.forEach(function (group) {
-      if (!group.items.length) return;
-
-      var section = document.createElement("section");
-      section.className = "tab-group";
-      section.setAttribute("data-group-key", group.key);
-      section.addEventListener("mouseenter", function () {
-        if (closeGroupTimer) {
-          clearTimeout(closeGroupTimer);
-          closeGroupTimer = null;
-        }
-        openGroupKey = group.key;
-        positionTabDropdown(section);
-        syncActiveTabs();
-      });
-      section.addEventListener("mouseleave", function () {
-        closeGroupTimer = setTimeout(function () {
-          if (openGroupKey === group.key) {
-            openGroupKey = "";
-            syncActiveTabs();
-          }
-        }, 140);
-      });
-      section.addEventListener("focusin", function () {
-        openGroupKey = group.key;
-        syncActiveTabs();
-      });
-      section.addEventListener("focusout", function () {
-        setTimeout(function () {
-          if (!section.contains(document.activeElement) && openGroupKey === group.key) {
-            openGroupKey = "";
-            syncActiveTabs();
-          }
-        }, 0);
-      });
-
-      var label = document.createElement("button");
-      label.className = "tab-group-label";
-      label.type = "button";
-
-      var labelIcon = document.createElement("span");
-      labelIcon.className = "tab-group-icon";
-      labelIcon.innerHTML = MENU_GROUP_ICONS[group.key] || "";
-
-      var labelText = document.createElement("span");
-      labelText.className = "tab-group-text";
-      labelText.textContent = group.label;
-
-      var labelValue = document.createElement("span");
-      labelValue.className = "tab-group-value";
-      labelValue.textContent = findMenuPage(group.items[0]).label;
-
-      label.appendChild(labelIcon);
-      label.appendChild(labelText);
-      label.appendChild(labelValue);
-      label.addEventListener("click", function () {
-        openGroupKey = openGroupKey === group.key ? "" : group.key;
-        if (openGroupKey === group.key) positionTabDropdown(section);
-        syncActiveTabs();
-      });
-      section.appendChild(label);
-
-      var items = document.createElement("div");
-      items.className = "tab-group-items";
-
-      group.items.forEach(function (itemKey) {
-        var item = findMenuPage(itemKey);
-        if (!item) return;
-
-        var button = document.createElement("button");
-        button.className = "tab-link";
-        button.type = "button";
-        button.setAttribute("data-key", item.key);
-        button.textContent = item.label;
-        if (item.key === currentPage) button.classList.add("active");
-        button.addEventListener("click", function () {
-          openGroupKey = "";
-          navigateTo(item.key);
-        });
-        items.appendChild(button);
-      });
-
-      section.appendChild(items);
-      nav.appendChild(section);
-    });
-
-    syncActiveTabs();
   }
 
   function loadPage(key) {
@@ -2666,52 +2637,68 @@
       '<div class="page-wrap"><div class="empty-state"><div class="icon">!</div><p>' + message + "</p></div></div>";
   }
 
-  // 각 페이지 상단에 '사용 방법'을 자동으로 붙인다.
+  // 화면별 사용법은 본문 자리를 차지하지 않고, 상단 '사용법' 단추를 눌렀을 때만 옆에서 열린다.
   // 내용은 설명서(app_manual.js)에서 가져오므로 설명서와 화면 안내가 항상 같다.
-  function renderPageGuide(key, content) {
+  var helpPageKey = "";
+
+  function findHelpSection(key) {
     var manual = window.APP_MANUAL;
-    var section = manual && manual.sections && manual.sections.find(function (item) { return item.key === key; });
-    if (!section || !section.features || !section.features.length) return;
+    return manual && manual.sections && manual.sections.find(function (item) { return item.key === key; });
+  }
 
-    var collapsed = false;
-    try { collapsed = localStorage.getItem('page_guide_collapsed_' + key) === '1'; } catch (_) {}
+  function closeHelpDrawer() {
+    var drawer = document.getElementById("help-drawer");
+    if (drawer) drawer.remove();
+    document.getElementById("help-btn").classList.remove("active");
+  }
 
+  function openHelpDrawer() {
+    closeHelpDrawer();
+    var section = findHelpSection(helpPageKey);
+    if (!section) return;
     var el = function (tag, className, text) {
       var node = document.createElement(tag);
       if (className) node.className = className;
       if (text) node.textContent = text;
       return node;
     };
+    var drawer = el("aside", "help-drawer");
+    drawer.id = "help-drawer";
+    drawer.setAttribute("aria-label", "사용법");
+    var head = el("div", "help-head");
+    head.appendChild(el("div", "help-title", section.title));
+    var close = el("button", "modal-close", "×");
+    close.type = "button";
+    close.title = "닫기";
+    close.addEventListener("click", closeHelpDrawer);
+    head.appendChild(close);
 
-    var box = el('div', 'page-guide');
-    var head = el('div', 'page-guide-head');
-    head.appendChild(el('div', 'page-guide-title', '사용 방법 · ' + (section.title || '')));
-    var toggle = el('button', 'page-guide-toggle', collapsed ? '펼치기 ▾' : '접기 ▴');
-    toggle.type = 'button';
-    head.appendChild(toggle);
-
-    var body = el('div', 'page-guide-body');
-    if (collapsed) body.style.display = 'none';
-    if (section.description) body.appendChild(el('div', 'page-guide-lead', section.description));
-    var list = document.createElement('ol');
-    section.features.forEach(function (line) { list.appendChild(el('li', '', line)); });
+    var body = el("div", "help-body");
+    if (section.description) body.appendChild(el("div", "help-lead", section.description));
+    var list = el("ul");
+    (section.features || []).forEach(function (line) { list.appendChild(el("li", "", line)); });
     body.appendChild(list);
-    (section.tips || []).forEach(function (tip) { body.appendChild(el('div', 'page-guide-tip', '💡 ' + tip)); });
+    if (section.tips && section.tips.length) {
+      var tips = el("div", "help-tips");
+      section.tips.forEach(function (tip) { tips.appendChild(el("div", "", tip)); });
+      body.appendChild(tips);
+    }
+    drawer.appendChild(head);
+    drawer.appendChild(body);
+    document.body.appendChild(drawer);
+    document.getElementById("help-btn").classList.add("active");
+  }
 
-    box.appendChild(head);
-    box.appendChild(body);
-
-    head.addEventListener('click', function () {
-      var nowCollapsed = body.style.display !== 'none';
-      body.style.display = nowCollapsed ? 'none' : '';
-      toggle.textContent = nowCollapsed ? '펼치기 ▾' : '접기 ▴';
-      try { localStorage.setItem('page_guide_collapsed_' + key, nowCollapsed ? '1' : '0'); } catch (_) {}
-    });
-
-    // 페이지 제목 바로 아래에 넣고, 제목이 없으면 화면 맨 위에 넣는다.
-    var header = content.querySelector('.page-header');
-    if (header && header.parentNode) header.parentNode.insertBefore(box, header.nextSibling);
-    else (content.querySelector('.page-wrap') || content).prepend(box);
+  // 화면을 옮기면 사용법 단추를 그 화면에 맞추고, 열려 있던 서랍은 새 화면 내용으로 바꾼다.
+  function syncPageGuide(key) {
+    helpPageKey = key;
+    var section = findHelpSection(key);
+    var wasOpen = !!document.getElementById("help-drawer");
+    document.getElementById("help-btn").style.display = section ? "" : "none";
+    if (wasOpen) {
+      if (section) openHelpDrawer();
+      else closeHelpDrawer();
+    }
   }
 
   function navigateTo(key) {
@@ -2731,10 +2718,6 @@
       if (currentPage === "grades" && key !== "grades" && window.appGradesLock) window.appGradesLock();
       _usageOnLeave(key);
       currentPage = key;
-      var parentGroup = menuGroups.find(function (group) {
-        return group.items.some(function (itemKey) { return itemKey === key; });
-      });
-      openGroupKey = parentGroup ? parentGroup.key : "";
       syncActiveTabs();
       var item = findMenuPage(key);
       text("page-title", key === "dashboard" ? "대시보드" : (key === "user_management" ? "회원 관리" : (key === "feedback_admin" ? "피드백 관리" : (key === "grades" ? "성적관리" : (item ? item.label : "")))));
@@ -2745,9 +2728,10 @@
       content.innerHTML = "";
       activePage = key;
       document.getElementById('remote-change-notice').style.display = 'none';
+      content.scrollTop = 0;
       await mod.render(content);
       // 안내문은 부가 요소이므로, 여기서 문제가 생겨도 화면 이동은 계속되어야 한다.
-      try { renderPageGuide(key, content); } catch (_) {}
+      try { syncPageGuide(key); } catch (_) {}
       if (mod.init) await mod.init();
       if (window.refreshGoogleConnectButton) window.refreshGoogleConnectButton();
     }).catch(function (error) {
@@ -2764,7 +2748,7 @@
       api.getSetting("class_num", "-"),
       api.getSetting("teacher_name", "담임")
     ]).then(function (values) {
-      text("class-info", (values[0] && values[0] !== "-" && values[1] ? "🏫 " + values[0] + "학년 " + values[1] + "반 · " : "🏫 ") + values[2]);
+      text("class-info", (values[0] && values[0] !== "-" && values[1] ? values[0] + "학년 " + values[1] + "반 · " : "") + values[2]);
     });
   }
   window.updateClassInfo = updateClassInfo;
@@ -2817,8 +2801,9 @@
 
       var inputRect = input.getBoundingClientRect();
       results.style.top = (inputRect.bottom + 4) + "px";
-      results.style.left = inputRect.left + "px";
-      results.style.width = Math.max(inputRect.width, 280) + "px";
+      // 입력칸은 오른쪽 끝이 고정된 채 왼쪽으로 펼쳐지므로 오른쪽에 맞춘다.
+      results.style.right = (window.innerWidth - inputRect.right) + "px";
+      results.style.width = "280px";
 
       if (!currentMatches.length) {
         results.innerHTML = '<div class="global-search-empty">관련 기능을 찾지 못했습니다.</div>';
@@ -2878,22 +2863,18 @@
       Promise.resolve(window.api && window.api.getSetting ? window.api.getSetting("gcal_refresh_token", "") : "")
         .then(function (token) {
           if (token) {
-            btn.textContent = "✅ Google 연동됨";
+            btn.textContent = "Google 연동됨";
             btn.title = "Google 계정 연동 관리";
           } else {
-            btn.textContent = "🔗 Google 연동";
+            btn.textContent = "Google 연동";
             btn.title = "Google 계정 연동하기";
           }
         })
         .catch(function () {});
     }
     btn.addEventListener("click", function () {
-      navigateTo("settings").then(function () {
-        setTimeout(function () {
-          var section = document.getElementById("settings-google");
-          if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 80);
-      });
+      window.__settingsScrollTarget = "settings-google";
+      navigateTo("settings");
     });
     window.refreshGoogleConnectButton = refreshLabel;
     refreshLabel();
@@ -2926,9 +2907,28 @@
     });
   }
 
-  function initHomeButton() {
-    document.getElementById("home-btn").addEventListener("click", function () {
-      navigateTo("dashboard");
+  function initShellButtons() {
+    var morePanel = document.getElementById("more-panel");
+    document.getElementById("more-btn").addEventListener("click", function (event) {
+      event.stopPropagation();
+      var open = morePanel.style.display === "none";
+      document.getElementById("opacity-panel").style.display = "none";
+      document.getElementById("ai-settings-panel").style.display = "none";
+      morePanel.style.display = open ? "block" : "none";
+    });
+    // 안의 단추를 누르거나 바깥을 누르면 닫는다(각 단추의 동작은 그대로 이어진다).
+    document.addEventListener("click", function (event) {
+      if (!event.target.closest("#more-btn")) morePanel.style.display = "none";
+    }, true);
+
+    document.getElementById("help-btn").addEventListener("click", function () {
+      if (document.getElementById("help-drawer")) closeHelpDrawer();
+      else openHelpDrawer();
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      closeHelpDrawer();
+      morePanel.style.display = "none";
     });
   }
 
@@ -2979,7 +2979,7 @@
   function initEditButton() {
     document.getElementById("edit-layout-btn").addEventListener("click", function () {
       var active = this.classList.toggle("active");
-      this.textContent = active ? "배열 편집 완료" : "배열 편집";
+      this.textContent = active ? "배치 저장" : "배치 바꾸기";
       if (window.__pages.dashboard && window.__pages.dashboard.setEditMode) {
         window.__pages.dashboard.setEditMode(active);
       }
@@ -3517,7 +3517,7 @@
     panel.className = 'ai-chat-panel';
     panel.innerHTML =
       '<div class="ai-chat-head">' +
-        '<div><div class="ai-chat-title">🤖 AI 채팅</div><div class="ai-chat-engine" id="ai-chat-engine"></div></div>' +
+        '<div><div class="ai-chat-title">AI 도우미</div><div class="ai-chat-engine" id="ai-chat-engine"></div></div>' +
         '<div class="ai-chat-head-actions">' +
           '<button type="button" id="ai-chat-reset">새 대화</button>' +
           '<button type="button" id="ai-chat-close">✕</button>' +
@@ -3592,7 +3592,7 @@
 
   function aiChatApplySize(panel, width, height) {
     var maxW = Math.max(AI_CHAT_MIN_W, window.innerWidth - 48);
-    var maxH = Math.max(AI_CHAT_MIN_H, window.innerHeight - 160);
+    var maxH = Math.max(AI_CHAT_MIN_H, window.innerHeight - 90);
     var w = Math.round(Math.min(Math.max(width, AI_CHAT_MIN_W), maxW));
     var h = Math.round(Math.min(Math.max(height, AI_CHAT_MIN_H), maxH));
     panel.style.width = w + 'px';
@@ -3630,33 +3630,14 @@
     });
   }
 
-  (function setupAiChatFab() {
-    var fab = document.createElement('button');
-    fab.id = 'ai-chat-fab';
-    fab.className = 'ai-chat-fab';
-    fab.type = 'button';
-    fab.title = 'AI와 대화하기';
-    fab.textContent = '🤖';
-    fab.addEventListener('click', function () {
-      if (!getAuthState().loggedIn) {
-        toast('로그인 후 이용할 수 있습니다.', 'error');
-        return;
-      }
-      openAiChatPanel();
-    });
-    document.body.appendChild(fab);
-  })();
-
-  (function setupFeedbackFab() {
-    var fab = document.createElement("button");
-    fab.id = "feedback-fab";
-    fab.className = "feedback-fab";
-    fab.type = "button";
-    fab.title = "오류 제보 / 의견 보내기";
-    fab.textContent = "💬";
-    fab.addEventListener("click", openFeedbackModal);
-    document.body.appendChild(fab);
-  })();
+  document.getElementById("ai-chat-btn").addEventListener("click", function () {
+    if (!getAuthState().loggedIn) {
+      toast("로그인 후 이용할 수 있습니다.", "error");
+      return;
+    }
+    openAiChatPanel();
+  });
+  document.getElementById("feedback-btn").addEventListener("click", openFeedbackModal);
 
   function openFeedbackModal() {
     var authState = getAuthState();
@@ -3819,7 +3800,7 @@
     .then(function () {
       initWindowButtons();
       initGlobalSearch();
-      initHomeButton();
+      initShellButtons();
       initUpdateButton();
       initManualButton();
       initGoogleConnectButton();

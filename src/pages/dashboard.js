@@ -14,37 +14,38 @@ const TEACHER_TT_NUMBER_COLORS_KEY = 'teacher_timetable_number_colors';
 
 // 카드 ID → 표시 라벨 매핑
 const WIDGET_LABELS = {
-  'cal-card':            '📅 달력',
-  'clock-card':          '🕐 시계/날씨',
-  'w-todo':              '✅ 할일',
-  'w-sched':             '📅 학사일정',
-  'w-meal':              '🍱 급식',
-  'w-dday-setup':        '📅 D-Day 설정',
-  'w-dday-list':         '📅 D-Day 목록',
-  'w-personal-tt':       '🗓️ 개인 시간표',
-  'w-teacher-contact':   '📞 교사 연락처',
-  'w-student-contact':   '👤 학생 연락처',
-  'w-shortcuts':         '🔗 바로가기',
-  'w-school-tt':         '🏫 학급 시간표',
-  'w-ai':                '🤖 AI 할일 추출',
-  'w-sticky':            '📝 스티커 메모',
+  'cal-card':            '달력',
+  'clock-card':          '시계/날씨',
+  'w-todo':              '할일',
+  'w-sched':             '학사일정',
+  'w-meal':              '급식',
+  'w-dday-setup':        'D-Day 설정',
+  'w-dday-list':         'D-Day 목록',
+  'w-personal-tt':       '개인 시간표',
+  'w-teacher-contact':   '교사 연락처',
+  'w-student-contact':   '학생 연락처',
+  'w-shortcuts':         '바로가기',
+  'w-school-tt':         '학급 시간표',
+  'w-ai':                'AI 할일 추출',
+  'w-sticky':            '스티커 메모',
 };
 
+// 저장된 배치가 없을 때 쓰는 기본 배치. 3열 · 간격 16 기준이며 창 너비에 맞춰 늘거나 줄어든다.
 const DEFAULT_POSITIONS = {
-  'cal-card':           {x:0,   y:0,   w:390, h:380},
-  'clock-card':         {x:0,   y:388, w:390, h:110},
-  'w-todo':             {x:398, y:0,   w:350, h:280},
-  'w-sched':            {x:398, y:288, w:350, h:180},
-  'w-meal':             {x:398, y:476, w:350, h:220},
-  'w-ai':               {x:398, y:704, w:350, h:160},
-  'w-shortcuts':        {x:756, y:0,   w:340, h:120},
-  'w-dday-setup':       {x:756, y:128, w:340, h:60},
-  'w-school-tt':        {x:756, y:196, w:340, h:310},
-  'w-personal-tt':      {x:756, y:514, w:340, h:280},
-  'w-teacher-contact':  {x:756, y:802, w:165, h:110},
-  'w-student-contact':  {x:929, y:802, w:165, h:110},
-  'w-dday-list':        {x:756, y:920, w:340, h:150},
-  'w-sticky':           {x:1104, y:0,   w:340, h:280},
+  'w-todo':             {x:0,   y:0,    w:352, h:392},
+  'cal-card':           {x:368, y:0,    w:352, h:392},
+  'clock-card':         {x:736, y:0,    w:352, h:112},
+  'w-meal':             {x:736, y:128,  w:352, h:264},
+  'w-personal-tt':      {x:0,   y:408,  w:352, h:360},
+  'w-school-tt':        {x:368, y:408,  w:352, h:360},
+  'w-sched':            {x:736, y:408,  w:352, h:176},
+  'w-dday-list':        {x:736, y:600,  w:352, h:168},
+  'w-sticky':           {x:0,   y:784,  w:352, h:256},
+  'w-ai':               {x:368, y:784,  w:352, h:256},
+  'w-shortcuts':        {x:736, y:784,  w:352, h:176},
+  'w-dday-setup':       {x:736, y:976,  w:352, h:64},
+  'w-teacher-contact':  {x:0,   y:1056, w:352, h:200},
+  'w-student-contact':  {x:368, y:1056, w:352, h:200},
 };
 
 async function syncCloudIfPossible(){
@@ -79,16 +80,21 @@ async function render(c){
   const t = new Date();
   calYear = t.getFullYear();
   calMonth = t.getMonth()+1;
+  const days = ['일','월','화','수','목','금','토'];
   c.innerHTML = `
+<div class="dash-head">
+  <h1 class="page-header-title">${t.getMonth()+1}월 ${t.getDate()}일 ${days[t.getDay()]}요일</h1>
+  <p class="page-header-desc" id="dash-summary"></p>
+</div>
 <div id="dashboard">
 
   <div class="card sb-card" id="cal-card">
     <div class="cal-header">
-      <button class="sb-dropdown-btn">📅 캘린더 ▾</button>
+      <button class="sb-dropdown-btn">일정</button>
       <div class="cal-nav-center">
-        <button class="cal-nav-btn" id="cal-prev">◀</button>
+        <button class="cal-nav-btn" id="cal-prev">‹</button>
         <span class="cal-month-lbl" id="cal-month-lbl"></span>
-        <button class="cal-nav-btn" id="cal-next">▶</button>
+        <button class="cal-nav-btn" id="cal-next">›</button>
         <button class="cal-today-btn" id="cal-today-btn">오늘</button>
       </div>
       <button class="btn btn-secondary btn-xs" id="cal-add-btn">+ 추가</button>
@@ -121,10 +127,10 @@ async function render(c){
 
   <div class="card sb-card dash-widget-flex" id="w-todo" data-widget="todo">
     <div class="card-header">
-      <span class="card-title">✅ 오늘의 할일</span>
+      <span class="card-title">오늘의 할일</span>
       <div class="dash-row dash-gap-5">
-        <button class="btn btn-secondary btn-xs" id="todo-sort-btn" onclick="window.__dtTogSort()" title="마감일 순으로 정렬">마감순↑</button>
-        <button class="sb-sel" id="todo-cleanup-btn" onclick="window.__dtTogHideDone()" title="완료된 할일 숨기기" style="cursor:pointer;font-size:13px;padding:0 6px">✅</button>
+        <button class="btn btn-secondary btn-xs" id="todo-sort-btn" onclick="window.__dtTogSort()" title="마감일 순으로 정렬">마감순</button>
+        <button class="btn btn-secondary btn-xs" id="todo-cleanup-btn" onclick="window.__dtTogHideDone()" title="완료된 할일 숨기기">완료 숨김</button>
         <button class="btn btn-primary btn-xs" id="todo-add-btn" onclick="window.__dtAdd('')">+ 추가</button>
       </div>
     </div>
@@ -134,9 +140,9 @@ async function render(c){
   <div class="card sb-card dash-widget-flex" id="w-sched" data-widget="sched">
     <div class="card-header">
       <div class="dash-row dash-gap-4">
-        <button class="cal-nav-btn" id="sched-prev">◀</button>
-        <span class="card-title" id="sched-title">📅 학사일정</span>
-        <button class="cal-nav-btn" id="sched-next">▶</button>
+        <button class="cal-nav-btn" id="sched-prev">‹</button>
+        <span class="card-title" id="sched-title">학사일정</span>
+        <button class="cal-nav-btn" id="sched-next">›</button>
       </div>
     </div>
     <div class="scroll-area" id="sched-list" style="padding:0 12px 8px;flex:1"></div>
@@ -144,28 +150,29 @@ async function render(c){
 
   <div class="card sb-card dash-widget-flex" id="w-meal" data-widget="meal">
     <div class="card-header">
-      <span class="card-title">🍱 오늘의 급식</span>
+      <span class="card-title">오늘의 급식</span>
       <select class="sb-sel" id="meal-date-sel" style="max-width:130px"></select>
     </div>
     <div class="scroll-area" id="meal-list" style="padding:0 10px 8px;flex:1"></div>
   </div>
 
-  <div class="card sb-card dday-setup-card" id="w-dday-setup" data-widget="dday-setup">
+  <div class="card sb-card" id="w-dday-setup" data-widget="dday-setup">
     <div class="dash-dday-setup-header">
-      <span class="card-title">📅 D-Day 설정</span>
+      <span class="card-title">D-Day 설정</span>
       <button class="btn btn-primary btn-xs" id="dday-add-btn">+ 추가</button>
     </div>
   </div>
 
   <div class="card sb-card" id="w-personal-tt" data-widget="personal-tt">
     <div class="card-header">
-      <span class="card-title">🗓️ 개인 시간표</span>
-      <div class="dash-row dash-gap-4">
+      <span class="card-title">개인 시간표</span>
+      <div class="dash-row dash-gap-6">
+        <span class="text-muted" style="font-size:13px">번호별 색</span>
         <label class="toggle-switch toggle-switch-sm" title="같은 번호는 같은 색으로 표시">
           <input type="checkbox" id="tt-number-color-toggle">
           <span class="toggle-track"></span>
         </label>
-        <button class="btn-icon-flat" onclick="navigateTo('timetable')" title="편집">✏️</button>
+        <button class="btn-icon-flat" onclick="navigateTo('timetable')" title="시간표 편집">편집</button>
       </div>
     </div>
     <div id="tt-grid-wrap" style="padding:2px 8px 8px"></div>
@@ -173,53 +180,53 @@ async function render(c){
 
   <div class="card sb-card dash-widget-flex" id="w-teacher-contact" data-widget="teacher-contact">
     <div class="card-header dash-card-header-compact">
-      <span class="card-title dash-card-title-compact">📞 교사 연락처</span>
+      <span class="card-title dash-card-title-compact">교사 연락처</span>
     </div>
     <div class="dash-contact-body">
-      <input class="sb-mini-input" id="teacher-q" placeholder="🔍 검색...">
+      <input class="sb-mini-input" id="teacher-q" placeholder="이름 검색">
       <div id="teacher-list" class="dash-contact-list"></div>
     </div>
   </div>
 
   <div class="card sb-card dash-widget-flex" id="w-student-contact" data-widget="student-contact">
     <div class="card-header dash-card-header-compact">
-      <span class="card-title dash-card-title-compact">👤 학생 연락처</span>
-      <button class="btn-icon-flat" onclick="navigateTo('contacts')" title="전체 연락처 검색">📞</button>
+      <span class="card-title dash-card-title-compact">학생 연락처</span>
+      <button class="btn-icon-flat" onclick="navigateTo('contacts')" title="전체 연락처 검색">전체</button>
     </div>
     <div class="dash-contact-body">
-      <input class="sb-mini-input" id="student-q" placeholder="🔍 검색...">
+      <input class="sb-mini-input" id="student-q" placeholder="이름 검색">
       <div id="student-list" class="dash-contact-list"></div>
     </div>
   </div>
 
   <div class="card sb-card" id="w-dday-list" data-widget="dday-list">
     <div class="card-header">
-      <span class="card-title">📅 D-Day 목록</span>
+      <span class="card-title">D-Day 목록</span>
     </div>
     <div id="dday-list" style="padding:2px 12px 10px;display:flex;flex-direction:column;gap:3px;max-height:100px;overflow-y:auto"></div>
   </div>
 
   <div class="card sb-card" id="w-shortcuts" data-widget="shortcuts">
     <div class="card-header">
-      <span class="card-title">빠른 바로가기</span>
+      <span class="card-title">바로가기</span>
       <div style="display:flex;align-items:center;gap:6px">
         <button class="btn btn-secondary btn-xs" onclick="window.__showShortcutModal()">+ 추가</button>
-        <button class="btn-icon-flat" onclick="navigateTo('settings')" title="설정">⚙</button>
+        <button class="btn-icon-flat" onclick="navigateTo('settings')" title="설정">설정</button>
       </div>
     </div>
-    <div id="shortcut-list" style="padding:4px 12px 12px;display:flex;flex-wrap:wrap;gap:8px"></div>
+    <div id="shortcut-list" style="padding:4px 16px 16px;display:flex;flex-wrap:wrap;gap:8px"></div>
   </div>
 
   <div class="card sb-card dash-widget-flex" id="w-school-tt" data-widget="school-tt">
     <div class="card-header">
-      <span class="card-title">🏫 학급 시간표</span>
+      <span class="card-title">학급 시간표</span>
       <div class="dash-row dash-gap-3">
         <select class="sb-sel" id="neis-grade-sel" style="width:58px"></select>
         <select class="sb-sel" id="neis-class-sel" style="width:44px"></select>
-        <button class="cal-nav-btn" id="neis-prev">◀</button>
-        <span id="neis-week-lbl" style="font-size:10px;color:var(--text3);white-space:nowrap;min-width:36px;text-align:center">이번주</span>
-        <button class="cal-nav-btn" id="neis-next">▶</button>
-        <button class="btn-icon-flat" id="school-tt-settings-btn" title="학급 시간표 설정">⚙</button>
+        <button class="cal-nav-btn" id="neis-prev">‹</button>
+        <span id="neis-week-lbl" style="font-size:12px;color:var(--text3);white-space:nowrap;min-width:36px;text-align:center">이번주</span>
+        <button class="cal-nav-btn" id="neis-next">›</button>
+        <button class="btn-icon-flat" id="school-tt-settings-btn" title="학급 시간표 설정">설정</button>
       </div>
     </div>
     <div id="neis-tt-wrap" style="padding:0 6px 6px;flex:1;overflow:hidden"></div>
@@ -227,27 +234,27 @@ async function render(c){
 
   <div class="card sb-card" id="w-ai" data-widget="ai">
     <div class="card-header">
-      <span class="card-title">🤖 AI 할일 추출</span>
-      <span class="badge badge-accent" style="font-size:10px">카카오톡·공문</span>
+      <span class="card-title">AI 할일 추출</span>
+      <span class="badge badge-accent" style="font-size:12px">카카오톡·공문</span>
     </div>
     <div style="padding:6px 12px 12px;display:flex;flex-direction:column;gap:6px">
-      <textarea id="ai-input" class="input" style="height:60px;resize:none;font-size:11px" placeholder="카카오톡 메시지, 공문을 붙여넣으세요..."></textarea>
-      <div id="ai-result" style="font-size:11px;color:var(--text2);display:none;padding:4px 0"></div>
+      <textarea id="ai-input" class="input" style="height:60px;resize:none;font-size:13px" placeholder="카카오톡 메시지, 공문을 붙여넣으세요..."></textarea>
+      <div id="ai-result" style="font-size:13px;color:var(--text2);display:none;padding:4px 0"></div>
       <div style="display:flex;gap:5px">
-        <button class="btn btn-primary btn-sm" id="ai-run-btn" style="flex:1;font-size:11px">🤖 AI 추출</button>
-        <button class="btn btn-secondary btn-sm" id="ai-clear-btn" style="font-size:11px">지우기</button>
+        <button class="btn btn-primary btn-sm" id="ai-run-btn" style="flex:1;font-size:13px">할일 뽑기</button>
+        <button class="btn btn-secondary btn-sm" id="ai-clear-btn" style="font-size:13px">지우기</button>
       </div>
     </div>
   </div>
 
   <div class="card sb-card dash-widget-flex" id="w-sticky" data-widget="sticky">
     <div class="card-header">
-      <span class="card-title">📝 스티커 메모</span>
+      <span class="card-title">스티커 메모</span>
       <button class="btn btn-primary btn-xs" id="sticky-add-btn">+ 추가</button>
     </div>
     <div id="sticky-widget-list" style="flex:1;overflow-y:auto;padding:4px 8px 8px;display:flex;flex-direction:column;gap:6px"></div>
     <div style="padding:4px 8px 8px;text-align:center">
-      <button class="btn btn-secondary btn-xs" onclick="navigateTo('sticky_notes')" style="width:100%;font-size:11px">전체 보기 →</button>
+      <button class="btn btn-secondary btn-xs" onclick="navigateTo('sticky_notes')" style="width:100%;font-size:13px">전체 보기 →</button>
     </div>
   </div>
 
@@ -288,7 +295,7 @@ async function init(){
     r.style.display = 'none';
   };
   const schoolTitle=document.querySelector('#w-school-tt .card-title');
-  if(schoolTitle) schoolTitle.textContent='🏫 학급 시간표';
+  if(schoolTitle) schoolTitle.textContent='학급 시간표';
   const gradeSel=document.getElementById('neis-grade-sel');
   const classSel=document.getElementById('neis-class-sel');
   const prevBtn=document.getElementById('neis-prev');
@@ -307,8 +314,6 @@ async function init(){
   if(clockTimer) clearInterval(clockTimer);
   clockTimer = setInterval(updateClock, 1000);
 
-  await restoreLayout();
-
   // 숨긴 카드 복원 적용
   try {
     const hiddenRaw = await api.getSetting('hidden_widgets', '[]');
@@ -320,6 +325,8 @@ async function init(){
       });
     }
   } catch(e) {}
+
+  await restoreLayout();
 
   // 스티커 메모 위젯 갱신 훅
   window.__refreshStickyWidget = refreshStickyWidget;
@@ -486,7 +493,7 @@ function refreshSchedule(){
     const d=new Date(+ds.slice(0,4),+ds.slice(4,6)-1,+ds.slice(6,8));
     const lbl=`${d.getMonth()+1}/${d.getDate()} (${days[d.getDay()]})`;
     const col=ev.is_holiday?'var(--danger)':'var(--accent)';
-    return `<div class="sched-row"><span class="sched-date">${lbl}</span><span class="sched-tag" style="background:${col}">${ev.is_holiday?'휴일':'일정'}</span><span class="sched-name">${ev.name||''}</span></div>`;
+    return `<div class="sched-row"><span class="sched-date">${lbl}</span><span class="sched-tag" style="--c:${col}">${ev.is_holiday?'휴일':'일정'}</span><span class="sched-name">${ev.name||''}</span></div>`;
   }).join('');
 }
 
@@ -518,7 +525,7 @@ function refreshSchedule(){
     const tag=ev.is_holiday?'휴일':isCustom?'내 일정':'일정';
     const col=ev.is_holiday?'var(--danger)':isCustom?'var(--primary)':'var(--accent)';
     const delBtn=isCustom?`<button class="sched-del-btn" data-id="${ev.id}" onclick="event.stopPropagation();window.__calEvtDel('${ev.id}')">삭제</button>`:'';
-    return `<div class="sched-row"><span class="sched-date">${lbl}</span><span class="sched-tag" style="background:${col}">${tag}</span><span class="sched-name">${ev.name||''}</span>${delBtn}</div>`;
+    return `<div class="sched-row"><span class="sched-date">${lbl}</span><span class="sched-tag" style="--c:${col}">${tag}</span><span class="sched-name">${ev.name||''}</span>${delBtn}</div>`;
   }).join('');
 }
 
@@ -567,7 +574,7 @@ function updateClock(){
   const h=n.getHours(),m=n.getMinutes(),s=n.getSeconds();
   const ampm=h<12?'오전':'오후'; const hh=h%12||12;
   const el=document.getElementById('clock-time');
-  if(el) el.textContent=`${ampm} ${String(hh).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  if(el) el.innerHTML=`<small>${ampm}</small>${hh}:${String(m).padStart(2,'0')}<small style="margin:0 0 0 4px">${String(s).padStart(2,'0')}</small>`;
   const days=['일','월','화','수','목','금','토'];
   const dl=document.getElementById('clock-date');
   if(dl) dl.textContent=`${n.getFullYear()}년 ${n.getMonth()+1}월 ${n.getDate()}일 ${days[n.getDay()]}요일`;
@@ -586,8 +593,8 @@ async function loadWeather(){
     if(ea&&w.pm10!=null){
       const lv=w.pm10<=30?'좋음':w.pm10<=80?'보통':w.pm10<=150?'나쁨':'매우나쁨';
       // 연한 배경에서도 보이도록 진한 글씨 + 연한 배경 배지로 표시
-      const cl=w.pm10<=30?'#15803d':w.pm10<=80?'#a16207':w.pm10<=150?'#b91c1c':'#7e22ce';
-      const bg=w.pm10<=30?'#dcfce7':w.pm10<=80?'#fef9c3':w.pm10<=150?'#fee2e2':'#f3e8ff';
+      const cl=w.pm10<=30?'var(--success)':w.pm10<=80?'var(--warning)':'var(--danger)';
+      const bg='rgba(255,255,255,.7)';
       ea.innerHTML=`<span style="color:${cl};background:${bg};font-weight:700;padding:1px 7px;border-radius:8px;font-size:0.85em">미세 ${lv}</span>`;
     }
   }catch(e){}
@@ -625,12 +632,11 @@ async function loadMeal(dateStr){
   try{
     const meal=await api.neisGetMeal(edu,sch,ds);
     if(!meal||meal.error||!Object.keys(meal).length){list.innerHTML='<div class="sb-empty">오늘은 급식이 없습니다.</div>';return;}
-    const icons={조식:'🌅',중식:'★',석식:'🌙'};
     let html='';
     for(const type of['조식','중식','석식']){
       if(!meal[type])continue;
       const{menu=[],cal=''}=meal[type];
-      html+=`<div class="meal-type-row"><span class="meal-type-icon">${icons[type]||'🍽️'} ${type}</span><span class="meal-kcal">${cal}</span></div>`;
+      html+=`<div class="meal-type-row"><span class="meal-type-icon">${type}</span><span class="meal-kcal">${cal}</span></div>`;
       html+=menu.slice(0,8).map(m=>`<div class="meal-item">${m}</div>`).join('');
     }
     list.innerHTML=html;
@@ -709,11 +715,18 @@ async function refreshTodos(){
   const hideBtn=document.getElementById('todo-cleanup-btn');
   if(hideBtn){
     hideBtn.title=dashTodoHideDone?'완료된 할일 표시':'완료된 할일 숨기기';
-    hideBtn.style.background=dashTodoHideDone?'var(--accent)':'';
-    hideBtn.style.color=dashTodoHideDone?'#fff':'';
-    hideBtn.style.borderColor=dashTodoHideDone?'var(--accent)':'';
+    hideBtn.textContent=dashTodoHideDone?'완료 표시':'완료 숨김';
   }
   const todoItems=await api.getTodos(true);
+  const summary=document.getElementById('dash-summary');
+  if(summary){
+    const open=todoItems.filter(todo=>!todo.is_done);
+    const now=new Date();
+    const todayKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const due=open.filter(todo=>todo.deadline===todayKey).length;
+    const late=open.filter(todo=>todo.deadline&&todo.deadline<todayKey).length;
+    summary.textContent=!open.length?'남은 할일이 없습니다.':[`남은 할일 ${open.length}개`,due?`오늘 마감 ${due}개`:'',late?`기한 지남 ${late}개`:''].filter(Boolean).join(' · ');
+  }
   window.__todoMap=Object.fromEntries(todoItems.map(todo=>[todo.id,todo]));
   const manualOrder=await loadDashboardTodoOrder();
   const sorted=getDashboardVisibleTodos(todoItems, manualOrder);
@@ -751,7 +764,7 @@ async function refreshTodos(){
     return td<rangeStart||td>rangeEnd;
   });
   if(extras.length){
-    html+=`<div class="todo-date-group"><div class="todo-date-header"><span class="todo-date-lbl" style="color:var(--text3)">기타</span></div>${extras.slice(0,5).map(t=>{const done=!!t.is_done;return`<div class="todo-row${done?' done':''}"><input type="checkbox" class="todo-chk" ${done?'checked':''} onchange="window.__dtTog(${t.id})"><span class="todo-txt">${t.title}</span>${t.deadline?`<span style="font-size:10px;color:var(--text3)">${t.deadline.slice(5)}</span>`:''}<button class="todo-del-btn" onclick="window.__dtDel(${t.id})">×</button></div>`;}).join('')}</div>`;
+    html+=`<div class="todo-date-group"><div class="todo-date-header"><span class="todo-date-lbl" style="color:var(--text3)">기타</span></div>${extras.slice(0,5).map(t=>{const done=!!t.is_done;return`<div class="todo-row${done?' done':''}"><input type="checkbox" class="todo-chk" ${done?'checked':''} onchange="window.__dtTog(${t.id})"><span class="todo-txt">${t.title}</span>${t.deadline?`<span style="font-size:12px;color:var(--text3)">${t.deadline.slice(5)}</span>`:''}<button class="todo-del-btn" onclick="window.__dtDel(${t.id})">×</button></div>`;}).join('')}</div>`;
   }
   container.innerHTML=html;
 }
@@ -819,31 +832,22 @@ window.__dtTogHideDone=async()=>{
 
 function renderTodoRow(todo){
   const done=!!todo.is_done;
-  const priorityColor=done?'var(--text3)':todo.priority==='높음'?'var(--danger)':'var(--text)';
-  const deadlineLabel=formatTodoDeadline(todo.deadline);
+  const deadline=formatTodoDeadline(todo.deadline);
   const sourceBadge=todo.source_text?'<span class="todo-source-badge">원문</span>':'';
-  return `<div class="todo-row${done?' done':''}" onclick="window.__dtOpen(${todo.id})"><input type="checkbox" class="todo-chk" ${done?'checked':''} onchange="event.stopPropagation();window.__dtTog(${todo.id})"><div class="todo-main"><span class="todo-txt" style="color:${priorityColor}">${escapeHtml(todo.title)}</span><div class="todo-meta">${deadlineLabel?`<span class="todo-deadline">${deadlineLabel}</span>`:''}${sourceBadge}</div></div><button class="todo-del-btn" onclick="event.stopPropagation();window.__dtDel(${todo.id})">×</button></div>`;
+  const flag=!done&&todo.priority==='높음'?'<span class="todo-flag">중요</span>':'';
+  return `<div class="todo-row${done?' done':''}" data-id="${todo.id}" onclick="window.__dtOpen(${todo.id})"><span class="todo-drag-handle" title="드래그해서 순서 변경" onclick="event.stopPropagation()">⋮⋮</span><input type="checkbox" class="todo-chk" ${done?'checked':''} aria-label="완료" onclick="event.stopPropagation()" onchange="window.__dtTog(${todo.id})"><div class="todo-main"><span class="todo-txt">${escapeHtml(todo.title)}</span>${deadline.label||sourceBadge?`<div class="todo-meta">${deadline.label?`<span class="todo-deadline ${done?'':deadline.state}">${deadline.label}</span>`:''}${sourceBadge}</div>`:''}</div>${flag}<button class="todo-del-btn" title="삭제" onclick="event.stopPropagation();window.__dtDel(${todo.id})">×</button></div>`;
 }
 
-function renderTodoRow(todo){
-  const done=!!todo.is_done;
-  const priorityColor=done?'var(--text3)':todo.priority==='?믪쓬'?'var(--danger)':todo.priority==='??쓬'?'var(--text3)':'var(--text)';
-  const deadlineLabel=formatTodoDeadline(todo.deadline);
-  const sourceBadge=todo.source_text?'<span class="todo-source-badge">원문</span>':'';
-  return `<div class="todo-row${done?' done':''}" data-id="${todo.id}" onclick="window.__dtOpen(${todo.id})"><span class="todo-drag-handle" title="드래그해서 순서 변경" onclick="event.stopPropagation()">⋮⋮</span><input type="checkbox" class="todo-chk" ${done?'checked':''} onchange="event.stopPropagation();window.__dtTog(${todo.id})"><div class="todo-main"><span class="todo-txt" style="color:${priorityColor}">${escapeHtml(todo.title)}</span><div class="todo-meta">${deadlineLabel?`<span class="todo-deadline">${deadlineLabel}</span>`:''}${sourceBadge}</div></div><button class="todo-del-btn" onclick="event.stopPropagation();window.__dtDel(${todo.id})">횞</button></div>`;
-}
-
-function renderTodoRow(todo){
-  const done=!!todo.is_done;
-  const priorityColor=done?'var(--text3)':todo.priority==='높음'?'var(--danger)':todo.priority==='낮음'?'var(--text3)':'var(--text)';
-  const deadlineLabel=formatTodoDeadline(todo.deadline);
-  const sourceBadge=todo.source_text?'<span class="todo-source-badge">원문</span>':'';
-  return `<div class="todo-row${done?' done':''}" data-id="${todo.id}" onclick="window.__dtOpen(${todo.id})"><span class="todo-drag-handle" title="드래그해서 순서 변경" onclick="event.stopPropagation()">⋮⋮</span><input type="checkbox" class="todo-chk" ${done?'checked':''} onchange="event.stopPropagation();window.__dtTog(${todo.id})"><div class="todo-main"><span class="todo-txt" style="color:${priorityColor}">${escapeHtml(todo.title)}</span><div class="todo-meta">${deadlineLabel?`<span class="todo-deadline">${deadlineLabel}</span>`:''}${sourceBadge}</div></div><button class="todo-del-btn" onclick="event.stopPropagation();window.__dtDel(${todo.id})">×</button></div>`;
-}
-
+// 마감일을 '오늘', '내일', '11월 30일'처럼 읽기 쉬운 말로 바꾼다.
 function formatTodoDeadline(deadline){
-  if(!deadline) return '';
-  return deadline.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$2/$3');
+  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(deadline||'');
+  if(!m) return {label:deadline||'',state:''};
+  const diff=diffDays(deadline);
+  const day=`${Number(m[2])}월 ${Number(m[3])}일`;
+  if(diff<0) return {label:`${day} · ${-diff}일 지남`,state:'late'};
+  if(diff===0) return {label:'오늘',state:'due'};
+  if(diff===1) return {label:'내일',state:''};
+  return {label:day,state:''};
 }
 
 function showTodoEdit(id){
@@ -974,7 +978,7 @@ async function refreshDdays(){
   list.innerHTML=ddays.map(dd=>{
     const diff=diffDays(dd.target_date);
     const str=diff===0?'D-Day':diff>0?`D-${diff}`:`D+${-diff}`;
-    return `<div class="dday-row"><span class="dday-chip" style="background:${dd.color}">${str}</span><span class="dday-title">${dd.title}</span><span class="dday-date">${dd.target_date.slice(5)}</span><button class="del-btn" onclick="window.__dtDelDD(${dd.id})">×</button></div>`;
+    return `<div class="dday-row"><span class="dday-chip" style="--c:${dd.color}">${str}</span><span class="dday-title">${dd.title}</span><span class="dday-date">${dd.target_date.slice(5)}</span><button class="del-btn" onclick="window.__dtDelDD(${dd.id})">×</button></div>`;
   }).join('');
 }
 window.__dtDelDD=async(id)=>{await api.deleteDday(id);refreshDdays();};
@@ -1058,7 +1062,7 @@ async function refreshStickyWidget(){
   }
 
   if(!notes.length){
-    wrap.innerHTML = '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0">메모가 없습니다</div>';
+    wrap.innerHTML = '<div style="font-size:13px;color:var(--text3);text-align:center;padding:16px 0">메모가 없습니다</div>';
     return;
   }
 
@@ -1159,7 +1163,7 @@ async function openTeacherNumberColorPrompt(number, currentColor){
         <input id="teacher-tt-number-color" type="color" value="${initialColor}" style="width:48px;height:36px;border:none;background:none;padding:0;cursor:pointer">
         <div id="teacher-tt-number-preview" style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:12px;background:${buildPastelColorSet(initialColor)[0]};color:${buildPastelColorSet(initialColor)[1]};border-left:4px solid ${initialColor};font-weight:700">${escapeHtml(number)}</div>
       </div>
-      <div style="font-size:12px;color:var(--text3)">같은 번호가 들어간 시간표 칸은 같은 색으로 표시됩니다.</div>
+      <div style="font-size:13px;color:var(--text3)">같은 번호가 들어간 시간표 칸은 같은 색으로 표시됩니다.</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" id="teacher-tt-number-reset">기본색</button>
@@ -1249,20 +1253,20 @@ window.__dbCopyContact=async(phone,name)=>{
 async function refreshTeachers(q=''){
   const list=document.getElementById('teacher-list');
   if(!list)return;
-  list.innerHTML='<div style="font-size:11px;color:var(--text3)">설정에서 교사 연락처를 등록하세요</div>';
+  list.innerHTML='<div style="font-size:13px;color:var(--text3)">설정에서 교사 연락처를 등록하세요</div>';
 }
 async function refreshStudents(q=''){
   const list=document.getElementById('student-list');
   if(!list)return;
   let students=await api.getStudents();
   if(q) students=students.filter(s=>s.name.includes(q)||String(s.number).includes(q));
-  if(!students.length){list.innerHTML='<div style="font-size:11px;color:var(--text3)">학생 없음</div>';return;}
+  if(!students.length){list.innerHTML='<div style="font-size:13px;color:var(--text3)">학생 없음</div>';return;}
   const shown=students.slice(0,6);
   list.innerHTML=shown.map(s=>{
     const ph=s.phone||s.parent_phone||'';
-    const copyAttr=ph?`onclick="window.__dbCopyContact('${ph}','${s.name}')" title="클릭해서 번호 복사" style="cursor:pointer"`:'';
-    return `<div ${copyAttr} style="display:flex;align-items:center;padding:2px 0;font-size:11px;gap:4px"><span style="color:var(--text2)">${s.number}번</span><span style="color:var(--text);font-weight:600">${s.name}</span>${ph?`<span style="color:var(--text3);margin-left:auto">${ph}</span>`:''}</div>`;
-  }).join('') + (students.length>shown.length?`<div style="text-align:center;padding-top:4px"><a href="javascript:void(0)" onclick="navigateTo('contacts')" style="font-size:11px;color:var(--accent)">전체 ${students.length}명 보기 →</a></div>`:'');
+    const copyAttr=ph?`onclick="window.__dbCopyContact('${ph}','${s.name}')" title="클릭해서 번호 복사"`:'';
+    return `<div ${copyAttr} style="display:flex;align-items:center;padding:4px 0;font-size:14px;gap:8px${ph?';cursor:pointer':''}"><span style="color:var(--text2)">${s.number}번</span><span style="color:var(--text);font-weight:600">${s.name}</span>${ph?`<span style="color:var(--text3);margin-left:auto">${ph}</span>`:''}</div>`;
+  }).join('') + (students.length>shown.length?`<div style="text-align:center;padding-top:4px"><a href="javascript:void(0)" onclick="navigateTo('contacts')" style="font-size:13px;color:var(--accent)">전체 ${students.length}명 보기 →</a></div>`:'');
 }
 
 // ─────────────────────────────────────────────────────────
@@ -1326,7 +1330,7 @@ async function openSchoolTTSubjectColorPrompt(subject, currentColor){
         <input id="school-tt-color" type="color" value="${initialColor}" style="width:48px;height:36px;border:none;background:none;padding:0;cursor:pointer">
         <div id="school-tt-preview" style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:12px;background:${buildPastelColorSet(initialColor)[0]};color:${buildPastelColorSet(initialColor)[1]};border-left:4px solid ${initialColor};font-weight:700">${escapeHtml(subject)}</div>
       </div>
-      <div style="font-size:12px;color:var(--text3)">대시보드에서 바로 과목 색을 바꿀 수 있습니다.</div>
+      <div style="font-size:13px;color:var(--text3)">대시보드에서 바로 과목 색을 바꿀 수 있습니다.</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" id="school-tt-reset">기본색</button>
@@ -1414,30 +1418,30 @@ async function runAI(){
   btn.disabled=true;btn.textContent='분석 중...';res.style.display='block';res.textContent='AI가 분석 중입니다...';
   const result=await api.aiExtractTodos(apiKey,model,useLocal?'local_lite':provider,text);
   const parsedTodos=parseAITodoLines(result?.result||'');
-  btn.disabled=false;btn.textContent='🤖 AI 추출';
+  btn.disabled=false;btn.textContent='할일 뽑기';
   if(result?.error){res.style.color='var(--danger)';res.textContent=`오류: ${result.error}`;return;}
   if(!parsedTodos.length){res.style.color='var(--warning)';res.textContent='추출된 할일이 없습니다.';return;}
   res.style.display='none';
   showModal(`
     <div class="modal-header">
-      <span class="modal-title">🤖 AI 추출 결과</span>
+      <span class="modal-title">AI 추출 결과</span>
       <button class="modal-close" data-close>✕</button>
     </div>
     <div class="modal-body" style="padding:12px 20px;max-height:400px;overflow-y:auto">
-      <p style="margin:0 0 10px;font-size:13px;color:var(--text2)">추가할 할일을 선택하세요. (${parsedTodos.length}개 추출됨)</p>
+      <p style="margin:0 0 10px;font-size:14px;color:var(--text2)">추가할 할일을 선택하세요. (${parsedTodos.length}개 추출됨)</p>
       <div style="display:flex;flex-direction:column;gap:6px" id="ai-todo-list">
         ${parsedTodos.map((t,i)=>`
           <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg)">
             <input type="checkbox" data-ai-idx="${i}" checked style="margin-top:2px;flex-shrink:0">
             <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:500;color:var(--text)">${escapeHtml(t.title)}</div>
-              ${t.deadline?`<div style="font-size:11px;color:var(--text3);margin-top:2px">📅 ${t.deadline}</div>`:''}
+              <div style="font-size:14px;font-weight:500;color:var(--text)">${escapeHtml(t.title)}</div>
+              ${t.deadline?`<div style="font-size:13px;color:var(--text3);margin-top:2px">📅 ${t.deadline}</div>`:''}
             </div>
           </label>`).join('')}
       </div>
     </div>
     <div class="modal-footer" style="display:flex;align-items:center;justify-content:space-between">
-      <button class="btn btn-secondary btn-sm" id="ai-sel-toggle" style="font-size:12px">전체 해제</button>
+      <button class="btn btn-secondary btn-sm" id="ai-sel-toggle" style="font-size:13px">전체 해제</button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary" data-close>취소</button>
         <button class="btn btn-primary" id="ai-confirm-btn">추가</button>
@@ -1465,7 +1469,7 @@ async function runAI(){
     toast(`할일 ${selected.length}개를 추가했습니다.`,'success');
   };
   return;
-  btn.disabled=false;btn.textContent='🤖 AI 추출';
+  btn.disabled=false;btn.textContent='할일 뽑기';
   if(result.error){res.style.color='var(--danger)';res.textContent=`오류: ${result.error}`;return;}
   const lines=(result.result||'').split('\n');let saved=0;
   for(const line of lines){
@@ -1574,9 +1578,8 @@ function addCardHideButtons(){
     const btn=document.createElement('button');
     btn.type='button';
     btn.className='card-hide-btn';
-    btn.textContent='👁 숨기기';
-    btn.style.cssText='position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.15);border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:11px;color:var(--text2);z-index:10;';
-    btn.onclick=async(e)=>{
+    btn.textContent='숨기기';
+      btn.onclick=async(e)=>{
       e.stopPropagation();
       card.style.display='none';
       btn.remove();
@@ -1611,17 +1614,16 @@ async function showHiddenPanel(){
 
   const panel=document.createElement('div');
   panel.id='hidden-widgets-panel';
-  panel.style.cssText='position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--card-bg,#fff);border:1px solid var(--border,#ddd);border-radius:8px;padding:10px 14px;box-shadow:0 4px 16px rgba(0,0,0,0.18);display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:480px;';
 
   const label=document.createElement('span');
   label.textContent='숨긴 카드';
-  label.style.cssText='font-size:12px;color:var(--text2);white-space:nowrap;';
+  label.className='text-muted';
   panel.appendChild(label);
 
   const autoArrangeBtn=document.createElement('button');
   autoArrangeBtn.type='button';
   autoArrangeBtn.textContent='자동 배치';
-  autoArrangeBtn.style.cssText='font-size:11px;padding:3px 8px;border:1px solid var(--border,#ddd);background:var(--bg2,#f5f5f5);border-radius:4px;cursor:pointer;white-space:nowrap;';
+  autoArrangeBtn.className='btn btn-secondary btn-xs';
   autoArrangeBtn.onclick=()=>{
     autoArrangeCards();
     toast('카드를 크기에 맞춰 자동 배치했습니다.','success');
@@ -1631,7 +1633,7 @@ async function showHiddenPanel(){
   if(hiddenList.length===0){
     const empty=document.createElement('span');
     empty.textContent='숨긴 카드 없음';
-    empty.style.cssText='font-size:11px;color:var(--text3);white-space:nowrap;';
+    empty.style.cssText='font-size:13px;color:var(--text3);white-space:nowrap;';
     panel.appendChild(empty);
   }
 
@@ -1640,7 +1642,7 @@ async function showHiddenPanel(){
     const restoreBtn=document.createElement('button');
     restoreBtn.type='button';
     restoreBtn.textContent=`${labelText} 복원`;
-    restoreBtn.style.cssText='font-size:11px;padding:3px 8px;border:1px solid var(--border,#ddd);background:var(--bg2,#f5f5f5);border-radius:4px;cursor:pointer;white-space:nowrap;';
+    restoreBtn.className='btn btn-secondary btn-xs';
     restoreBtn.onclick=async()=>{
       const card=document.getElementById(id);
       if(card){
@@ -1754,17 +1756,31 @@ function saveLayout(){
   try{
     const positions={};
     document.querySelectorAll('#dashboard .sb-card[id]').forEach(c=>{
+      // 숨긴 카드는 크기가 0으로 읽히므로 원래 자리를 그대로 남긴다.
+      if(c.style.display==='none'){
+        if(layoutPositions?.[c.id]) positions[c.id]=layoutPositions[c.id];
+        return;
+      }
+      // 줄여서 보여 준 만큼 되돌려 저장해야 넓은 창에서도 원래 크기로 보인다.
       positions[c.id]={
-        x:c.offsetLeft, y:c.offsetTop,
-        w:c.offsetWidth, h:c.offsetHeight
+        x:Math.round(c.offsetLeft/layoutScale), y:c.offsetTop,
+        w:Math.round(c.offsetWidth/layoutScale), h:c.offsetHeight
       };
     });
+    layoutPositions=positions;
+    layoutIsDefault=false;
     const payload=JSON.stringify({positions});
     localStorage.setItem(LAYOUT_KEY,payload);
     localStorage.setItem('dashLayout2',payload);
     if(window.api?.setSetting) window.api.setSetting(LAYOUT_KEY,payload).then(()=>syncCloudIfPossible()).catch(()=>{});
   }catch(e){}
 }
+
+// 배치는 저장된 좌표를 그대로 두고, 화면에 그릴 때만 창 너비에 맞춘다.
+// 저장된 배치가 창보다 넓으면 가로로 줄여 오른쪽이 잘리지 않게 한다.
+let layoutPositions=null;
+let layoutIsDefault=true;
+let layoutScale=1;
 
 async function restoreLayout(){
   try{
@@ -1778,21 +1794,47 @@ async function restoreLayout(){
     }
     if(!saved) saved=localStorage.getItem(LAYOUT_KEY)||localStorage.getItem('dashLayout2');
     const parsed=saved?JSON.parse(saved):null;
-    const positions=parsed?.positions||null;
-
-    document.querySelectorAll('#dashboard .sb-card[id]').forEach(card=>{
-      const pos=positions?.[card.id]||DEFAULT_POSITIONS[card.id];
-      if(pos){
-        card.style.left=snapToGrid(pos.x)+'px';
-        card.style.top=snapToGrid(pos.y)+'px';
-        card.style.width=snapToGrid(pos.w)+'px';
-        card.style.height=snapToGrid(pos.h)+'px';
-        clampCardToDashboard(card,document.getElementById('dashboard'));
-      }
-    });
-    updateDashboardCanvasSize();
+    layoutPositions=parsed?.positions||null;
+    layoutIsDefault=!layoutPositions;
+    applyLayout();
   }catch(e){}
 }
+
+function applyLayout(){
+  const dash=document.getElementById('dashboard');
+  if(!dash) return;
+  const cards=[...dash.querySelectorAll('.sb-card[id]')];
+  const posOf=card=>{
+    const saved=layoutPositions?.[card.id];
+    return saved&&Number(saved.w)>0?saved:DEFAULT_POSITIONS[card.id];
+  };
+  const right=Math.max(0,...cards.filter(card=>card.style.display!=='none').map(card=>{
+    const pos=posOf(card);
+    return pos?Number(pos.x)+Number(pos.w):0;
+  }));
+  const fit=right>0?dash.clientWidth/right:1;
+  layoutScale=layoutIsDefault?Math.min(1.5,Math.max(0.7,fit)):Math.min(1,Math.max(0.6,fit));
+  cards.forEach(card=>{
+    const pos=posOf(card);
+    if(!pos) return;
+    // 왼쪽·오른쪽 끝을 각각 맞춰야 카드 사이 간격이 일정하게 유지된다.
+    const left=Math.round(pos.x*layoutScale);
+    const end=Math.round((Number(pos.x)+Number(pos.w))*layoutScale);
+    card.style.left=left+'px';
+    card.style.top=snapToGrid(pos.y)+'px';
+    card.style.width=Math.max(CARD_MIN_WIDTH,end-left)+'px';
+    card.style.height=snapToGrid(pos.h)+'px';
+    clampCardToDashboard(card,dash);
+  });
+  updateDashboardCanvasSize();
+}
+
+let layoutResizeTimer=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(layoutResizeTimer);
+  // 옮기는 중에는 좌표가 흔들리지 않게 그대로 둔다.
+  layoutResizeTimer=setTimeout(()=>{ if(!editMode) applyLayout(); },120);
+});
 
 function snapToGrid(value){
   return Math.round(Number(value||0)/GRID_SIZE)*GRID_SIZE;
@@ -1811,9 +1853,9 @@ function clampCardToDashboard(card,dash){
 function autoArrangeCards(){
   const dash=document.getElementById('dashboard');
   if(!dash) return;
-  const gap=GRID_SIZE;
-  const padding=GRID_SIZE;
-  const maxWidth=Math.max(dash.clientWidth - padding, 400);
+  const gap=GRID_SIZE*2;
+  const padding=0;
+  const maxWidth=Math.max(dash.clientWidth, 400);
   const cards=[...dash.querySelectorAll('.sb-card[id]')]
     .filter(card=>card.style.display!=='none')
     .sort((a,b)=>{
@@ -2015,7 +2057,7 @@ renderSchoolTT=async function(){
         : 'background:#f8fafc;color:#334155;';
       html+=`<td class="neis-cell" data-subject="${escapeHtml(subject)}" style="${style}">
         ${subject ? `<div style="font-weight:700;line-height:1.25;color:${palette ? palette[1] : '#334155'}">${escapeHtml(subject)}</div>` : '<div>-</div>'}
-        ${teacher ? `<div style="margin-top:5px;font-size:11px;color:${palette ? palette[1] : '#64748b'};line-height:1.2;font-weight:600;opacity:.82">${escapeHtml(teacher)}</div>` : ''}
+        ${teacher ? `<div style="margin-top:5px;font-size:13px;color:${palette ? palette[1] : '#64748b'};line-height:1.2;font-weight:600;opacity:.82">${escapeHtml(teacher)}</div>` : ''}
       </td>`;
     }
     html+='</tr>';
@@ -2130,16 +2172,8 @@ refreshSchedule = function () {
     const deleteButton = isCustom
       ? `<button class="sched-del-btn" onclick="event.stopPropagation();window.__calEvtDel('${ev.id}')">삭제</button>`
       : '';
-    return `<div class="sched-row"><span class="sched-date">${label}</span><span class="sched-tag" style="background:${color}">${tag}</span><span class="sched-name">${escapeHtml(ev.name || '')}</span>${deleteButton}</div>`;
+    return `<div class="sched-row"><span class="sched-date">${label}</span><span class="sched-tag" style="--c:${color}">${tag}</span><span class="sched-name">${escapeHtml(ev.name || '')}</span>${deleteButton}</div>`;
   }).join('');
-};
-
-renderTodoRow = function (todo) {
-  const done = !!todo.is_done;
-  const priorityColor = done ? 'var(--text3)' : todo.priority === '높음' ? 'var(--danger)' : todo.priority === '낮음' ? 'var(--text3)' : 'var(--text)';
-  const deadlineLabel = formatTodoDeadline(todo.deadline);
-  const sourceBadge = !done && todo.source_text ? '<span class="todo-source-badge">원문</span>' : '';
-  return `<div class="todo-row${done ? ' done' : ''}" data-id="${todo.id}" onclick="window.__dtOpen(${todo.id})"><span class="todo-drag-handle" title="드래그해서 순서 변경" onclick="event.stopPropagation()">⋮⋮</span><input type="checkbox" class="todo-chk" ${done ? 'checked' : ''} onclick="event.stopPropagation()" onchange="window.__dtTog(${todo.id})"><div class="todo-main"><span class="todo-txt" style="color:${priorityColor}">${escapeHtml(todo.title)}</span><div class="todo-meta">${deadlineLabel ? `<span class="todo-deadline">${deadlineLabel}</span>` : ''}${sourceBadge}</div></div><button class="todo-del-btn" onclick="event.stopPropagation();window.__dtDel(${todo.id})">×</button></div>`;
 };
 
 loadDashboardCustomEvents = async function () {
@@ -2338,7 +2372,7 @@ refreshSchedule = function () {
     const deleteButton = isCustom ? `<button class="sched-del-btn" onclick="event.stopPropagation();window.__calEvtDel('${ev.id}')">삭제</button>` : '';
     const rowClass = previousDate && previousDate !== ds ? 'sched-row group-start' : 'sched-row';
     previousDate = ds;
-    return `<div class="${rowClass}"><span class="sched-date">${label}</span><span class="sched-tag" style="background:${color}">${tag}</span><span class="sched-name">${escapeHtml(ev.name || '')}</span>${deleteButton}</div>`;
+    return `<div class="${rowClass}"><span class="sched-date">${label}</span><span class="sched-tag" style="--c:${color}">${tag}</span><span class="sched-name">${escapeHtml(ev.name || '')}</span>${deleteButton}</div>`;
   }).join('');
 };
 

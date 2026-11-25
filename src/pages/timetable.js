@@ -29,26 +29,28 @@ async function render(container) {
         </div>
       </div>
 
-      <div class="card tt-card">
+      <details class="card tt-import" id="tt-import">
+        <summary>사진·AI로 시간표 채우기</summary>
         <div style="display:flex;flex-direction:column;gap:10px">
           <div class="flex items-center justify-between gap-3 flex-wrap">
-            <div style="font-size:13px;font-weight:700;color:var(--text)">AI 시간표 불러오기</div>
+            <div class="text-muted" style="font-size:13px">사진이나 글로 아래 시간표를 한 번에 채웁니다.</div>
             <div class="flex gap-2 flex-wrap">
               <button class="btn btn-secondary btn-sm" id="tt-image-pick">사진 선택</button>
-              <button class="btn btn-secondary btn-sm" id="tt-ai-run">☁️ AI 분석 후 채우기</button>
-              <button class="btn btn-secondary btn-sm" id="tt-ocr-run">📷 로컬 OCR 채우기</button>
+              <button class="btn btn-secondary btn-sm" id="tt-ai-run">AI 분석 후 채우기</button>
+              <button class="btn btn-secondary btn-sm" id="tt-ocr-run">로컬 OCR 채우기</button>
             </div>
           </div>
           <input type="file" id="tt-image-input" accept="image/*" class="hidden">
           <div id="tt-image-drop" class="tt-drop" data-file-drop>
-            <div class="tt-drop-icon">🖼️</div>
             <div id="tt-image-name" class="tt-drop-text">${IMAGE_HINT}</div>
           </div>
           <div id="tt-ai-capability" class="text-sm" style="display:none;line-height:1.5"></div>
           <textarea id="tt-ai-input" class="input" style="min-height:96px;resize:vertical" placeholder="사진이 없으면 텍스트로도 가능합니다. 예: 월 1 107음악 / 수 3 105음악"></textarea>
           <div id="tt-ai-status" class="text-sm text-muted"></div>
         </div>
+      </details>
 
+      <div class="card tt-card">
         <div style="overflow-x:auto">
           <table id="tt-table" style="width:100%;border-collapse:separate;border-spacing:4px">
             <thead>
@@ -91,7 +93,7 @@ async function renderAiCapabilityNotice() {
 
   let message = '';
   if (engine === 'local_lite' || engine === 'local_basic' || engine === 'local_pro') {
-    message = '지금 선택한 AI는 Local AI(내 컴퓨터)입니다. ‘☁️ AI 분석 후 채우기’는 외부 AI 전용이라 쓸 수 없습니다. ‘📷 로컬 OCR 채우기’를 누르거나, 시간표를 아래 표에 직접 입력해 주세요.';
+    message = '지금 선택한 AI는 Local AI(내 컴퓨터)입니다. ‘AI 분석 후 채우기’는 외부 AI 전용이라 쓸 수 없습니다. ‘로컬 OCR 채우기’를 누르거나, 시간표를 아래 표에 직접 입력해 주세요.';
   } else if (engine === 'openrouter') {
     const model = await api.getSetting('ai_model', '');
     message = `지금 선택한 모델(${model || '미지정'})이 사진을 읽지 못하는 모델이면 사진 분석이 실패합니다. 그럴 때는 시간표를 텍스트로 붙여 넣거나 표에 직접 입력해 주세요.`;
@@ -273,7 +275,7 @@ function updateImageLabel() {
 async function runTimetableAI() {
   const engine = await api.getSetting('ai_engine', 'local_lite');
   if (engine === 'local_lite' || engine === 'local_basic' || engine === 'local_pro') {
-    setStatus('Local AI는 이 기능을 쓸 수 없습니다. ‘📷 로컬 OCR 채우기’를 누르거나 표에 직접 입력해 주세요.', 'error');
+    setStatus('Local AI는 이 기능을 쓸 수 없습니다. ‘로컬 OCR 채우기’를 누르거나 표에 직접 입력해 주세요.', 'error');
     return;
   }
 
@@ -346,7 +348,7 @@ async function runTimetableOCR() {
     if (ocrResult.error) {
       setStatus(`OCR 오류: ${ocrResult.error}`, 'error');
       button.disabled = false;
-      button.textContent = '📷 로컬 OCR 채우기';
+      button.textContent = '로컬 OCR 채우기';
       return;
     }
 
@@ -354,7 +356,7 @@ async function runTimetableOCR() {
     if (!ocrText.trim()) {
       setStatus('텍스트를 추출하지 못했습니다. 사진 화질을 확인해주세요.', 'error');
       button.disabled = false;
-      button.textContent = '📷 로컬 OCR 채우기';
+      button.textContent = '로컬 OCR 채우기';
       return;
     }
 
@@ -387,15 +389,15 @@ ${ocrText}`;
     if (aiResult.error) {
       setStatus(`AI 파싱 오류: ${aiResult.error} (OCR 텍스트는 위 입력란에서 확인 후 직접 수정 가능)`, 'error');
       button.disabled = false;
-      button.textContent = '📷 로컬 OCR 채우기';
+      button.textContent = '로컬 OCR 채우기';
       return;
     }
 
     const parsed = parseTimetableAIResult(aiResult.result || '');
     if (!parsed.length) {
-      setStatus(`AI가 시간표 구조를 파악하지 못했습니다. OCR 텍스트(위 입력란)를 확인하고 '☁️ AI 분석' 버튼으로 다시 시도해보세요.`, 'warning');
+      setStatus(`AI가 시간표 구조를 파악하지 못했습니다. OCR 텍스트(위 입력란)를 확인하고 'AI 분석' 버튼으로 다시 시도해보세요.`, 'warning');
       button.disabled = false;
-      button.textContent = '📷 로컬 OCR 채우기';
+      button.textContent = '로컬 OCR 채우기';
       return;
     }
 
@@ -406,7 +408,7 @@ ${ocrText}`;
   }
 
   button.disabled = false;
-  button.textContent = '📷 로컬 OCR 채우기';
+  button.textContent = '로컬 OCR 채우기';
 }
 
 function parseTimetableAIResult(raw) {

@@ -25,18 +25,18 @@ async function runAi(question,context){
 
 async function render(c){
   c.innerHTML=`<div class="page-wrap">
-  <div class="page-header"><h1 class="page-header-title">🤖 AI 분석</h1></div>
-  <div id="ai-engine-badge" class="mb-3" style="font-size:12px;color:var(--text2)"></div>
+  <div class="page-header"><h1 class="page-header-title">AI 분석</h1></div>
+  <div id="ai-engine-badge" class="mb-3" style="font-size:13px;color:var(--text2)"></div>
   <div class="grid gap-4" style="grid-template-columns:1fr 1fr">
     <div class="card" style="padding:20px">
-      <div class="card-title mb-3">📝 학생 종합 분석</div>
+      <div class="card-title mb-3">학생 종합 분석</div>
       <div class="form-row"><label>학생 선택</label><select class="input" id="ai-stu"></select></div>
-      <button class="btn btn-primary mb-3" id="ai-ab" style="width:100%">🔒 전송 항목 선택 후 분석</button>
-      <div id="ai-ar" style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px;min-height:120px"></div>
+      <button class="btn btn-primary mb-3" id="ai-ab" style="width:100%">전송 항목 선택 후 분석</button>
+      <div id="ai-ar" style="font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px;min-height:120px"></div>
     </div>
     <div class="card flex flex-col" style="padding:20px">
-      <div class="card-title mb-3">💬 AI 대화</div>
-      <div id="ai-log" style="flex:1;overflow-y:auto;background:var(--bg);border-radius:8px;padding:12px;margin-bottom:8px;font-size:13px;min-height:200px"></div>
+      <div class="card-title mb-3">AI 대화</div>
+      <div id="ai-log" style="flex:1;overflow-y:auto;background:var(--bg);border-radius:8px;padding:12px;margin-bottom:8px;font-size:14px;min-height:200px"></div>
       <div class="flex gap-2">
         <input class="input" id="ai-ci" placeholder="질문을 입력하세요...">
         <button class="btn btn-primary" id="ai-cs">전송</button>
@@ -77,32 +77,32 @@ async function openPicker(){
   const e=resolveAiEngine(await api.getAllSettings());
 
   const notice=e.canCloud
-    ? `<div style="background:var(--bg);border-left:3px solid var(--accent);padding:10px 12px;border-radius:6px;font-size:12px;color:var(--text2);margin-bottom:14px">☁️ 체크한 항목만 <strong>클라우드 AI</strong>로 전송됩니다. 이름·연락처·주소·생년월일은 자동 가명화되지만, <strong>상담/관찰 내용 본문은 그대로 전송</strong>됩니다. 민감한 항목은 체크를 해제하세요.</div>`
-    : `<div style="background:var(--bg);border-left:3px solid var(--accent);padding:10px 12px;border-radius:6px;font-size:12px;color:var(--text2);margin-bottom:14px">💻 <strong>로컬 AI</strong> 사용 중이라 선택한 항목은 기기 밖으로 나가지 않습니다. 분석에 포함할 항목만 골라 주세요.</div>`;
+    ? `<div style="background:var(--bg);border-left:3px solid var(--accent);padding:10px 12px;border-radius:6px;font-size:13px;color:var(--text2);margin-bottom:14px">☁️ 체크한 항목만 <strong>클라우드 AI</strong>로 전송됩니다. 이름·연락처·주소·생년월일은 자동 가명화되지만, <strong>상담/관찰 내용 본문은 그대로 전송</strong>됩니다. 민감한 항목은 체크를 해제하세요.</div>`
+    : `<div style="background:var(--bg);border-left:3px solid var(--accent);padding:10px 12px;border-radius:6px;font-size:13px;color:var(--text2);margin-bottom:14px">💻 <strong>로컬 AI</strong> 사용 중이라 선택한 항목은 기기 밖으로 나가지 않습니다. 분석에 포함할 항목만 골라 주세요.</div>`;
 
   function row(k,i,checked,title,preview){
-    return `<label style="display:flex;gap:8px;align-items:flex-start;padding:7px 4px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)">
+    return `<label style="display:flex;gap:8px;align-items:flex-start;padding:7px 4px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--border)">
       <input type="checkbox" data-k="${k}"${i==null?'':` data-i="${i}"`}${checked?' checked':''} style="margin-top:3px">
       <span><strong>${esc(title)}</strong>${preview?`<br><span style="color:var(--text2)">${esc(preview)}</span>`:''}</span></label>`;
   }
   function preview(t){t=String(t||'').replace(/\s+/g,' ').trim();return t.length>60?t.slice(0,60)+'…':t;}
 
-  let html=`<div class="modal-header"><span class="modal-title">🔒 AI로 전송할 항목 선택 · ${esc(s.name)}</span><button class="modal-close" data-close>✕</button></div>
+  let html=`<div class="modal-header"><span class="modal-title">AI로 전송할 항목 선택 · ${esc(s.name)}</span><button class="modal-close" data-close>✕</button></div>
   <div class="modal-body" style="max-height:62vh;overflow-y:auto">
     ${notice}
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:6px">
-      <button class="btn btn-secondary" id="ai-pick-all" style="padding:4px 10px;font-size:12px">전체 선택</button>
-      <button class="btn btn-secondary" id="ai-pick-none" style="padding:4px 10px;font-size:12px">전체 해제</button>
+      <button class="btn btn-secondary" id="ai-pick-all" style="padding:4px 10px;font-size:13px">전체 선택</button>
+      <button class="btn btn-secondary" id="ai-pick-none" style="padding:4px 10px;font-size:13px">전체 해제</button>
     </div>
     ${row('basic',null,true,'기본 정보',`이름·번호 (이름은 가명 처리됨)`)}
     ${row('att',null,true,'출결',`결석 ${as?as.absent:0}회 · 지각 ${as?as.late:0}회`)}`;
 
   if(co.length){
-    html+=`<div style="margin:12px 0 4px;font-size:12px;font-weight:600;color:var(--text2)">상담 기록 ${co.length}건</div>`;
+    html+=`<div style="margin:12px 0 4px;font-size:13px;font-weight:600;color:var(--text2)">상담 기록 ${co.length}건</div>`;
     co.forEach((c,i)=>{html+=row('co',i,true,c.date||'날짜 미상',preview(c.content));});
   }
   if(ob.length){
-    html+=`<div style="margin:12px 0 4px;font-size:12px;font-weight:600;color:var(--text2)">관찰 기록 ${ob.length}건</div>`;
+    html+=`<div style="margin:12px 0 4px;font-size:13px;font-weight:600;color:var(--text2)">관찰 기록 ${ob.length}건</div>`;
     ob.forEach((o,i)=>{html+=row('ob',i,true,`${o.date||'날짜 미상'} ${o.subject?`[${o.subject}]`:''}`,preview(o.content));});
   }
   html+=`</div>

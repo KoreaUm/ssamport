@@ -1,7 +1,7 @@
 (function(){
 let expr='',result='0';
 async function render(c){
-  c.innerHTML=`<div id="calculator-wrap">
+  c.innerHTML=`<div class="page-wrap"><div class="page-header"><h1 class="page-header-title">계산기</h1></div><div id="calculator-wrap">
   <div class="card calc-card">
     <div id="calc-display">
       <div id="calc-expr"></div>
@@ -29,7 +29,7 @@ async function render(c){
       <button class="calc-btn eq" onclick="window.__cEq()">=</button>
     </div>
   </div>
-  </div>`;
+  </div></div>`;
 }
 function init(){
   expr='';result='0';upd();

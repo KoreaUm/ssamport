@@ -21,34 +21,36 @@ function render(container) {
   container.innerHTML = `
     <div class="page-wrap">
       <div class="page-header">
-        <h1 class="page-header-title">할일 관리</h1>
+        <h1 class="page-header-title">할일 목록</h1>
+        <div class="page-header-actions">
+          <span id="todos-sync-status" class="text-muted" style="font-size:13px"></span>
+          <button class="btn btn-secondary" id="todos-reset-order-btn">정렬 초기화</button>
+          <button class="btn btn-secondary" id="todos-sync-btn" title="Google Tasks와 동기화">동기화</button>
+          <button class="btn btn-primary" id="todos-add-btn">+ 할일 추가</button>
+        </div>
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap mb-3">
-        <button class="btn btn-primary btn-sm" id="todos-add-btn">+ 할일 추가</button>
-        <button class="btn btn-secondary btn-sm" id="todos-reset-order-btn">정렬 초기화</button>
-        <button class="btn btn-secondary btn-sm" id="todos-sync-btn" title="Google Tasks와 동기화">🔄 동기화</button>
-        <span id="todos-sync-status" style="font-size:11px;color:var(--text3)"></span>
-        <div class="flex items-center flex-wrap" style="gap:4px;margin-left:auto">
-          <div class="flex" style="gap:2px">
-            <button class="btn btn-sm todos-filter-btn active" data-filter="all">전체</button>
-            <button class="btn btn-sm todos-filter-btn" data-filter="active">진행중</button>
-            <button class="btn btn-sm todos-filter-btn" data-filter="done">완료</button>
-          </div>
-          <select class="input" id="todos-date-filter" style="font-size:12px;padding:3px 6px;height:auto;min-width:110px">
+      <div class="flex items-center justify-between gap-3 flex-wrap mb-3">
+        <div class="seg">
+          <button class="todos-filter-btn active" data-filter="all">전체</button>
+          <button class="todos-filter-btn" data-filter="active">진행 중</button>
+          <button class="todos-filter-btn" data-filter="done">완료</button>
+        </div>
+        <div class="flex gap-2">
+          <select class="input" id="todos-date-filter" style="width:auto" aria-label="기간">
             <option value="">전체 기간</option>
             <option value="today">오늘</option>
             <option value="week">7일 이내</option>
             <option value="overdue">기한 지남</option>
           </select>
-          <select class="input" id="todos-cat-filter" style="font-size:12px;padding:3px 6px;height:auto;min-width:110px">
+          <select class="input" id="todos-cat-filter" style="width:auto" aria-label="카테고리">
             <option value="">전체 카테고리</option>
           </select>
         </div>
       </div>
 
-      <div id="todos-stats" class="flex gap-4" style="margin-bottom:14px;font-size:13px;color:var(--text2)"></div>
-      <div id="todos-sort-hint" style="font-size:12px;color:var(--text3);margin-bottom:10px"></div>
+      <div id="todos-stats" class="flex gap-4" style="margin-bottom:14px;font-size:14px;color:var(--text2)"></div>
+      <div id="todos-sort-hint" style="font-size:13px;color:var(--text3);margin-bottom:10px"></div>
       <div id="todos-list"></div>
     </div>
   `;
@@ -233,11 +235,11 @@ function renderTodoRow(todo) {
   const sourceBadge = todo.source_text ? '<span class="todo-source-badge">원문</span>' : '';
 
   return `
-    <div class="todo-row card flex items-center gap-2" data-id="${todo.id}" style="padding:8px 12px;margin-bottom:6px;cursor:pointer;${done ? 'opacity:0.58;' : ''}">
+    <div class="todo-row card flex items-center gap-2" data-id="${todo.id}" style="padding:12px 16px;margin-bottom:8px;cursor:pointer;${done ? 'opacity:0.58;' : ''}">
       <input type="checkbox" class="todo-check" data-id="${todo.id}" ${done ? 'checked' : ''} style="cursor:pointer;flex-shrink:0" onclick="event.stopPropagation()">
       <div class="flex flex-col" style="gap:4px;flex:1;min-width:0">
-        <div style="font-size:13px;${done ? 'text-decoration:line-through;color:var(--text3)' : ''}">${esc(todo.title)}</div>
-        <div class="flex items-center flex-wrap" style="gap:6px;font-size:11px;color:var(--text2)">
+        <div style="font-size:15px;${done ? 'text-decoration:line-through;color:var(--text3)' : ''}">${esc(todo.title)}</div>
+        <div class="flex items-center flex-wrap" style="gap:6px;font-size:13px;color:var(--text2)">
           ${deadlineLabel ? `<span class="todo-deadline">${deadlineLabel}</span>` : '<span>마감일 없음</span>'}
           <span style="font-weight:600;color:${priorityColor}">${esc(priorityLabel)}</span>
           ${todo.category ? `<span style="background:var(--bg2,#f3f4f6);padding:1px 6px;border-radius:10px">${esc(todo.category)}</span>` : ''}
@@ -245,10 +247,10 @@ function renderTodoRow(todo) {
         </div>
       </div>
       <div class="flex items-center" style="gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
-        <button class="btn btn-secondary btn-sm todo-move-btn" data-id="${todo.id}" data-dir="-1" style="font-size:11px;padding:2px 6px">↑</button>
-        <button class="btn btn-secondary btn-sm todo-move-btn" data-id="${todo.id}" data-dir="1" style="font-size:11px;padding:2px 6px">↓</button>
-        <button class="btn btn-secondary btn-sm todo-edit-btn" data-id="${todo.id}" style="font-size:11px;padding:2px 7px">수정</button>
-        <button class="btn btn-danger btn-sm todo-del-btn" data-id="${todo.id}" style="font-size:11px;padding:2px 7px">삭제</button>
+        <button class="btn btn-secondary btn-xs todo-move-btn" data-id="${todo.id}" data-dir="-1">↑</button>
+        <button class="btn btn-secondary btn-xs todo-move-btn" data-id="${todo.id}" data-dir="1">↓</button>
+        <button class="btn btn-secondary btn-xs todo-edit-btn" data-id="${todo.id}">수정</button>
+        <button class="btn btn-danger btn-xs todo-del-btn" data-id="${todo.id}">삭제</button>
       </div>
     </div>
   `;
@@ -402,42 +404,40 @@ function openEditModal(todo) {
   const todayStr = today();
 
   const modalHtml = `
-    <div style="min-width:300px;max-width:420px">
-      <h3 style="margin:0 0 16px;font-size:15px">${isNew ? '할일 추가' : '할일 수정'}</h3>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div>
-          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:3px">제목 *</label>
-          <input class="input" id="todo-modal-title" placeholder="할일 제목" value="${esc(todo?.title || '')}" style="width:100%;box-sizing:border-box">
+    <div class="modal-header"><span class="modal-title">${isNew ? '할일 추가' : '할일 수정'}</span><button class="modal-close" data-close>✕</button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>제목 *</label>
+          <input class="input" id="todo-modal-title" placeholder="할일 제목" value="${esc(todo?.title || '')}">
         </div>
-        <div>
-          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:3px">마감일</label>
-          <input class="input" type="date" id="todo-modal-deadline" value="${esc(todo?.deadline || todayStr)}" style="width:100%;box-sizing:border-box">
+        <div class="form-row">
+          <label>마감일</label>
+          <input class="input" type="date" id="todo-modal-deadline" value="${esc(todo?.deadline || todayStr)}">
         </div>
-        <div>
-          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:3px">중요도</label>
-          <select class="input" id="todo-modal-priority" style="width:100%;box-sizing:border-box">
+        <div class="form-row">
+          <label>중요도</label>
+          <select class="input" id="todo-modal-priority">
             <option value="높음" ${todo?.priority === '높음' ? 'selected' : ''}>높음</option>
             <option value="보통" ${!todo || !todo?.priority || todo?.priority === '보통' ? 'selected' : ''}>보통</option>
             <option value="낮음" ${todo?.priority === '낮음' ? 'selected' : ''}>낮음</option>
           </select>
         </div>
-        <div>
-          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:3px">카테고리</label>
-          <input class="input" id="todo-modal-category" placeholder="예: 업무, 개인, 수업" value="${esc(todo?.category || '')}" style="width:100%;box-sizing:border-box">
+        <div class="form-row">
+          <label>카테고리</label>
+          <input class="input" id="todo-modal-category" placeholder="예: 업무, 개인, 수업" value="${esc(todo?.category || '')}">
         </div>
         ${todo?.source_text ? `
-          <div>
-            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:3px">원문</label>
+          <div class="form-row">
+            <label>원문</label>
             <div class="input" style="min-height:88px;white-space:pre-wrap">${esc(todo.source_text)}</div>
           </div>
         ` : ''}
       </div>
-      <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
-        ${!isNew ? '<button class="btn btn-danger btn-sm" id="todo-modal-delete">삭제</button>' : ''}
-        <button class="btn btn-secondary btn-sm" id="todo-modal-cancel">취소</button>
-        <button class="btn btn-primary btn-sm" id="todo-modal-save">저장</button>
+      <div class="modal-footer">
+        ${!isNew ? '<button class="btn btn-danger" id="todo-modal-delete">삭제</button>' : ''}
+        <button class="btn btn-secondary" id="todo-modal-cancel">취소</button>
+        <button class="btn btn-primary" id="todo-modal-save">저장</button>
       </div>
-    </div>
   `;
 
   if (typeof showModal === 'function') {

@@ -17,7 +17,7 @@ async function render(c){
  <section class="ob-step"><div class="ob-step-head"><span class="ob-step-num">3</span><h2>날씨 · 급식 · 학사 일정</h2></div>
  <div class="form-row"><label for="ob-region">날씨 지역</label><input class="input" id="ob-region" style="max-width:220px" list="ob-regions" value="${esc(settings.weather_region||'서울')}" placeholder="시·군·구 입력"><datalist id="ob-regions">${['서울','부산','대구','인천','광주','대전','울산','세종','수원','청주','전주','목포','춘천','창원','제주'].map(r=>`<option value="${r}">`).join('')}</datalist></div>
  <p class="ob-step-desc" style="margin-top:4px">급식과 학사 일정을 연동할 학교를 검색하세요. 나중에 설정해도 됩니다.</p>
- <div class="ob-search-row"><input class="input" id="ob-query" aria-label="학교명" placeholder="학교 이름을 입력하세요"><button class="btn btn-secondary" id="ob-search">🔍 검색</button></div>
+ <div class="ob-search-row"><input class="input" id="ob-query" aria-label="학교명" placeholder="학교 이름을 입력하세요"><button class="btn btn-secondary" id="ob-search">검색</button></div>
  <div class="ob-results" id="ob-results" aria-live="polite"></div>
  <p id="ob-school"></p></section>
  </div>

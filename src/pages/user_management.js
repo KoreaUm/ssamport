@@ -8,7 +8,7 @@ async function render(container) {
   const authState = window.appAuthGetState ? window.appAuthGetState() : null;
   if (!authState?.isAdmin) {
     container.innerHTML = `
-      <div class="page-wrap" style="max-width:920px;margin:0 auto">
+      <div class="page-wrap">
         <div class="page-header">
           <h1 class="page-header-title">회원 관리</h1>
         </div>
@@ -21,7 +21,7 @@ async function render(container) {
   }
 
   container.innerHTML = `
-    <div class="page-wrap" style="max-width:920px;margin:0 auto">
+    <div class="page-wrap">
       <div class="page-header flex items-center justify-between gap-3 flex-wrap">
         <h1 class="page-header-title">회원 관리</h1>
         <div class="flex gap-2 flex-wrap">
@@ -95,7 +95,7 @@ async function render(container) {
 
         <div id="user-management-summary" class="settings-note mb-3"></div>
         <div class="flex items-center flex-wrap" style="gap:10px;margin-bottom:10px">
-          <label class="flex items-center" style="gap:6px;font-size:13px;color:var(--text)">
+          <label class="flex items-center" style="gap:6px;font-size:14px;color:var(--text)">
             <input type="checkbox" id="user-select-all">
             전체 선택
           </label>

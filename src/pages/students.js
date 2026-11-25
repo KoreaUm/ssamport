@@ -11,10 +11,10 @@ function parseClassGroup(cg){
 
 async function render(c){
   c.innerHTML=`<div class="page-wrap">
-  <div class="page-header"><h1 class="page-header-title">👥 학생 명단</h1>
+  <div class="page-header"><h1 class="page-header-title">학생 명단</h1>
     <div class="page-header-actions">
       <input type="text" id="st-search" class="input" placeholder="이름/번호 검색..." style="width:160px">
-      <button class="btn btn-secondary" id="st-csv-btn">📥 CSV 가져오기</button>
+      <button class="btn btn-secondary" id="st-csv-btn">CSV 가져오기</button>
       <input type="file" id="st-csv-input" accept=".csv" style="display:none">
       <button class="btn btn-secondary" id="st-template-btn">양식 다운로드</button>
       <button class="btn btn-primary" id="st-add-btn">+ 학생 추가</button>
@@ -58,7 +58,7 @@ async function refresh(q=''){
   if(!students.length){grid.innerHTML='<div class="empty-state"><div class="icon">👥</div><p>등록된 학생이 없습니다.</p></div>';return;}
   grid.innerHTML=students.map(s=>`
     <div class="student-card" onclick="window.__stEdit(${s.id})">
-      ${s.class_group?`<div style="font-size:10px;color:var(--accent);font-weight:600;margin-bottom:2px">${esc(s.class_group)}</div>`:''}
+      ${s.class_group?`<div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:2px">${esc(s.class_group)}</div>`:''}
       <div class="num">${s.number}번</div>
       <div class="name">${esc(s.name)}</div>
     </div>`).join('');
@@ -91,8 +91,8 @@ async function showStudentModal(s){
       <div><label>학생 연락처</label><input class="input" id="s-phone" type="tel" value="${esc(s?.phone)}"></div>
       <div><label>보호자 연락처</label><input class="input" id="s-parent-phone" type="tel" value="${esc(s?.parent_phone)}"></div>
     </div>
-    <div><label>주소</label><input class="input" id="s-address" value="${esc(s?.address)}"></div>
-    <div><label>메모</label><textarea class="input" id="s-note">${esc(s?.note)}</textarea></div>
+    <div class="form-row"><label>주소</label><input class="input" id="s-address" value="${esc(s?.address)}"></div>
+    <div class="form-row"><label>메모</label><textarea class="input" id="s-note">${esc(s?.note)}</textarea></div>
   </div>
   <div class="modal-footer">
     ${isEdit?`<button class="btn btn-danger" id="s-del">삭제</button>`:''}
