@@ -74,7 +74,10 @@ async function resolveEndpoint() {
   const searchIdx = source.indexOf('school_ra(sc)');
   const dataIdx = source.indexOf("sc_data('");
   if (searchIdx === -1 || dataIdx === -1) {
-    throw new Error('컴시간 연동 정보를 찾을 수 없습니다. 컴시간 쪽 사이트가 변경되었을 수 있습니다.');
+    // 컴시간 쪽이 스크래핑 방지를 위해 페이지를 다단계 암호화(토큰 검증 + AES)로
+    // 바꾼 뒤로는 이 방식으로 더 이상 데이터를 가져올 수 없다. 추적하지 않고
+    // 명확한 안내만 남긴다 (관리자 확인: 사이트의 보호 장치를 우회하지 않기로 함).
+    throw new Error('컴시간알리미 쪽에서 외부 접근을 막는 보호 장치를 추가해 현재는 자동으로 불러올 수 없습니다. NEIS 엑셀 업로드를 이용해 주세요.');
   }
 
   const searchUrlMatch = source.substr(searchIdx, 50).replace(' ', '').match(/url:'.(.*?)'/);
