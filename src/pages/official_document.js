@@ -15,43 +15,6 @@
     return el ? el.value : "";
   }
 
-  // 학폭 공문용 개인 설정(전담기구 위원 명단, 마지막 사건번호)은 계정별 DB(settings)에 저장한다.
-  // 예전에는 localStorage에 두었는데, localStorage는 같은 PC의 모든 계정이 공유하므로
-  // 다른 계정으로 로그인해도 이전 계정의 명단이 보이는 문제가 있었다.
-  var SV_COMMITTEE_SETTING = "sv_committee_members";
-  var SV_CASE_NO_SETTING = "sv_last_case_no";
-  var svCommitteeCache = "";
-  var svLastCaseNoCache = "";
-
-  async function loadSvPersonalSettings() {
-    svCommitteeCache = String((await api.getSetting(SV_COMMITTEE_SETTING, "")) || "");
-    svLastCaseNoCache = String((await api.getSetting(SV_CASE_NO_SETTING, "")) || "");
-    // 업데이트 전 localStorage에 남아 있던 값은 지금 로그인한 계정으로 한 번만 옮기고 지운다.
-    try {
-      var legacyCommittee = localStorage.getItem(SV_COMMITTEE_SETTING);
-      if (legacyCommittee !== null) {
-        if (!svCommitteeCache && legacyCommittee) {
-          svCommitteeCache = legacyCommittee;
-          await api.setSetting(SV_COMMITTEE_SETTING, legacyCommittee);
-        }
-        localStorage.removeItem(SV_COMMITTEE_SETTING);
-      }
-      var legacyCaseNo = localStorage.getItem(SV_CASE_NO_SETTING);
-      if (legacyCaseNo !== null) {
-        if (!svLastCaseNoCache && legacyCaseNo) {
-          svLastCaseNoCache = legacyCaseNo;
-          await api.setSetting(SV_CASE_NO_SETTING, legacyCaseNo);
-        }
-        localStorage.removeItem(SV_CASE_NO_SETTING);
-      }
-    } catch (e) {}
-  }
-
-  function saveSvLastCaseNo(value) {
-    svLastCaseNoCache = String(value || "");
-    api.setSetting(SV_CASE_NO_SETTING, svLastCaseNoCache).catch(function () {});
-  }
-
   function setText(id, value) {
     var el = document.getElementById(id);
     if (el) el.textContent = value || "";
@@ -80,7 +43,7 @@
       '  <div class="official-doc-tabs">',
       '    <button class="official-doc-tab active" data-tab="draft">공문 생성</button>',
       '    <button class="official-doc-tab" data-tab="review">검토 모드</button>',
-      '    <button class="official-doc-tab" data-tab="sv">🚨 학교폭력 공문</button>',
+      '    <button class="official-doc-tab" data-tab="sv">🚨 학교폭력 공문·서식</button>',
       '    <button class="official-doc-tab" data-tab="poom">📝 품의서 작성</button>',
       '  </div>',
       '',
@@ -144,63 +107,7 @@
       '    </div>',
       '  </section>',
       '',
-      '  <section id="official-sv-panel" class="official-doc-panel">',
-      '    <div class="official-doc-grid">',
-      '      <div class="card official-doc-form">',
-      '        <div class="official-doc-form-head">',
-      '          <h3>학교폭력 공문 자동완성</h3>',
-      '          <span>공문 번호를 선택하면 해당 양식이 자동으로 채워집니다.</span>',
-      '        </div>',
-      '        <details class="sv-settings-box">',
-      '          <summary>학교 정보 · 전담기구 위원 설정</summary>',
-      '          <label>학교명 <small>전체 학교 설정과 자동 연동</small>',
-      '            <input id="sv-school-name-input" readonly placeholder="설정에서 학교를 선택해 주세요">',
-      '          </label>',
-      '          <label>전담기구 위원 명단',
-      '            <div class="sv-committee-add-row">',
-      '              <select id="sv-committee-role-select">',
-      '                <option value="교장">교장</option>',
-      '                <option value="교감">교감</option>',
-      '                <option value="책임교사">책임교사</option>',
-      '                <option value="보건교사">보건교사</option>',
-      '                <option value="전문상담교사">전문상담교사</option>',
-      '                <option value="학부모위원">학부모위원</option>',
-      '                <option value="학교전담경찰관">학교전담경찰관</option>',
-      '                <option value="__custom">직접 입력</option>',
-      '              </select>',
-      '              <input id="sv-committee-role-custom" placeholder="역할 직접 입력" hidden>',
-      '              <input id="sv-committee-name-input" placeholder="이름">',
-      '              <button type="button" id="sv-committee-add-btn" class="btn btn-secondary btn-sm">+ 추가</button>',
-      '            </div>',
-      '            <div id="sv-committee-list" class="sv-committee-list"></div>',
-      '          </label>',
-      '        </details>',
-      '        <label>공문 선택',
-      '          <select id="sv-doc-select">',
-      '            <option value="">-- 공문을 선택하세요 --</option>',
-      '          </select>',
-      '        </label>',
-      '        <div id="sv-doc-desc" class="official-doc-sv-desc"></div>',
-      '        <div id="sv-doc-fields"></div>',
-      '        <div class="official-doc-btn-row mt-3">',
-      '          <button id="sv-generate-btn" class="btn btn-primary official-doc-main-btn">공문 생성</button>',
-      '          <button id="sv-clear-btn" class="btn btn-secondary official-doc-main-btn">초기화</button>',
-      '        </div>',
-      '      </div>',
-      '      <div class="card official-doc-output-card">',
-      '        <div class="official-doc-output-head">',
-      '          <h3>제목</h3>',
-      '          <button id="sv-copy-title-btn" class="btn btn-secondary btn-sm">제목 복사</button>',
-      '        </div>',
-      '        <pre id="sv-doc-title-output" class="official-doc-output od-output-auto">왼쪽에서 공문을 선택하고 항목을 입력한 뒤 [공문 생성]을 누르세요.</pre>',
-      '        <div class="official-doc-output-head mt-3">',
-      '          <h3>본문</h3>',
-      '          <button id="sv-copy-body-btn" class="btn btn-secondary btn-sm">본문 복사</button>',
-      '        </div>',
-      '        <div id="sv-doc-body-output" class="official-doc-output"></div>',
-      '      </div>',
-      '    </div>',
-      '  </section>',
+      '  <section id="official-sv-panel" class="official-doc-panel"></section>',
       '',
       '  <section id="official-poom-panel" class="official-doc-panel">',
       '    <div class="official-doc-grid">',
@@ -288,8 +195,6 @@
       '',
       '</div>'
     ].join("");
-    document.getElementById("sv-school-name-input").value = await window.schoolProfile.name();
-    await loadSvPersonalSettings();
   }
 
   function collectDraftInput() {
@@ -411,57 +316,6 @@
     return { title: title, rest: rest };
   }
 
-  // PDF 서식의 표를 그대로 옮기기 위한 표 데이터 형식:
-  //  - { rows: [[라벨, 값], ...] } : 라벨·값 2단 표 (첫 칸은 라벨처럼 음영 표시)
-  //  - { headers: [...], rows: [[셀, 셀, ...], ...] } : 순번·학교명 등 여러 열을 가진 실제 표(헤더 행 포함)
-  //
-  // 클립보드로 복사되는 조각은 이 페이지의 styles.css를 가지고 가지 않으므로(한글/워드 등
-  // 다른 프로그램은 class만 있고 스타일은 없는 태그를 받는다), 화면 표시용 class와 별개로
-  // border 등 표 모양이 실제로 보이도록 인라인 style을 셀마다 함께 적어준다.
-  var SV_TABLE_CELL_STYLE = "border:1px solid #333;padding:8px 10px;vertical-align:top;";
-  var SV_TABLE_TH_STYLE = SV_TABLE_CELL_STYLE + "background:#f3f4f6;font-weight:600;text-align:center;";
-  var SV_TABLE_LABEL_STYLE = SV_TABLE_CELL_STYLE + "width:160px;background:#f3f4f6;font-weight:600;text-align:center;";
-  var SV_TABLE_CENTER_STYLE = SV_TABLE_CELL_STYLE + "text-align:center;";
-  function buildSvTableHtml(table) {
-    var hasHeaders = table.headers && table.headers.length;
-    var headHtml = hasHeaders
-      ? "<tr>" + table.headers.map(function (h) {
-          return '<th class="sv-table-th" style="' + SV_TABLE_TH_STYLE + '">' + escapeHtml(h).replace(/\n/g, "<br>") + "</th>";
-        }).join("") + "</tr>"
-      : "";
-    var bodyHtml = table.rows.map(function (row) {
-      return "<tr>" + row.map(function (cell, i) {
-        var cls = hasHeaders ? "sv-table-cell" : (i === 0 ? "sv-table-label" : "sv-table-value");
-        var style = hasHeaders ? SV_TABLE_CENTER_STYLE : (i === 0 ? SV_TABLE_LABEL_STYLE : SV_TABLE_CELL_STYLE);
-        return '<td class="' + cls + '" style="' + style + '">' + escapeHtml(cell == null ? "" : String(cell)).replace(/\n/g, "<br>") + "</td>";
-      }).join("") + "</tr>";
-    }).join("");
-    return '<table class="sv-fact-table" border="1" cellspacing="0" cellpadding="6" style="width:100%;border-collapse:collapse;margin:8px 0;font-size:14px;">' + headHtml + bodyHtml + "</table>";
-  }
-
-  function buildSvTablePlain(table) {
-    var lines = [];
-    if (table.headers && table.headers.length) lines.push(table.headers.join("\t"));
-    table.rows.forEach(function (row) {
-      lines.push(row.map(function (cell) { return (cell == null ? "" : String(cell)).replace(/\n/g, " "); }).join("\t"));
-    });
-    return lines.join("\n");
-  }
-
-  // "{{TABLE}}" 표시가 있으면 실제 표(html)/탭 구분 표(plain)로 바꿔 렌더링·복사용 결과를 만든다.
-  function renderSvBody(rawBody, table) {
-    if (!table) {
-      return { html: preserveSpacesForHtml(escapeHtml(rawBody)), plain: rawBody };
-    }
-    var parts = rawBody.split("{{TABLE}}");
-    var before = parts[0] || "";
-    var after = parts[1] || "";
-    return {
-      html: preserveSpacesForHtml(escapeHtml(before)) + buildSvTableHtml(table) + preserveSpacesForHtml(escapeHtml(after)),
-      plain: before + buildSvTablePlain(table) + after
-    };
-  }
-
   function switchTab(tab) {
     document.querySelectorAll(".official-doc-tab").forEach(function (btn) {
       btn.classList.toggle("active", btn.dataset.tab === tab);
@@ -472,7 +326,13 @@
     var poom = document.getElementById("official-poom-panel");
     if (draft) draft.classList.toggle("active", tab === "draft");
     if (review) review.classList.toggle("active", tab === "review");
-    if (sv) sv.classList.toggle("active", tab === "sv");
+    if (sv) {
+      sv.classList.toggle("active", tab === "sv");
+      // 서식 묶음은 처음 열 때 한 번만 불러온다.
+      if (tab === "sv" && !sv.dataset.ready) { sv.dataset.ready = "1"; window.SchoolViolence.mount(sv); }
+    }
+    var page = document.getElementById("official-doc-page");
+    if (page) page.classList.toggle("sv-mode", tab === "sv");
     if (poom) poom.classList.toggle("active", tab === "poom");
   }
 
@@ -504,6 +364,7 @@
 
   var documentDirty = false;
   function beforeLeave() {
+    if (typeof window !== "undefined" && window.SchoolViolence) window.SchoolViolence.flush();
     if (!documentDirty) return true;
     if (!confirm('작성 중인 공문 내용은 아직 저장되지 않았습니다. 화면을 나가면 입력 내용이 사라집니다. 계속할까요?')) return false;
     documentDirty = false;
@@ -513,8 +374,9 @@
   function init() {
     documentDirty = false;
     var editor = document.getElementById('page-content');
-    editor.oninput = function () { documentDirty = true; };
-    editor.onchange = function () { documentDirty = true; };
+    function markDirty(e) { if (!e.target.closest || !e.target.closest('#official-sv-panel')) documentDirty = true; }
+    editor.oninput = markDirty;
+    editor.onchange = markDirty;
     var rules = window.OfficialDocumentRules;
     if (!rules) {
       setDraftStatus("공문 작성 규칙 모듈을 불러오지 못했습니다.");
@@ -620,353 +482,6 @@
     if (copyBodyBtn) copyBodyBtn.addEventListener("click", function () { copyTextFrom("od-body-output"); });
     var copyReviewBtn = document.getElementById("od-copy-review-btn");
     if (copyReviewBtn) copyReviewBtn.addEventListener("click", function () { copyTextFrom("od-review-output"); });
-
-    // SV document tab
-    var SV_GROUPS = [
-      { label: "교육지원청 지원 요청", ids: [1] },
-      { label: "Ⅰ. 초기대응 및 접수", ids: [2, 3, 4] },
-      { label: "Ⅱ. 사안조사", ids: [5, 6, 7, 8] },
-      { label: "Ⅲ. 전담기구 심의", ids: [9, 10, 11, 12, 13] },
-      { label: "Ⅳ. 심의위원회 개최", ids: [14, 15] },
-      { label: "Ⅳ. 조치결과 이행", ids: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26] },
-      { label: "Ⅴ. 후속조치 (생활기록부 삭제)", ids: [27, 28, 29, 30, 31] },
-      { label: "관계회복 숙려제도", ids: [32] }
-    ];
-    var svTemplates = window.SVDocumentTemplates || [];
-    var svSelect = document.getElementById("sv-doc-select");
-
-    var currentSchoolName = getValue("sv-school-name-input");
-    var SV_WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-    var refDocComposers = [];
-
-    function getSchoolName() {
-      return currentSchoolName;
-    }
-
-    function getCommitteeList() {
-      return (svCommitteeCache || "")
-        .split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
-    }
-
-    var schoolNameInput = document.getElementById("sv-school-name-input");
-    if (schoolNameInput) {
-      schoolNameInput.value = getSchoolName();
-    }
-
-    function saveCommitteeList(list) {
-      svCommitteeCache = list.join("\n");
-      api.setSetting(SV_COMMITTEE_SETTING, svCommitteeCache).catch(function () {});
-    }
-
-    function renderCommitteeList() {
-      var listEl = document.getElementById("sv-committee-list");
-      if (!listEl) return;
-      var list = getCommitteeList();
-      if (!list.length) {
-        listEl.innerHTML = '<small>등록된 위원이 없습니다. 역할과 이름을 입력하고 [+ 추가]를 눌러 등록하세요.</small>';
-        return;
-      }
-      listEl.innerHTML = list.map(function (name, i) {
-        return '<span class="sv-committee-chip">' + escapeHtml(name) +
-          '<button type="button" class="sv-committee-remove-btn" data-idx="' + i + '" title="삭제">×</button></span>';
-      }).join("");
-      listEl.querySelectorAll(".sv-committee-remove-btn").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          var idx = parseInt(btn.getAttribute("data-idx"), 10);
-          var current = getCommitteeList();
-          current.splice(idx, 1);
-          saveCommitteeList(current);
-          renderCommitteeList();
-          if (document.getElementById("sv-members-checks")) wireMembersField();
-        });
-      });
-    }
-
-    var committeeRoleSelect = document.getElementById("sv-committee-role-select");
-    var committeeRoleCustom = document.getElementById("sv-committee-role-custom");
-    var committeeNameInput = document.getElementById("sv-committee-name-input");
-    var committeeAddBtn = document.getElementById("sv-committee-add-btn");
-    if (committeeRoleSelect) {
-      committeeRoleSelect.addEventListener("change", function () {
-        committeeRoleCustom.hidden = committeeRoleSelect.value !== "__custom";
-        if (!committeeRoleCustom.hidden) committeeRoleCustom.focus();
-      });
-    }
-    if (committeeAddBtn) {
-      committeeAddBtn.addEventListener("click", function () {
-        var role = committeeRoleSelect.value === "__custom" ? committeeRoleCustom.value.trim() : committeeRoleSelect.value;
-        var name = committeeNameInput.value.trim();
-        if (!role || !name) return;
-        var current = getCommitteeList();
-        current.push(role + " " + name);
-        saveCommitteeList(current);
-        committeeNameInput.value = "";
-        committeeNameInput.focus();
-        renderCommitteeList();
-        if (document.getElementById("sv-members-checks")) wireMembersField();
-      });
-    }
-    if (committeeNameInput) {
-      committeeNameInput.addEventListener("keydown", function (e) {
-        // 한글 입력(IME) 조합 중 Enter는 무시 — 그렇지 않으면 조합 확정 Enter와
-        // 실제 Enter가 연속으로 들어와 같은 이름이 두 번(마지막 글자만) 추가된다.
-        if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
-        e.preventDefault();
-        committeeAddBtn.click();
-      });
-    }
-    renderCommitteeList();
-
-    // "0000학교-0000(2026.00.00.)"처럼 자기 학교명이 들어가는 기안번호/공문번호 필드인지 판별.
-    // "학교지원센터-..." 등 상대 기관 문서번호는 학교명을 자동으로 넣지 않는다.
-    function isOwnSchoolDocField(fld) {
-      if (!fld.ph || fld.id === "caseNo" || fld.big) return false;
-      if (fld.ph.indexOf("\n") !== -1) return false;
-      if (fld.ph.indexOf("학교지원센터") !== -1) return false;
-      return /학교/.test(fld.ph) && fld.ph.indexOf("-") !== -1 && fld.ph.indexOf("(") !== -1;
-    }
-
-    function wireRefDocField(fld) {
-      var schoolSpan = document.getElementById("sv-f-" + fld.id + "-school");
-      var docNoInput = document.getElementById("sv-f-" + fld.id + "-docno");
-      var dateInput = document.getElementById("sv-f-" + fld.id + "-date");
-      var hidden = document.getElementById("sv-f-" + fld.id);
-      if (!schoolSpan || !docNoInput || !dateInput || !hidden) return;
-      var suffixMatch = fld.ph.match(/\)([^)]*)$/);
-      var suffix = suffixMatch ? suffixMatch[1] : "";
-      function compose() {
-        var school = getSchoolName() || "○○○○학교";
-        schoolSpan.textContent = school + "-";
-        var docNo = docNoInput.value.trim();
-        var dateStr = "";
-        if (dateInput.value) {
-          var d = new Date(dateInput.value + "T00:00:00");
-          dateStr = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + ".";
-        }
-        hidden.value = school + "-" + docNo + (dateStr ? "(" + dateStr + ")" : "") + suffix;
-      }
-      docNoInput.addEventListener("input", compose);
-      dateInput.addEventListener("change", compose);
-      refDocComposers.push(compose);
-      compose();
-    }
-
-    function wireSessionNoField() {
-      var select = document.getElementById("sv-f-sessionNo-select");
-      var custom = document.getElementById("sv-f-sessionNo-custom");
-      var hidden = document.getElementById("sv-f-sessionNo");
-      if (!select || !custom || !hidden) return;
-      function compose() {
-        if (select.value === "__custom") {
-          custom.hidden = false;
-          hidden.value = custom.value;
-        } else {
-          custom.hidden = true;
-          hidden.value = select.value;
-        }
-      }
-      select.addEventListener("change", compose);
-      custom.addEventListener("input", compose);
-      compose();
-    }
-
-    function wireDatetimeField(fld) {
-      var dateInput = document.getElementById("sv-f-datetime-date");
-      var timeInput = document.getElementById("sv-f-datetime-time");
-      var hidden = document.getElementById("sv-f-datetime");
-      if (!dateInput || !timeInput || !hidden) return;
-      var trailing = /~\s*$/.test(fld.ph || "") ? " ~" : "";
-      function compose() {
-        var datePart = "";
-        if (dateInput.value) {
-          var d = new Date(dateInput.value + "T00:00:00");
-          datePart = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + ".(" + SV_WEEKDAYS[d.getDay()] + ")";
-        }
-        var timePart = timeInput.value || "";
-        hidden.value = (datePart ? datePart + " " : "") + timePart + trailing;
-      }
-      dateInput.addEventListener("change", compose);
-      timeInput.addEventListener("input", compose);
-      compose();
-    }
-
-    function wireMembersField() {
-      var checksEl = document.getElementById("sv-members-checks");
-      var extraInput = document.getElementById("sv-f-members-extra");
-      var hidden = document.getElementById("sv-f-members");
-      if (!checksEl || !extraInput || !hidden) return;
-      var list = getCommitteeList();
-      if (!list.length) {
-        checksEl.innerHTML = '<small>위 "학교 기본 정보 설정"에서 전담기구 위원 명단을 먼저 등록해 두면 체크박스로 고를 수 있습니다.</small>';
-      } else {
-        checksEl.innerHTML = list.map(function (name, i) {
-          return '<label class="sv-member-check"><input type="checkbox" checked data-name="' + escapeHtml(name) + '" id="sv-member-chk-' + i + '"> ' + escapeHtml(name) + '</label>';
-        }).join("");
-      }
-      function compose() {
-        var checked = Array.prototype.slice.call(checksEl.querySelectorAll('input[type="checkbox"]:checked'))
-          .map(function (el) { return el.getAttribute("data-name"); });
-        var extra = extraInput.value.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
-        hidden.value = checked.concat(extra).join(", ");
-      }
-      checksEl.querySelectorAll('input[type="checkbox"]').forEach(function (el) { el.addEventListener("change", compose); });
-      extraInput.addEventListener("input", compose);
-      compose();
-    }
-
-    if (svSelect && svTemplates.length) {
-      SV_GROUPS.forEach(function (grp) {
-        var optgroup = document.createElement("optgroup");
-        optgroup.label = grp.label;
-        grp.ids.forEach(function (id) {
-          var tpl = svTemplates.find(function (t) { return t.id === id; });
-          if (!tpl) return;
-          var opt = document.createElement("option");
-          opt.value = tpl.id;
-          opt.textContent = tpl.title;
-          optgroup.appendChild(opt);
-        });
-        svSelect.appendChild(optgroup);
-      });
-
-      function incrementCaseNo(str) {
-        var m = str.match(/(\d+)(\D*)$/);
-        if (!m) return str;
-        var next = String(parseInt(m[1], 10) + 1);
-        return str.slice(0, str.length - m[0].length) + next + m[2];
-      }
-
-      svSelect.addEventListener("change", function () {
-        var id = parseInt(svSelect.value, 10);
-        var tpl = svTemplates.find(function (t) { return t.id === id; });
-        var descEl = document.getElementById("sv-doc-desc");
-        var fieldsEl = document.getElementById("sv-doc-fields");
-        if (!tpl || !descEl || !fieldsEl) return;
-        descEl.textContent = "[" + tpl.category + "] " + tpl.desc;
-        refDocComposers.length = 0;
-        fieldsEl.innerHTML = tpl.fields.map(function (fld) {
-          var isTextarea = (fld.ph && fld.ph.indexOf("\n") !== -1) || fld.big;
-          var req = fld.req ? '<span class="sv-req">*</span>' : '<small>선택</small>';
-          if (fld.id === "caseNo") {
-            return '<label>' + escapeHtml(fld.label) + ' ' + req +
-              '<span class="sv-caseno-row"><input id="sv-f-caseNo" placeholder="' + escapeHtml(fld.ph || "") + '">' +
-              '<button type="button" id="sv-caseno-inc-btn" class="btn btn-secondary btn-sm" title="다음 사안번호로 +1">다음 사안 +1</button></span></label>';
-          }
-          if (fld.id === "sessionNo") {
-            var opts = ["제1회", "제2회", "제3회", "제4회", "제5회", "제6회", "제7회", "제8회", "제9회", "제10회"]
-              .map(function (o) { return '<option value="' + o + '">' + o + '</option>'; }).join("");
-            return '<label>' + escapeHtml(fld.label) + ' ' + req +
-              '<span class="sv-sessionno-row">' +
-                '<select id="sv-f-sessionNo-select">' + opts + '<option value="__custom">직접 입력</option></select>' +
-                '<input id="sv-f-sessionNo-custom" placeholder="예: 제11회" hidden>' +
-              '</span>' +
-              '<input type="hidden" id="sv-f-sessionNo"></label>';
-          }
-          if (fld.id === "datetime") {
-            return '<label>' + escapeHtml(fld.label) + ' ' + req +
-              '<span class="sv-datetime-row">' +
-                '<input type="date" id="sv-f-datetime-date">' +
-                '<input type="time" id="sv-f-datetime-time">' +
-              '</span>' +
-              '<input type="hidden" id="sv-f-datetime"></label>';
-          }
-          if (fld.id === "members") {
-            return '<label>' + escapeHtml(fld.label) + ' ' + req +
-              '<div id="sv-members-checks" class="sv-members-checks"></div>' +
-              '<input id="sv-f-members-extra" placeholder="명단에 없는 위원 추가(쉼표로 구분)">' +
-              '<input type="hidden" id="sv-f-members"></label>';
-          }
-          if (isOwnSchoolDocField(fld)) {
-            return '<label>' + escapeHtml(fld.label) + ' ' + req +
-              '<span class="sv-refdoc-row">' +
-                '<span class="sv-refdoc-school" id="sv-f-' + fld.id + '-school"></span>' +
-                '<input id="sv-f-' + fld.id + '-docno" class="sv-refdoc-docno" placeholder="문서번호(예: 123)">' +
-                '<input type="date" id="sv-f-' + fld.id + '-date" class="sv-refdoc-date">' +
-              '</span>' +
-              '<input type="hidden" id="sv-f-' + fld.id + '"></label>';
-          }
-          if (isTextarea) {
-            return '<label>' + escapeHtml(fld.label) + ' ' + req +
-              '<textarea id="sv-f-' + fld.id + '" rows="3" placeholder="' + escapeHtml(fld.ph || "") + '"></textarea></label>';
-          }
-          return '<label>' + escapeHtml(fld.label) + ' ' + req +
-            '<input id="sv-f-' + fld.id + '" placeholder="' + escapeHtml(fld.ph || "") + '"></label>';
-        }).join("");
-
-        var caseNoInput = document.getElementById("sv-f-caseNo");
-        if (caseNoInput) {
-          if (svLastCaseNoCache) caseNoInput.value = svLastCaseNoCache;
-          caseNoInput.addEventListener("input", function () {
-            saveSvLastCaseNo(caseNoInput.value);
-          });
-          var incBtn = document.getElementById("sv-caseno-inc-btn");
-          if (incBtn) {
-            incBtn.addEventListener("click", function () {
-              caseNoInput.value = incrementCaseNo(caseNoInput.value || "");
-              saveSvLastCaseNo(caseNoInput.value);
-            });
-          }
-        }
-
-        if (document.getElementById("sv-f-sessionNo-select")) wireSessionNoField();
-        if (document.getElementById("sv-f-datetime-date")) {
-          var datetimeFld = tpl.fields.find(function (f) { return f.id === "datetime"; });
-          if (datetimeFld) wireDatetimeField(datetimeFld);
-        }
-        if (document.getElementById("sv-members-checks")) wireMembersField();
-        tpl.fields.forEach(function (fld) {
-          if (isOwnSchoolDocField(fld)) wireRefDocField(fld);
-        });
-      });
-    }
-
-    var currentSvBodyPlain = "";
-    var currentSvBodyHtml = "";
-
-    var svGenerateBtn = document.getElementById("sv-generate-btn");
-    if (svGenerateBtn) {
-      svGenerateBtn.addEventListener("click", function () {
-        var id = parseInt(svSelect ? svSelect.value : "0", 10);
-        var tpl = svTemplates.find(function (t) { return t.id === id; });
-        var titleEl = document.getElementById("sv-doc-title-output");
-        var bodyEl = document.getElementById("sv-doc-body-output");
-        if (!tpl || !titleEl || !bodyEl) return;
-        var vals = {};
-        tpl.fields.forEach(function (fld) {
-          var el = document.getElementById("sv-f-" + fld.id);
-          vals[fld.id] = el ? el.value : "";
-        });
-        if (vals.caseNo) saveSvLastCaseNo(vals.caseNo);
-        var parts = splitSvDoc(tpl.generate(vals));
-        var table = tpl.table ? tpl.table(vals) : null;
-        var rendered = renderSvBody(parts.rest, table);
-        titleEl.textContent = parts.title;
-        bodyEl.innerHTML = rendered.html;
-        currentSvBodyPlain = rendered.plain;
-        currentSvBodyHtml = rendered.html;
-      });
-    }
-
-    var svClearBtn = document.getElementById("sv-clear-btn");
-    if (svClearBtn) {
-      svClearBtn.addEventListener("click", function () {
-        var fieldsEl = document.getElementById("sv-doc-fields");
-        if (fieldsEl) fieldsEl.querySelectorAll("input, textarea").forEach(function (el) { el.value = ""; });
-        var titleEl = document.getElementById("sv-doc-title-output");
-        var bodyEl = document.getElementById("sv-doc-body-output");
-        if (titleEl) titleEl.textContent = "왼쪽에서 공문을 선택하고 항목을 입력한 뒤 [공문 생성]을 누르세요.";
-        if (bodyEl) bodyEl.textContent = "";
-        currentSvBodyPlain = "";
-        currentSvBodyHtml = "";
-      });
-    }
-
-    var svCopyTitleBtn = document.getElementById("sv-copy-title-btn");
-    if (svCopyTitleBtn) svCopyTitleBtn.addEventListener("click", function () { copyTextFrom("sv-doc-title-output"); });
-    var svCopyBodyBtn = document.getElementById("sv-copy-body-btn");
-    if (svCopyBodyBtn) svCopyBodyBtn.addEventListener("click", function () {
-      writeRichClipboard(currentSvBodyPlain, currentSvBodyHtml);
-    });
 
     // ── 품의서 작성 ──────────────────────────────────────────
     function numberToKorean(num) {

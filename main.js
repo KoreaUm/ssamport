@@ -3179,6 +3179,42 @@ function buildHwpFileName(markdownText, titleHint) {
   return name || '문서';
 }
 
+// ── 학교폭력 공문·서식 (가이드북 원본 서식 기반) ─────────────────────
+const svEngine = () => require('./src/sv/engine');
+const svSafeName = name => String(name || '문서').replace(/[\\/:*?"<>|\r\n\t]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) || '문서';
+ipcMain.handle('sv-list', () => svEngine().list());
+ipcMain.handle('sv-model', (_e, id, ops) => svEngine().getModel(id, ops || []));
+ipcMain.handle('sv-row-op', (_e, id, ops, op) => svEngine().rowOp(id, ops || [], op));
+ipcMain.handle('sv-search-text', () => svEngine().searchIndex());
+ipcMain.handle('sv-save', async (_e, job) => {
+  try {
+    const buf = svEngine().buildHwpx(job);
+    const res = await dialog.showSaveDialog(mainWindow, {
+      title: '한글 파일 저장', defaultPath: svSafeName(job.fileName) + '.hwpx', filters: [{ name: '한글 문서', extensions: ['hwpx'] }]
+    });
+    setTimeout(refocusMainWindow, 0);
+    if (res.canceled || !res.filePath) return { ok: false, canceled: true };
+    fs.writeFileSync(res.filePath, buf);
+    return { ok: true, path: res.filePath };
+  } catch (err) { return { ok: false, error: err.message }; }
+});
+ipcMain.handle('sv-save-many', async (_e, jobs, folderName) => {
+  try {
+    const res = await dialog.showOpenDialog(mainWindow, { title: '저장할 폴더 선택', properties: ['openDirectory', 'createDirectory'] });
+    setTimeout(refocusMainWindow, 0);
+    if (res.canceled || !res.filePaths[0]) return { ok: false, canceled: true };
+    const dir = path.join(res.filePaths[0], svSafeName(folderName));
+    fs.mkdirSync(dir, { recursive: true });
+    const names = [];
+    for (const job of jobs || []) {
+      const base = svSafeName(job.fileName); let name = base + '.hwpx'; let n = 2;
+      while (fs.existsSync(path.join(dir, name))) name = `${base} (${n++}).hwpx`;
+      fs.writeFileSync(path.join(dir, name), svEngine().buildHwpx(job)); names.push(name);
+    }
+    return { ok: true, path: dir, names };
+  } catch (err) { return { ok: false, error: err.message }; }
+});
+
 ipcMain.handle('hwp-build-hwpx', async (_evt, opts) => {
   const markdownText = (opts && typeof opts === 'object') ? opts.markdownText : opts;
   const logoPath = (opts && typeof opts === 'object' && opts.logoPath) ? opts.logoPath : '';

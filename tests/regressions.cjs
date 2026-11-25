@@ -356,27 +356,101 @@ test('school documents use the shared school and preserve external agency refere
   assert.equal(await ctx.window.schoolProfile.name(),'충주상업고등학교');
   school='다른고등학교';
   assert.equal(await ctx.window.schoolProfile.name(),'다른고등학교');
-  const elements={};
-  for(const id of ['school','docno','date']) elements['sv-f-refDoc-'+id]={value:id==='docno'?'1234':id==='date'?'2026-10-06':'',addEventListener(){}};
-  elements['sv-f-refDoc']={value:''};
-  ctx.document={getElementById:id=>elements[id]};
-  ctx.getSchoolName=()=> '충주상업고등학교';ctx.refDocComposers=[];
-  const source=read('src/pages/official_document.js');
-  vm.runInContext(section(source,'    function isOwnSchoolDocField','    function wireSessionNoField'),ctx);
-  vm.runInContext(read('src/sv_document_templates.js'),ctx);
-  let checked=0;
-  for(const tpl of ctx.window.SVDocumentTemplates) {
-    for(const field of tpl.fields) {
-      if(field.ph?.includes('학교지원센터-')) assert.equal(ctx.isOwnSchoolDocField(field),false);
-      if(field.id==='refDoc' && ctx.isOwnSchoolDocField(field)) {
-        ctx.wireRefDocField(field);
-        assert.match(elements['sv-f-refDoc'].value,/^충주상업고등학교-1234\(2026\.10\.6\.\)/);
-        assert(tpl.generate({refDoc:elements['sv-f-refDoc'].value}).includes('충주상업고등학교-1234'));
-        checked++;
-      }
-    }
+  const sv=require('../src/sv/core');
+  const x=sv.makeCtx({school},{refs:{intake:{no:'1234',date:'2026-10-06'},outcome:{no:'77'}}},{id:'D2'});
+  assert.equal(x.ref('intake'),'다른고등학교-1234(2026. 10. 6.)');
+  assert.equal(x.ref('outcome'),'학교지원센터-77');
+});
+
+// ── 학교폭력 공문·서식 ──
+const svText=xml=>[...xml.matchAll(/<hp:t[ >](.*?)<\/hp:t>/gs)].map(m=>m[1].replace(/<[^>]+>/g,'')).join('').replace(/\s+/g,'');
+const svCase=()=>{
+  const st=(role,name,o)=>({role,name,school:'',grade:'2',cls:'3',num:'7',gender:'남',birth:'2012-05-06',guardian:name+'부',gPhone:'010-0000-0000',...o});
+  return {profile:{school:'행복중학교',teacher:'박책임',eduOffice:'충주교육지원청',members:[{role:'교감',name:'이교감'}]},
+    c:{year:'2026',seq:'3',kind:'학교폭력',receivedDate:'2026-03-04',receivedTime:'14:30',types:['신체폭력'],summary:'사안 내용',students:[st('피해관련','가가가',{num:'9'}),st('가해관련','나나나',{athlete:true}),st('가해관련','다다다',{cls:'4'})],session:'2',meetDate:'2026-03-16',meetTime:'15:30',refs:{intake:{no:'1001',date:'2026-03-05'},meetResult:{no:'1200',date:'2026-03-17'},outcome:{no:'777',date:'2026-04-21'}}}};
+};
+const svBuild=(id,profile,c,f)=>{
+  const engine=require('../src/sv/engine'),core=require('../src/sv/core');
+  const st={id,clean:true,f:f||{}};st.ops=core.neededOps(id,profile,c,st);
+  const r=core.compose(engine.getModel(id,st.ops),profile,c,st);
+  const buf=engine.buildHwpx({id,edits:r.edits,drop:r.drop,dropTbl:r.dropTbl,ops:st.ops});
+  const files=require('../src/sv/zip').readZip(buf);
+  return {r,files,xml:files['Contents/section0.xml'].toString('utf8'),text:svText(files['Contents/section0.xml'].toString('utf8'))};
+};
+
+test('school violence pack keeps every official document and form from the guidebook', () => {
+  const engine=require('../src/sv/engine'),core=require('../src/sv/core');
+  const list=engine.list();const ids=new Set(list.map(d=>d.id));
+  for(let i=1;i<=32;i++)assert(ids.has('D'+i),'공문'+i);
+  for(let i=1;i<=45;i++)assert(ids.has('F'+i),'서식'+i);
+  for(const id of ['F5-1','F5-2','F38-1','F체크리스트','G-qna','G-criteria'])assert(ids.has(id),id);
+  // 2026 책자 전체 글자 수(공백 제외). 묶음을 다시 만들 때 누락이 생기면 여기서 걸린다.
+  assert.equal(engine.loadPack().docs.reduce((n,d)=>n+svText(d.xml).length,0),99148);
+  // 왼쪽 목록에서 빠진 문서가 없어야 한다.
+  const shown=new Set(core.STAGES.flatMap(s=>[...s.docs,...s.forms,...s.guides]).concat(core.COMMON.forms,core.COMMON.guides));
+  assert.deepEqual(list.map(d=>d.id).filter(id=>!shown.has(id)),[]);
+});
+
+test('school violence forms saved without edits are identical to the guidebook originals', () => {
+  const engine=require('../src/sv/engine'),{readZip}=require('../src/sv/zip'),{DOMParser}=require('@xmldom/xmldom');
+  for(const d of engine.loadPack().docs){
+    const files=readZip(engine.buildHwpx({id:d.id}));const xml=files['Contents/section0.xml'].toString('utf8');
+    assert.equal(svText(xml),svText(d.xml),d.id);
+    assert.equal((xml.match(/<hp:tc /g)||[]).length,(d.xml.match(/<hp:tc /g)||[]).length,d.id);
+    assert(new DOMParser({onError(){throw Error('XML 오류 '+d.id)}}).parseFromString(xml,'text/xml'));
   }
-  assert(checked>10);
+});
+
+test('every school violence document composes with case data and leaves no guide-only notes in the draft body', () => {
+  const engine=require('../src/sv/engine');const {profile,c}=svCase();
+  for(const d of engine.list().filter(x=>x.kind!=='guide')){
+    const {r,text}=svBuild(d.id,profile,c);assert(text.length>20,d.id);
+    if(d.kind==='doc'){
+      assert(!/※|☞|★|수신내부결재|<서식/.test(text.replace('※사안조사후사실확인작성','')),d.id+' 본문에 안내 문구가 남음');
+      assert(/끝\.$/.test(text),d.id+' 끝 표시');assert(r.doc.title,d.id);
+    } else assert(!/^<서식/.test(text),d.id);
+    assert(!/[○◯△0O]{2,4}(초|중|고)-(20○○|2026)-/.test(text),d.id+' 사안번호 미치환');
+  }
+});
+
+test('school violence drafts use official numbering, references, recipients and corrected article numbers', () => {
+  const {profile,c}=svCase();
+  const body=id=>{const {r,xml}=svBuild(id,profile,c);return {r,lines:[...xml.matchAll(/<hp:p [^>]*>.*?<\/hp:p>/gs)].map(m=>m[0].replace(/<[^>]+>/g,''))};};
+  assert(body('D2').lines.includes('    1) 가해관련 학생: 나나나(2-3), 다다다(2-4)'));
+  assert(body('D2').lines.includes('  나. 행복중학교-1001(2026. 3. 5.)'));
+  assert(body('D3').lines.some(l=>l.includes('제17조 제1항 제6호 출석정지')));
+  const d4=svBuild('D4',profile,c);assert.equal(d4.r.doc.to,'수신자 참조(충청북도교육청 인성시민과, 충주교육지원청 학교지원센터)');assert.equal(d4.r.doc.title,'학교폭력 사안접수 보고(행복중-2026-3호)');
+  const abuse=svBuild('D4',profile,{...c,kind:'아동학대'});assert.equal(abuse.r.doc.title,'아동학대 사안접수 보고');assert(abuse.text.includes('아동학대사안접수보고서1부'));assert(!abuse.text.includes('학교폭력사안접수보고서'));
+  assert(svBuild('D10',profile,c).text.includes('2026.3.16.(월)15:30'));
+  assert(svBuild('D14',profile,c).text.endsWith('6.학생선수확인을위한관련서류1부.끝.')===false);
+  assert(svBuild('D14',profile,c).text.endsWith('5.학생선수확인을위한관련서류1부.끝.'));
+  assert(svBuild('D12',profile,c,{way:'종결'}).text.includes('학교장종결을하고자합니다'));
+});
+
+test('school violence tables grow with the number of students and row edits keep manual text in place', () => {
+  const engine=require('../src/sv/engine'),core=require('../src/sv/core');const {profile,c}=svCase();
+  const f10=svBuild('F10',profile,c);
+  for(const n of ['가가가','나나나','다다다'])assert(f10.text.includes(n));
+  const t=f10.xml.match(/<hp:tbl [^>]*rowCnt="(\d+)" colCnt="15"/);assert.equal(t[1],'23');
+  const map=engine.rowOp('F8',[],{tid:1,row:6});const model=engine.getModel('F8',[]);const ed=new core.Ed(model);
+  const pid=ed.cell(1,15,2).blocks[0].pid;const moved=core.shiftManual({[pid]:{atoms:{0:'직접 쓴 글'}}},map);
+  const after=new core.Ed(engine.getModel('F8',[{tid:1,row:6}]));
+  assert.deepEqual(Object.keys(moved).map(Number),[after.cell(1,16,2).blocks[0].pid]);
+});
+
+test('school violence case and student data never enters the cloud sync allow-list', () => {
+  const source=read('src/index.html');
+  const list=source.slice(source.indexOf('var CLOUD_SYNC_KEYS = ['),source.indexOf('];',source.indexOf('var CLOUD_SYNC_KEYS = [')));
+  assert(list.includes('"school_name"'));assert(!/["']sv_/.test(list));
+  const keys=[...read('src/sv/page.js').matchAll(/setSetting\('([a-z_]+)'/g)].map(m=>m[1]);
+  assert(keys.length>=4);for(const key of keys)assert(key.startsWith('sv_'),key);
+});
+
+test('school violence deadlines follow the guidebook counting rules', () => {
+  const core=require('../src/sv/core');
+  const d=core.deadlines({receivedDate:'2026-03-04',receivedTime:'14:30'});
+  assert.equal(d.report48,'2026. 3. 6.(금) 14:30');assert.equal(d.sep7,'2026-03-10');assert.equal(d.d14,'2026-03-18');assert.equal(d.d21,'2026-03-25');assert.equal(d.d28,'2026-04-01');
+  assert.equal(core.deadlines({receivedDate:'2026-03-07'}).d14,'2026-03-23'); // 말일이 토요일이면 다음 월요일
 });
 
 test('shared profile follows updated homeroom and period settings without hiding saved classes or periods', async () => {

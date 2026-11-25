@@ -1,0 +1,89 @@
+/* 학교폭력 공문·서식 */
+.sv2 { display: grid; grid-template-columns: 232px minmax(0, 1fr) 292px; gap: 14px; height: calc(100vh - 190px); min-height: 520px; }
+.sv2-nav, .sv2-main, .sv2-side { overflow-y: auto; overflow-x: hidden; min-width: 0; }
+.sv2-main { padding: 2px 4px 40px; }
+.sv2-nav { border-right: 1px solid var(--border-md); padding-right: 8px; }
+.sv2-loading, .sv2-empty { padding: 48px 20px; text-align: center; color: var(--text2); line-height: 1.7; }
+.sv2-empty h3 { color: var(--text); margin-bottom: 8px; }
+.sv2-empty .btn { margin-top: 16px; }
+.sv2-case { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.sv2-case select { width: 100%; padding: 8px; border: 1px solid var(--border-md); border-radius: 6px; background: var(--card); color: var(--text); font-size: 13px; }
+.sv2-item { display: flex; gap: 7px; align-items: baseline; width: 100%; text-align: left; border: 0; background: none; color: var(--text); padding: 5px 7px; border-radius: 6px; font-size: 12.5px; line-height: 1.4; }
+.sv2-item:hover { background: var(--hover-md); }
+.sv2-item.on { background: var(--accent-l); color: var(--accent-d); font-weight: 600; }
+.sv2-item.main { font-size: 13.5px; padding: 8px; }
+.sv2-item b { flex: none; font-size: 11px; font-weight: 600; padding: 1px 5px; border-radius: 4px; background: var(--hover-md); color: var(--text2); }
+.sv2-item.doc b { background: var(--accent-l2); color: var(--accent-d); }
+.sv2-item.form b { background: var(--success-l); color: var(--success); }
+.sv2-group summary { cursor: pointer; padding: 9px 4px 5px; font-size: 12.5px; font-weight: 700; color: var(--text2); position: sticky; top: 0; background: var(--bg); z-index: 1; }
+.sv2-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.sv2-head h2 { font-size: 18px; line-height: 1.35; margin: 4px 0 0; }
+.sv2-no { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 5px; background: var(--success-l); color: var(--success); }
+.sv2-no.doc { background: var(--accent-l2); color: var(--accent-d); }
+.sv2-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.sv2-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--text2); margin-bottom: 10px; }
+.sv2-tools button { border: 1px solid var(--border-md); background: var(--card); color: var(--text); border-radius: 6px; padding: 4px 9px; font-size: 12.5px; }
+.sv2-tools label { display: flex; gap: 5px; align-items: center; }
+.sv2-todo { margin-left: auto; font-weight: 600; }
+.sv2-todo.bad { color: var(--warning); } .sv2-todo.ok { color: var(--success); }
+.sv2-doc-head { display: grid; gap: 6px; margin-bottom: 10px; }
+.sv2-doc-head label { display: grid; grid-template-columns: 44px 1fr; align-items: center; font-weight: 600; font-size: 13px; }
+.sv2-doc-head input { padding: 8px 10px; border: 1px solid var(--border-md); border-radius: 6px; font-size: 14px; background: var(--card); color: var(--text); }
+.sv2-doc-head input.todo { background: #fff6c8; color: #37352f; }
+.sv2-paper { background: #fff; color: #000; border: 1px solid #d5d5d0; border-radius: 4px; padding: 34px 28px; overflow-x: auto; box-shadow: var(--shadow); }
+.sv2-paper .svp { white-space: pre-wrap; word-break: break-all; min-height: 1.15em; outline: none; border-radius: 2px; font-size: 10pt; tab-size: 4; }
+.sv2-paper .svp.blank { min-height: .8em; }
+.sv2-paper.doc > .svp { font-size: 12pt; line-height: 1.75 !important; padding-left: 0 !important; text-indent: 0 !important; text-align: left !important; }
+.sv2-paper.doc > .svp > span { font-size: 12pt !important; }
+.sv2-paper [contenteditable]:hover { background: rgba(35, 131, 226, .06); }
+.sv2-paper [contenteditable]:focus { background: rgba(35, 131, 226, .12); outline: 1px solid rgba(35, 131, 226, .5); }
+.sv2-paper .svp.todo { background: #fff6c8; }
+.sv2-paper .svmanual > span.svch { border-bottom: 1px dotted #8aa4c8; }
+.sv2-paper .svt { border-collapse: collapse; table-layout: fixed; margin: 2px 0; max-width: none; }
+.sv2-paper .svt td { word-break: break-all; }
+.sv2-paper .svbox { cursor: pointer; font-weight: inherit; padding: 0 1px; border-radius: 2px; }
+.sv2-paper .svbox:hover { background: #cce0f9; }
+.sv2-paper .svhd { user-select: none; }
+.sv2-paper .svdraw { display: inline-block; vertical-align: top; }
+.sv2-paper .svimg { vertical-align: middle; }
+.sv2-paper .found { background: #fff1a8; }
+.sv2-card { padding: 16px 18px; margin: 12px 0; }
+.sv2-card h3 { font-size: 15px; margin-bottom: 12px; }
+.sv2-card h3 small { font-weight: 400; color: var(--text2); font-size: 12px; margin-left: 6px; }
+.sv2-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.sv2-fields.one { grid-template-columns: 1fr; }
+.sv2-f { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text2); min-width: 0; }
+.sv2-f.wide { grid-column: 1 / -1; }
+.sv2-f.chk { flex-direction: row; align-items: center; gap: 6px; }
+.sv2-f b { color: var(--text); font-size: 14px; }
+.sv2-f input:not([type=checkbox]), .sv2-f select, .sv2-f textarea, .sv2-member input, .sv2-attach input:not([type=checkbox]), .sv2-search { width: 100%; min-width: 0; padding: 7px 9px; border: 1px solid var(--border-md); border-radius: 6px; font-size: 13px; background: var(--card); color: var(--text); line-height: 1.5; }
+.sv2-f.ref { grid-column: span 1; } .sv2-f.ref > div { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.sv2-chips { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; color: var(--text); padding: 4px 0; }
+.sv2-chips label { display: flex; gap: 5px; align-items: center; }
+.sv2-student { border: 1px solid var(--border-md); border-left: 4px solid var(--text3); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+.sv2-student.v { border-left-color: var(--accent); } .sv2-student.o { border-left-color: var(--warning); }
+.sv2-st-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 13px; }
+.sv2-st-head button, .sv2-member button, .sv2-attach button { margin-left: auto; border: 0; background: none; color: var(--text2); font-size: 16px; padding: 2px 8px; border-radius: 5px; }
+.sv2-st-head button:hover, .sv2-member button:hover { background: var(--danger-l); color: var(--danger); }
+.sv2-student summary { cursor: pointer; font-size: 12.5px; color: var(--text2); padding: 6px 0; }
+.sv2-member { display: grid; grid-template-columns: 1fr 1fr 1.2fr 1.2fr 34px; gap: 6px; margin-bottom: 6px; }
+.sv2-attach { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.sv2-attach em { flex: none; max-width: 170px; font-style: normal; font-size: 11.5px; color: var(--text2); }
+.sv2-attach button[data-open] { flex: none; margin: 0; font-size: 12px; color: var(--accent-d); background: var(--accent-l); padding: 4px 8px; }
+.sv2-box { border: 1px solid var(--border-md); border-radius: 8px; padding: 12px 13px; margin-bottom: 10px; font-size: 12.5px; line-height: 1.6; color: var(--text); background: var(--card); }
+.sv2-box h4 { font-size: 13px; margin-bottom: 6px; }
+.sv2-box p { margin-bottom: 6px; } .sv2-box img { max-width: 100%; }
+.sv2-box.warn { background: var(--warning-l); }
+.sv2-box dt { color: var(--text2); font-size: 11.5px; } .sv2-box dd { font-weight: 600; margin: 0 0 6px; }
+.sv2-box small { color: var(--text2); }
+.sv2-link { display: block; width: 100%; text-align: left; border: 0; background: none; color: var(--accent-d); padding: 4px 0; font-size: 12.5px; }
+.sv2-link:hover { text-decoration: underline; }
+.sv2-hits { display: grid; gap: 6px; margin-top: 12px; }
+.sv2-hit { text-align: left; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 7px; padding: 9px 11px; display: grid; gap: 3px; font-size: 12.5px; line-height: 1.55; }
+.sv2-hit:hover { border-color: var(--accent); } .sv2-hit span { color: var(--text2); }
+#sv2-toast { position: fixed; left: 50%; bottom: 34px; transform: translate(-50%, 12px); background: #2f2f2c; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13.5px; opacity: 0; pointer-events: none; transition: .2s; z-index: 9999; max-width: 80vw; }
+#sv2-toast.on { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 1180px) { .sv2 { grid-template-columns: 200px minmax(0, 1fr); height: auto; } .sv2-side { grid-column: 1 / -1; } .sv2-nav { max-height: 80vh; position: sticky; top: 0; } }
+.official-doc-page.sv-mode .official-doc-hero { display: none; }
+.sv2-paper .svex { background: #eef4fb; }
+.sv2-paper.doc > .svp > span { font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif !important; letter-spacing: 0 !important; }

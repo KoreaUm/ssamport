@@ -370,4 +370,12 @@ contextBridge.exposeInMainWorld('nativeApi', {
   showOpenDialog: (opts) => ipcRenderer.invoke('show-open-dialog', opts),
   hwpGenerateMarkdown: (opts) => ipcRenderer.invoke('hwp-generate-markdown', opts),
   hwpBuildPrompt: (opts) => ipcRenderer.invoke('hwp-build-prompt', opts),
+
+  // 학교폭력 공문·서식
+  svList: () => ipcRenderer.invoke('sv-list'),
+  svModel: (id, ops) => ipcRenderer.invoke('sv-model', id, ops),
+  svRowOp: (id, ops, op) => ipcRenderer.invoke('sv-row-op', id, ops, op),
+  svSearchText: () => ipcRenderer.invoke('sv-search-text'),
+  svSave: (job) => ipcRenderer.invoke('sv-save', job),
+  svSaveMany: (jobs, folderName) => ipcRenderer.invoke('sv-save-many', jobs, folderName),
 });
